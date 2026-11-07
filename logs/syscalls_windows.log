@@ -1,0 +1,23 @@
+[22:17:42.949] CreateFile("file_io_demo.txt") -> OK
+[22:17:42.950] WriteFile("file_io_demo.txt") -> OK
+[22:17:42.951] CloseHandle("file_io_demo.txt") -> OK
+[22:17:42.963] CreateFile("file_io_demo.txt") -> OK
+[22:17:42.964] ReadFile("file_io_demo.txt") -> OK
+[22:17:42.965] CloseHandle("file_io_demo.txt") -> OK
+[22:17:42.978] VerifyContent("file_io_demo.txt") -> OK
+[22:17:42.981] CreateFile("file_io_does_not_exist.txt") -> FAILED, error 2: The system cannot find the file specified.
+[22:17:42.983] DeleteFile("file_io_demo.txt") -> OK
+[22:17:42.995] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:42.997] WriteFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:42.998] CloseHandle_setup("file_io_bench_read.tmp") -> OK
+[22:17:43.064] CreateFile_setup("file_io_bench_write.tmp") -> OK
+[22:17:43.076] CloseHandle_teardown("file_io_bench_write.tmp") -> OK
+[22:17:43.097] CreateFile_setup("file_io_bench_write.tmp") -> OK
+[22:17:43.186] CloseHandle_teardown("file_io_bench_write.tmp") -> OK
+[22:17:43.195] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:43.205] CloseHandle_teardown("file_io_bench_read.tmp") -> OK
+[22:17:43.214] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:43.304] CloseHandle_teardown("file_io_bench_read.tmp") -> OK
+[22:17:43.351] CreateFile_setup("file_io_bench_read.tmp x1050") -> OK
+[22:17:43.374] DeleteFile("file_io_bench_read.tmp") -> OK
+[22:17:43.376] DeleteFile("file_io_bench_write.tmp") -> OK

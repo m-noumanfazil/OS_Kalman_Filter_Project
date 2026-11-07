@@ -1,0 +1,117 @@
+Console output is also being saved to Windows/File_IO/File_IO_Windows.txt
+=== Windows File I/O: demo + benchmarks ===
+
+---------- PART 1: DEMO (logged, not timed) ----------
+[22:17:42.949] CreateFile("file_io_demo.txt") -> OK
+[22:17:42.950] WriteFile("file_io_demo.txt") -> OK
+[22:17:42.951] CloseHandle("file_io_demo.txt") -> OK
+[22:17:42.963] CreateFile("file_io_demo.txt") -> OK
+[22:17:42.964] ReadFile("file_io_demo.txt") -> OK
+[22:17:42.965] CloseHandle("file_io_demo.txt") -> OK
+Verification PASSED: 78 bytes read back and identical to what was written.
+[22:17:42.978] VerifyContent("file_io_demo.txt") -> OK
+Opening a file that does not exist (this FAILURE is expected):
+[22:17:42.981] CreateFile("file_io_does_not_exist.txt") -> FAILED, error 2: The system cannot find the file specified.
+[22:17:42.983] DeleteFile("file_io_demo.txt") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+[22:17:42.995] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:42.997] WriteFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:42.998] CloseHandle_setup("file_io_bench_read.tmp") -> OK
+==== CreateFile ====
+Iterations    : 1000
+Min           : 18.600 us
+Median        : 19.650 us
+Mean          : 24.025 us
+Max           : 109.200 us
+Std dev       : 11.298 us
+CPU (total)   : 46875.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 46.875 us
+CPU cycles    : 91988738
+Cycles/call   : 91988.738
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[22:17:43.064] CreateFile_setup("file_io_bench_write.tmp") -> OK
+[22:17:43.076] CloseHandle_teardown("file_io_bench_write.tmp") -> OK
+==== WriteFile_4KB ====
+Iterations    : 1000
+Min           : 4.200 us
+Median        : 5.400 us
+Mean          : 6.806 us
+Max           : 271.700 us
+Std dev       : 9.689 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 22537770
+Cycles/call   : 22537.770
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[22:17:43.097] CreateFile_setup("file_io_bench_write.tmp") -> OK
+[22:17:43.186] CloseHandle_teardown("file_io_bench_write.tmp") -> OK
+==== WriteFile_1MB ====
+Iterations    : 1000
+Min           : 53.300 us
+Median        : 55.400 us
+Mean          : 75.456 us
+Max           : 468.000 us
+Std dev       : 45.571 us
+CPU (total)   : 78125.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 78.125 us
+CPU cycles    : 199096206
+Cycles/call   : 199096.206
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[22:17:43.195] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:43.205] CloseHandle_teardown("file_io_bench_read.tmp") -> OK
+==== ReadFile_4KB ====
+Iterations    : 1000
+Min           : 3.900 us
+Median        : 5.350 us
+Mean          : 6.158 us
+Max           : 84.300 us
+Std dev       : 4.452 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 21269840
+Cycles/call   : 21269.840
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[22:17:43.214] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[22:17:43.304] CloseHandle_teardown("file_io_bench_read.tmp") -> OK
+==== ReadFile_1MB ====
+Iterations    : 1000
+Min           : 50.200 us
+Median        : 53.500 us
+Mean          : 69.518 us
+Max           : 503.700 us
+Std dev       : 41.229 us
+CPU (total)   : 62500.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 62.500 us
+CPU cycles    : 183891708
+Cycles/call   : 183891.708
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[22:17:43.351] CreateFile_setup("file_io_bench_read.tmp x1050") -> OK
+==== CloseHandle ====
+Iterations    : 1000
+Min           : 7.900 us
+Median        : 8.900 us
+Mean          : 10.511 us
+Max           : 162.400 us
+Std dev       : 7.924 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 27445516
+Cycles/call   : 27445.516
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[22:17:43.374] DeleteFile("file_io_bench_read.tmp") -> OK
+[22:17:43.376] DeleteFile("file_io_bench_write.tmp") -> OK
+
+All done. Results appended to results/Windows/windows_results.csv
