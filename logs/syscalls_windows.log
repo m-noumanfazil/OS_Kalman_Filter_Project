@@ -102,3 +102,56 @@
 [20:49:40.450] MapViewOfFile_setup("64 KB x 1050") -> OK
 [20:49:40.459] CloseHandle_teardown("mapping handle") -> OK
 [20:49:40.464] GetProcessHandleCount("after Part 2") -> OK
+[21:14:13.646] CreateFile("permissions_test.txt") -> OK
+[21:14:13.647] WriteFile("permissions_test.txt") -> OK
+[21:14:13.647] CloseHandle("permissions_test.txt") -> OK
+[21:14:13.649] GetFileSecurity("save original DACL") -> OK
+[21:14:13.651] ConvertSecurityDescriptorToString("Original DACL") -> OK
+[21:14:13.653] ConvertStringSecurityDescriptorToSecurityDescriptor("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[21:14:13.654] SetFileSecurity("apply DENY write DACL") -> OK
+[21:14:13.655] GetFileSecurity("read DACL after deny") -> OK
+[21:14:13.656] ConvertSecurityDescriptorToString("DACL after SetFileSecurity (deny write)") -> OK
+[21:14:13.657] CreateFile("write blocked, expected to fail") -> FAILED, error 5: Access is denied.
+[21:14:13.659] VerifyWriteBlocked("the DACL blocks writing") -> OK
+[21:14:13.667] CreateFile("read still allowed") -> OK
+[21:14:13.668] CloseHandle("permissions_test.txt") -> OK
+[21:14:13.669] VerifyReadStillAllowed("read still allowed") -> OK
+[21:14:13.671] SetFileSecurity("restore original DACL") -> OK
+[21:14:13.674] CreateFile("write allowed") -> OK
+[21:14:13.676] CloseHandle("permissions_test.txt") -> OK
+[21:14:13.678] VerifyWriteAllowedAgain("writing works again after the restore") -> OK
+[21:14:13.679] SetFileAttributes("read-only on") -> OK
+[21:14:13.680] CreateFile("write blocked, expected to fail") -> FAILED, error 5: Access is denied.
+[21:14:13.681] VerifyReadOnlyBlocksWrite("the read-only flag blocks writing") -> OK
+[21:14:13.682] SetFileAttributes("read-only off") -> OK
+[21:14:13.683] CreateFile("write allowed") -> OK
+[21:14:13.683] CloseHandle("permissions_test.txt") -> OK
+[21:14:13.684] VerifyWriteAfterClearingReadOnly("writing works after clearing read-only") -> OK
+[21:14:13.685] ConvertStringSecurityDescriptorToSecurityDescriptor("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[21:14:13.686] SetFileSecurity("permissions_does_not_exist.txt, expected to fail") -> FAILED, error 2: The system cannot find the file specified.
+[21:14:13.687] SetFileSecurity_restore("restore original DACL") -> OK
+[21:14:13.688] SetFileAttributes_restore("clear read-only") -> OK
+[21:14:13.689] DeleteFile("permissions_test.txt") -> OK
+[21:14:13.694] GetProcessHandleCount("before Part 2") -> OK
+[21:14:13.697] CreateFile_setup("permissions_test.txt") -> OK
+[21:14:13.698] WriteFile_setup("permissions_test.txt") -> OK
+[21:14:13.699] CloseHandle_setup("permissions_test.txt") -> OK
+[21:14:13.702] GetFileSecurity_setup("save original DACL") -> OK
+[21:14:13.703] ConvertStringSecurityDescriptorToSecurityDescriptor_setup("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[21:14:14.010] SetFileSecurity_restore("restore original DACL") -> OK
+[21:14:14.011] SetFileAttributes_restore("clear read-only") -> OK
+[21:14:14.016] CreateFile_setup("permissions_test.txt") -> OK
+[21:14:14.018] WriteFile_setup("permissions_test.txt") -> OK
+[21:14:14.019] CloseHandle_setup("permissions_test.txt") -> OK
+[21:14:14.020] GetFileSecurity_setup("save original DACL") -> OK
+[21:14:14.071] SetFileSecurity_restore("restore original DACL") -> OK
+[21:14:14.072] SetFileAttributes_restore("clear read-only") -> OK
+[21:14:14.077] CreateFile_setup("permissions_test.txt") -> OK
+[21:14:14.079] WriteFile_setup("permissions_test.txt") -> OK
+[21:14:14.081] CloseHandle_setup("permissions_test.txt") -> OK
+[21:14:14.083] GetFileSecurity_setup("save original DACL") -> OK
+[21:14:14.606] SetFileSecurity_restore("restore original DACL") -> OK
+[21:14:14.607] SetFileAttributes_restore("clear read-only") -> OK
+[21:14:14.616] SetFileAttributes_restore("clear read-only") -> OK
+[21:14:14.616] DeleteFile("permissions_test.txt") -> OK
+[21:14:14.617] GetProcessHandleCount("after Part 2") -> OK
