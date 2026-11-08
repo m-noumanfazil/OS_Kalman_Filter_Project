@@ -1,0 +1,135 @@
+Console output is also being saved to Windows/Memory/Memory_Windows.txt
+=== Windows Memory: demo + benchmarks ===
+
+---------- PART 1: DEMO (logged, not timed) ----------
+[20:15:43.025] GetSystemInfo("page size and allocation granularity") -> OK
+Page size              : 4096 bytes (4 KB)
+Allocation granularity : 65536 bytes (64 KB)
+Windows RESERVES address space in allocation-granularity units (normally 64 KB)
+but COMMITS memory in page units (normally 4 KB). So a reserved range always
+starts on a 64 KB boundary, and even a 4 KB request uses a 64 KB address range.
+
+-- Reserve, then commit, a 1 MB block --
+[20:15:43.026] VirtualAlloc("reserve 1 MB, PAGE_NOACCESS") -> OK
+[20:15:43.027] VirtualAlloc("commit 1 MB, PAGE_READWRITE") -> OK
+Verification PASSED: 1048576 bytes written, read back and identical.
+[20:15:43.056] VerifyContent("1 MB block") -> OK
+Releasing base + 4096 (this FAILURE is expected, error 487):
+[20:15:43.058] VirtualFree("base+4096, expected to fail") -> FAILED, error 487: Attempt to access invalid address.
+[20:15:43.061] VirtualFree("release 1 MB block") -> OK
+
+-- One-call VirtualAlloc (MEM_RESERVE | MEM_COMMIT), 64 KB --
+[20:15:43.062] VirtualAlloc("reserve+commit 64 KB in one call") -> OK
+Verification PASSED: 65536 bytes written, read back and identical.
+[20:15:43.066] VerifyContent("64 KB block") -> OK
+[20:15:43.067] VirtualFree("release 64 KB block") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+==== VirtualAlloc_4KB ====
+Iterations    : 1000
+Min           : 1.900 us
+Median        : 2.000 us
+Mean          : 2.376 us
+Max           : 21.100 us
+Std dev       : 1.959 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 12786804
+Cycles/call   : 12786.804
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+==== VirtualAlloc_64KB ====
+Iterations    : 1000
+Min           : 1.800 us
+Median        : 2.100 us
+Mean          : 2.986 us
+Max           : 366.000 us
+Std dev       : 11.735 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 15186022
+Cycles/call   : 15186.022
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+==== VirtualAlloc_1MB ====
+Iterations    : 1000
+Min           : 2.000 us
+Median        : 2.900 us
+Mean          : 4.021 us
+Max           : 454.800 us
+Std dev       : 15.587 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 23803370
+Cycles/call   : 23803.370
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:15:43.125] VirtualAlloc_setup("64 KB x 1050") -> OK
+[20:15:43.187] VirtualFree_teardown("1050 block(s)") -> OK
+==== FirstTouch_64KB ====
+Iterations    : 1000
+Min           : 27.800 us
+Median        : 35.150 us
+Mean          : 44.323 us
+Max           : 152.300 us
+Std dev       : 20.969 us
+CPU (total)   : 46875.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 46.875 us
+CPU cycles    : 115266880
+Cycles/call   : 115266.880
+Memory delta  : 64004.000 KB
+Page faults   : 16033
+
+[20:15:43.196] VirtualAlloc_setup("4 KB x 1050") -> OK
+[20:15:43.202] VirtualFree_teardown("0 block(s)") -> OK
+==== VirtualFree_4KB ====
+Iterations    : 1000
+Min           : 2.700 us
+Median        : 3.800 us
+Mean          : 4.148 us
+Max           : 75.700 us
+Std dev       : 3.691 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 10912362
+Cycles/call   : 10912.362
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:15:43.211] VirtualAlloc_setup("64 KB x 1050") -> OK
+[20:15:43.217] VirtualFree_teardown("0 block(s)") -> OK
+==== VirtualFree_64KB ====
+Iterations    : 1000
+Min           : 3.000 us
+Median        : 3.900 us
+Mean          : 4.738 us
+Max           : 47.900 us
+Std dev       : 3.721 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 12672314
+Cycles/call   : 12672.314
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:15:43.225] VirtualAlloc_setup("64 KB x 1050") -> OK
+[20:15:43.294] VirtualFree_teardown("0 block(s)") -> OK
+==== VirtualFree_64KB_touched ====
+Iterations    : 1000
+Min           : 9.400 us
+Median        : 10.800 us
+Mean          : 12.149 us
+Max           : 57.300 us
+Std dev       : 4.667 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 31785388
+Cycles/call   : 31785.388
+Memory delta  : -63996.000 KB
+Page faults   : 1
+
+
+All done. Results appended to results/Windows/windows_results.csv

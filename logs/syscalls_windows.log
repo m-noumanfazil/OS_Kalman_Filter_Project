@@ -21,3 +21,20 @@
 [22:17:43.351] CreateFile_setup("file_io_bench_read.tmp x1050") -> OK
 [22:17:43.374] DeleteFile("file_io_bench_read.tmp") -> OK
 [22:17:43.376] DeleteFile("file_io_bench_write.tmp") -> OK
+[20:15:43.025] GetSystemInfo("page size and allocation granularity") -> OK
+[20:15:43.026] VirtualAlloc("reserve 1 MB, PAGE_NOACCESS") -> OK
+[20:15:43.027] VirtualAlloc("commit 1 MB, PAGE_READWRITE") -> OK
+[20:15:43.056] VerifyContent("1 MB block") -> OK
+[20:15:43.058] VirtualFree("base+4096, expected to fail") -> FAILED, error 487: Attempt to access invalid address.
+[20:15:43.061] VirtualFree("release 1 MB block") -> OK
+[20:15:43.062] VirtualAlloc("reserve+commit 64 KB in one call") -> OK
+[20:15:43.066] VerifyContent("64 KB block") -> OK
+[20:15:43.067] VirtualFree("release 64 KB block") -> OK
+[20:15:43.125] VirtualAlloc_setup("64 KB x 1050") -> OK
+[20:15:43.187] VirtualFree_teardown("1050 block(s)") -> OK
+[20:15:43.196] VirtualAlloc_setup("4 KB x 1050") -> OK
+[20:15:43.202] VirtualFree_teardown("0 block(s)") -> OK
+[20:15:43.211] VirtualAlloc_setup("64 KB x 1050") -> OK
+[20:15:43.217] VirtualFree_teardown("0 block(s)") -> OK
+[20:15:43.225] VirtualAlloc_setup("64 KB x 1050") -> OK
+[20:15:43.294] VirtualFree_teardown("0 block(s)") -> OK
