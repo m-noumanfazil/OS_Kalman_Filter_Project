@@ -38,3 +38,23 @@
 [20:15:43.217] VirtualFree_teardown("0 block(s)") -> OK
 [20:15:43.225] VirtualAlloc_setup("64 KB x 1050") -> OK
 [20:15:43.294] VirtualFree_teardown("0 block(s)") -> OK
+[20:31:02.634] GetModuleFileName("path of this exe") -> OK
+[20:31:02.643] CreateProcess("--child 42") -> OK
+[20:31:02.660] WaitForSingleObject("--child 42") -> OK
+[20:31:02.660] GetExitCodeProcess("--child 42") -> OK
+[20:31:02.661] VerifyExitCode("--child 42") -> OK
+[20:31:02.662] GetProcessTimes("--child 42") -> OK
+[20:31:02.663] CloseHandle("thread handle, --child 42") -> OK
+[20:31:02.664] CloseHandle("process handle, --child 42") -> OK
+[20:31:02.677] CreateProcess("--child 7") -> OK
+[20:31:02.695] WaitForSingleObject("--child 7") -> OK
+[20:31:02.695] GetExitCodeProcess("--child 7") -> OK
+[20:31:02.696] VerifyExitCode("--child 7") -> OK
+[20:31:02.697] GetProcessTimes("--child 7") -> OK
+[20:31:02.698] CloseHandle("thread handle, --child 7") -> OK
+[20:31:02.699] CloseHandle("process handle, --child 7") -> OK
+[20:31:02.705] CreateProcess("C:\this_program_does_not_exist.exe, expected to fail") -> FAILED, error 2: The system cannot find the file specified.
+[20:31:02.707] GetProcessHandleCount("before Part 2") -> OK
+[20:31:05.994] CreateProcess_setup("--child 0 x210") -> OK
+[20:31:06.033] WaitForSingleObject_setup("--child 0 x210") -> OK
+[20:31:08.293] GetProcessHandleCount("after Part 2") -> OK
