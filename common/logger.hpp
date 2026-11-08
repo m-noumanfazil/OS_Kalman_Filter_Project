@@ -8,7 +8,7 @@
 #define LOGGER_HPP
 
 #ifndef NOMINMAX
-#define NOMINMAX            // keeps std::min / std::max working
+#define NOMINMAX            // keeps min / max working
 #endif
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN // smaller windows.h, fewer name clashes
@@ -20,6 +20,8 @@
 #include <iostream>
 #include <string>
 
+using namespace std;
+
 namespace logger {
 
 namespace detail {
@@ -27,7 +29,7 @@ namespace detail {
 // Holds the log path and whether init() has already run.
 // A function-local static avoids needing a global variable defined in a .cpp.
 struct State {
-    std::string path = "logs/syscalls_windows.log";
+    string path = "logs/syscalls_windows.log";
     bool ready = false;
 };
 
@@ -38,10 +40,10 @@ inline State& state() {
 
 // Creates every folder in the path of a file, e.g. "logs/x.log" creates "logs".
 // Errors are ignored on purpose: "already exists" is the normal case.
-inline void createParentFolders(const std::string& filePath) {
+inline void createParentFolders(const string& filePath) {
     for (size_t i = 0; i < filePath.size(); ++i) {
         if (filePath[i] == '/' || filePath[i] == '\\') {
-            std::string folder = filePath.substr(0, i);
+            string folder = filePath.substr(0, i);
             if (!folder.empty() && folder.back() != ':') {   // skip "C:"
                 CreateDirectoryA(folder.c_str(), nullptr);
             }
@@ -50,17 +52,17 @@ inline void createParentFolders(const std::string& filePath) {
 }
 
 // Current local time as HH:MM:SS.mmm
-inline std::string timestampNow() {
+inline string timestampNow() {
     SYSTEMTIME t;
     GetLocalTime(&t);
     char buffer[16];
-    std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d.%03d",
+    snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d.%03d",
                   t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
     return buffer;
 }
 
 // Turns a Windows error code into text and removes the trailing "\r\n".
-inline std::string errorText(DWORD code) {
+inline string errorText(DWORD code) {
     char buffer[512];
     DWORD length = FormatMessageA(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -69,7 +71,7 @@ inline std::string errorText(DWORD code) {
     if (length == 0) {
         return "Unknown error";
     }
-    std::string text(buffer, length);
+    string text(buffer, length);
     while (!text.empty() &&
            (text.back() == '\r' || text.back() == '\n' || text.back() == ' ')) {
         text.pop_back();
@@ -81,7 +83,7 @@ inline std::string errorText(DWORD code) {
 
 // Sets the log file path and creates its folder. Calling it is optional:
 // if you never call it, the first log call uses the default path.
-inline void init(const std::string& logFilePath = "logs/syscalls_windows.log") {
+inline void init(const string& logFilePath = "logs/syscalls_windows.log") {
     detail::state().path = logFilePath;
     detail::createParentFolders(logFilePath);
     detail::state().ready = true;
@@ -96,11 +98,11 @@ inline void logSyscall(const char* callName, bool success, const char* detail = 
 
     detail::State& st = detail::state();
     if (!st.ready) {
-        std::string path = st.path;
+        string path = st.path;
         init(path);
     }
 
-    std::string line = "[" + detail::timestampNow() + "] ";
+    string line = "[" + detail::timestampNow() + "] ";
     line += callName;
     line += "(";
     if (detail != nullptr && detail[0] != '\0') {
@@ -113,21 +115,21 @@ inline void logSyscall(const char* callName, bool success, const char* detail = 
     if (success) {
         line += "OK";
     } else {
-        line += "FAILED, error " + std::to_string(errorCode) + ": " +
+        line += "FAILED, error " + to_string(errorCode) + ": " +
                 detail::errorText(errorCode);
     }
 
     // Console
-    std::cout << line << std::endl;   // endl flushes
+    cout << line << endl;   // endl flushes
 
     // File: opened in append mode for every line, written in one piece and
     // flushed, so several processes can share the same log file.
-    std::ofstream file(st.path, std::ios::app);
+    ofstream file(st.path, ios::app);
     if (file) {
         file << (line + "\n");
         file.flush();
     } else {
-        std::cerr << "logger: cannot open log file " << st.path << std::endl;
+        cerr << "logger: cannot open log file " << st.path << endl;
     }
 
     SetLastError(errorCode);   // give the caller back the error it had

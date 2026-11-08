@@ -27,6 +27,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+using namespace std;
 
 namespace metrics {
 
@@ -63,10 +64,10 @@ inline unsigned long long filetimeTo100ns(const FILETIME& ft) {
     return value.QuadPart;
 }
 
-inline void createParentFolders(const std::string& filePath) {
+inline void createParentFolders(const string& filePath) {
     for (size_t i = 0; i < filePath.size(); ++i) {
         if (filePath[i] == '/' || filePath[i] == '\\') {
-            std::string folder = filePath.substr(0, i);
+            string folder = filePath.substr(0, i);
             if (!folder.empty() && folder.back() != ':') {
                 CreateDirectoryA(folder.c_str(), nullptr);
             }
@@ -170,7 +171,7 @@ private:
 // ---------- Benchmark ----------
 
 struct Stats {
-    std::string callName;
+    string callName;
     int iterations = 0;
     double minUs = 0.0;
     double maxUs = 0.0;
@@ -188,8 +189,8 @@ struct Stats {
 // Turns the list of per-iteration times into min/max/mean/median/stddev and
 // carries the loop-level CPU, cycle, memory and page fault numbers through.
 // totalCpuCycles has a default of 0, so older calls with 5 arguments still work.
-inline Stats computeStats(const std::string& callName,
-                          const std::vector<double>& timesUs,
+inline Stats computeStats(const string& callName,
+                          const vector<double>& timesUs,
                           double totalCpuUs, double memDeltaKb, long long pageFaults,
                           unsigned long long totalCpuCycles = 0) {
     Stats s;
@@ -204,16 +205,16 @@ inline Stats computeStats(const std::string& callName,
     }
 
     const size_t n = timesUs.size();
-    s.minUs = *std::min_element(timesUs.begin(), timesUs.end());
-    s.maxUs = *std::max_element(timesUs.begin(), timesUs.end());
+    s.minUs = *min_element(timesUs.begin(), timesUs.end());
+    s.maxUs = *max_element(timesUs.begin(), timesUs.end());
 
     double sum = 0.0;
     for (size_t i = 0; i < n; ++i) sum += timesUs[i];
     s.meanUs = sum / static_cast<double>(n);
 
     // Median: middle value of the sorted list (average of two if N is even).
-    std::vector<double> sorted = timesUs;
-    std::sort(sorted.begin(), sorted.end());
+    vector<double> sorted = timesUs;
+    sort(sorted.begin(), sorted.end());
     size_t middle = n / 2;
     s.medianUs = (n % 2 == 1) ? sorted[middle]
                               : (sorted[middle - 1] + sorted[middle]) / 2.0;
@@ -225,7 +226,7 @@ inline Stats computeStats(const std::string& callName,
             double diff = timesUs[i] - s.meanUs;
             squares += diff * diff;
         }
-        s.stddevUs = std::sqrt(squares / static_cast<double>(n - 1));
+        s.stddevUs = sqrt(squares / static_cast<double>(n - 1));
     }
 
     // Per-call averages of the loop-level CPU numbers.
@@ -246,11 +247,11 @@ inline Stats computeStats(const std::string& callName,
 //    are measured around the WHOLE loop, so they INCLUDE the optional cleanup
 //    callable and the timer overhead (the QueryPerformanceCounter calls and
 //    the vector push_back). Do not compare them directly with the mean time.
-inline Stats benchmark(const std::string& callName,
-                       const std::function<void()>& action,
+inline Stats benchmark(const string& callName,
+                       const function<void()>& action,
                        int iterations = 1000,
                        int warmupCount = 50,
-                       const std::function<void()>& cleanup = nullptr) {
+                       const function<void()>& cleanup = nullptr) {
     if (iterations < 1) iterations = 1;
 
     // Warm-up: fills caches and lets Windows do first-time work.
@@ -259,7 +260,7 @@ inline Stats benchmark(const std::string& callName,
         if (cleanup) cleanup();
     }
 
-    std::vector<double> timesUs;
+    vector<double> timesUs;
     timesUs.reserve(iterations);
 
     double cpuBeforeUs = processCpuMicroseconds();
@@ -290,8 +291,8 @@ inline Stats benchmark(const std::string& callName,
 // ---------- Output ----------
 
 inline void printStats(const Stats& s) {
-    std::cout << std::fixed << std::setprecision(3);
-    std::cout << "==== " << s.callName << " ====\n"
+    cout << fixed << setprecision(3);
+    cout << "==== " << s.callName << " ====\n"
               << "Iterations    : " << s.iterations << "\n"
               << "Min           : " << s.minUs << " us\n"
               << "Median        : " << s.medianUs << " us\n"
@@ -304,32 +305,32 @@ inline void printStats(const Stats& s) {
               << "Cycles/call   : " << s.cyclesPerCall << "\n"
               << "Memory delta  : " << s.memDeltaKb << " KB\n"
               << "Page faults   : " << s.pageFaults << "\n"
-              << std::endl;
+              << endl;
 }
 
 // Appends one row to the CSV file. Call names must not contain commas.
 // Returns false if the file could not be opened, or if it already exists with
 // an old/different header (appending would mix up the columns).
 inline bool appendStatsToCsv(const Stats& s,
-                             const std::string& csvPath = "results/Windows/windows_results.csv") {
+                             const string& csvPath = "results/Windows/windows_results.csv") {
     detail::createParentFolders(csvPath);
 
     // Look at the first line of an existing file. If the file is missing or
     // empty we write the header; if it has a different header we refuse.
     bool needHeader = true;
     {
-        std::ifstream check(csvPath);
+        ifstream check(csvPath);
         if (check.is_open()) {
-            std::string firstLine;
-            if (std::getline(check, firstLine)) {
+            string firstLine;
+            if (getline(check, firstLine)) {
                 if (!firstLine.empty() && firstLine.back() == '\r') {
                     firstLine.pop_back();   // file may have Windows line endings
                 }
                 if (firstLine != detail::csvHeader()) {
-                    std::cerr << "metrics: WARNING - " << csvPath
+                    cerr << "metrics: WARNING - " << csvPath
                               << " has an old or different header, so nothing was written.\n"
                               << "         Please delete or rename that file and run again."
-                              << std::endl;
+                              << endl;
                     return false;
                 }
                 needHeader = false;
@@ -337,16 +338,16 @@ inline bool appendStatsToCsv(const Stats& s,
         }
     }   // the read stream is closed here, before we open the file for writing
 
-    std::ofstream out(csvPath, std::ios::app);
+    ofstream out(csvPath, ios::app);
     if (!out) {
-        std::cerr << "metrics: cannot open " << csvPath << std::endl;
+        cerr << "metrics: cannot open " << csvPath << endl;
         return false;
     }
 
     if (needHeader) {
         out << detail::csvHeader() << "\n";
     }
-    out << std::fixed << std::setprecision(3)
+    out << fixed << setprecision(3)
         << s.callName << "," << s.iterations << ","
         << s.minUs << "," << s.medianUs << "," << s.meanUs << "," << s.maxUs << ","
         << s.stddevUs << "," << s.totalCpuUs << "," << s.cpuPerCallUs << ","

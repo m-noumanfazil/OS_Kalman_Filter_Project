@@ -15,7 +15,7 @@
 //           Windows/File_IO/File_IO_Windows.txt (overwritten on every run).
 //
 // Compile and run from the REPOSITORY ROOT:
-//   g++ -std=c++17 Windows\File_IO\File_IO_Windows.cpp -o Windows\File_IO\file_io.exe -lpsapi
+//   g++ -++17 Windows\File_IO\File_IO_Windows.cpp -o Windows\File_IO\file_io.exe -lpsapi
 //   Windows\File_IO\file_io.exe
 //
 // Exit codes: 0 = everything OK, 1 = demo failed, 2 = a benchmark had problems.
@@ -38,7 +38,7 @@
 #include <streambuf>
 #include <string>
 #include <vector>
-
+using namespace std;
 // ----------------------------- Settings --------------------------------------
 
 // Test files are created in the current folder (the repository root) and
@@ -57,11 +57,11 @@ const DWORD kSize1MB    = 1024 * 1024;
 // ----------------------------- Tee stream buffer (PART 3) --------------------
 
 // Sends every character to two stream buffers: the original console buffer
-// and the text file. Installed into std::cout so that all normal output,
+// and the text file. Installed into cout so that all normal output,
 // including the logger's lines, is copied to the file automatically.
-class TeeBuffer : public std::streambuf {
+class TeeBuffer : public streambuf {
 public:
-    TeeBuffer(std::streambuf* first, std::streambuf* second)
+    TeeBuffer(streambuf* first, streambuf* second)
         : first_(first), second_(second) {}
 
 protected:
@@ -82,13 +82,13 @@ protected:
     }
 
     // Called for whole strings; faster than going character by character.
-    std::streamsize xsputn(const char_type* text, std::streamsize count) override {
-        std::streamsize written1 = first_->sputn(text, count);
-        std::streamsize written2 = second_->sputn(text, count);
-        return std::min(written1, written2);
+    streamsize xsputn(const char_type* text, streamsize count) override {
+        streamsize written1 = first_->sputn(text, count);
+        streamsize written2 = second_->sputn(text, count);
+        return min(written1, written2);
     }
 
-    // std::endl and flush() end up here: flush both destinations.
+    // endl and flush() end up here: flush both destinations.
     int sync() override {
         int r1 = first_->pubsync();
         int r2 = second_->pubsync();
@@ -96,16 +96,16 @@ protected:
     }
 
 private:
-    std::streambuf* first_;
-    std::streambuf* second_;
+    streambuf* first_;
+    streambuf* second_;
 };
 
 // ----------------------------- Small helpers ---------------------------------
 
 // Deterministic test data: A-Z repeated. Same bytes on every run, so results
 // are reproducible and a read-back can be compared byte by byte.
-std::vector<char> buildTestData(size_t size) {
-    std::vector<char> data(size);
+vector<char> buildTe(size_t size) {
+    vector<char> data(size);
     for (size_t i = 0; i < size; ++i) {
         data[i] = static_cast<char>('A' + (i % 26));
     }
@@ -158,10 +158,10 @@ bool finishBenchmark(const metrics::Stats& stats, const FailureTracker& failures
     metrics::printStats(stats);
 
     if (failures.count > 0) {
-        std::string logName = stats.callName + " benchmark";
-        std::string detail = std::to_string(failures.count) +
+        string logName = stats.callName + " benchmark";
+        string detail = to_string(failures.count) +
                              " failed call(s) in warm-up + timed loop";
-        std::cout << "!!! WARNING: " << stats.callName << " had " << failures.count
+        cout << "!!! WARNING: " << stats.callName << " had " << failures.count
                   << " failed call(s). Results are NOT valid and were NOT saved to the CSV.\n";
         // Printing may have changed the last error, so restore the saved one
         // right before logging.
@@ -171,7 +171,7 @@ bool finishBenchmark(const metrics::Stats& stats, const FailureTracker& failures
     }
 
     if (!metrics::appendStatsToCsv(stats)) {
-        std::cout << "!!! WARNING: CSV row for " << stats.callName << " was NOT saved.\n";
+        cout << "!!! WARNING: CSV row for " << stats.callName << " was NOT saved.\n";
         return false;
     }
     return true;
@@ -180,7 +180,7 @@ bool finishBenchmark(const metrics::Stats& stats, const FailureTracker& failures
 // Creates a 1 MB file of test data. The read benchmarks and the CreateFile /
 // CloseHandle benchmarks need an existing file with enough content.
 bool createReadTestFile() {
-    std::vector<char> data = buildTestData(kSize1MB);
+    vector<char> data = buildTe(kSize1MB);
 
     HANDLE handle = CreateFileA(kReadTestFile, GENERIC_WRITE, 0, nullptr,
                                 CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -205,9 +205,9 @@ bool createReadTestFile() {
 // Logged walk-through of the five calls. Returns true if everything worked and
 // the data read back is identical to the data written.
 bool runDemo() {
-    std::cout << "---------- PART 1: DEMO (logged, not timed) ----------\n";
+    cout << "---------- PART 1: DEMO (logged, not timed) ----------\n";
 
-    const std::string text =
+    const string text =
         "Hello from the Windows File I/O demo.\n"
         "Second line: operating systems project.\n";
     const DWORD textSize = static_cast<DWORD>(text.size());
@@ -234,7 +234,7 @@ bool runDemo() {
     }
 
     // 4. Reopen read-only and read the content back.
-    std::vector<char> readBuffer(textSize);
+    vector<char> readBuffer(textSize);
     handle = CreateFileA(kDemoFile, GENERIC_READ, FILE_SHARE_READ, nullptr,
                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     LOG_SYSCALL("CreateFile", handle != INVALID_HANDLE_VALUE, kDemoFile);
@@ -255,13 +255,13 @@ bool runDemo() {
     }
 
     // Verification: the bytes read must equal the bytes written.
-    bool contentMatches = (std::memcmp(readBuffer.data(), text.data(), textSize) == 0);
+    bool contentMatches = (memcmp(readBuffer.data(), text.data(), textSize) == 0);
     if (contentMatches) {
-        std::cout << "Verification PASSED: " << bytesRead
+        cout << "Verification PASSED: " << bytesRead
                   << " bytes read back and identical to what was written.\n";
         LOG_SYSCALL("VerifyContent", true, kDemoFile);
     } else {
-        std::cout << "Verification FAILED: data read back differs from data written.\n";
+        cout << "Verification FAILED: data read back differs from data written.\n";
         // The logger has no plain-message function, so we log the verification
         // as a pseudo call and give it a meaningful error code first.
         SetLastError(ERROR_INVALID_DATA);
@@ -270,7 +270,7 @@ bool runDemo() {
 
     // 6. Deliberate failure: this file does not exist, so the log must show
     //    one FAILED line with error 2 (file not found).
-    std::cout << "Opening a file that does not exist (this FAILURE is expected):\n";
+    cout << "Opening a file that does not exist (this FAILURE is expected):\n";
     HANDLE missing = CreateFileA(kMissingFile, GENERIC_READ, FILE_SHARE_READ, nullptr,
                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     LOG_SYSCALL("CreateFile", missing != INVALID_HANDLE_VALUE, kMissingFile);
@@ -292,7 +292,7 @@ bool runDemo() {
 //      disk later. These results do not include disk speed.
 //  (3) CPU columns (cpu_us, cpu_per_call_us, cpu_cycles, cycles_per_call) are
 //      measured around the WHOLE loop, so they include the cleanup call and the
-//      timer overhead. Only min/median/mean/max/stddev cover the action alone.
+//      timer overhead. Only min/median/mean/max/ cover the action alone.
 //  (4) The lambdas do not log. They only count failures (one compare and branch,
 //      which is negligible compared with a system call).
 //  (5) The warm-up runs the lambdas too, so failures there are counted as well.
@@ -327,7 +327,7 @@ bool benchmarkCreateFile() {
 // Benchmark: writing `size` bytes to a file that is opened once.
 bool benchmarkWriteFile(const char* callName, DWORD size) {
     FailureTracker failures;
-    std::vector<char> buffer = buildTestData(size);
+    vector<char> buffer = buildTe(size);
 
     HANDLE handle = CreateFileA(kWriteTestFile, GENERIC_WRITE, 0, nullptr,
                                 CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -369,7 +369,7 @@ bool benchmarkWriteFile(const char* callName, DWORD size) {
 // Benchmark: reading `size` bytes from a file that already holds 1 MB.
 bool benchmarkReadFile(const char* callName, DWORD size) {
     FailureTracker failures;
-    std::vector<char> buffer(size);
+    vector<char> buffer(size);
 
     HANDLE handle = CreateFileA(kReadTestFile, GENERIC_READ, FILE_SHARE_READ, nullptr,
                                 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -413,7 +413,7 @@ bool benchmarkReadFile(const char* callName, DWORD size) {
 bool benchmarkCloseHandle() {
     const int totalCalls = kWarmup + kIterations;   // the warm-up closes handles too
     FailureTracker failures;
-    std::vector<HANDLE> handles;
+    vector<HANDLE> handles;
     handles.reserve(totalCalls);
 
     // FILE_SHARE_READ | FILE_SHARE_WRITE lets many handles to one file coexist.
@@ -430,7 +430,7 @@ bool benchmarkCloseHandle() {
         }
         handles.push_back(handle);
     }
-    std::string setupDetail = std::string(kReadTestFile) + " x" + std::to_string(totalCalls);
+    string setupDetail = string(kReadTestFile) + " x" + to_string(totalCalls);
     LOG_SYSCALL("CreateFile_setup", true, setupDetail.c_str());
 
     size_t nextIndex = 0;
@@ -460,7 +460,7 @@ bool benchmarkCloseHandle() {
 
 // Runs all benchmarks. Returns how many of them had problems.
 int runAllBenchmarks() {
-    std::cout << "\n---------- PART 2: BENCHMARKS (timed, no logging inside) ----------\n";
+    cout << "\n---------- PART 2: BENCHMARKS (timed, no logging inside) ----------\n";
     int problems = 0;
 
     if (createReadTestFile()) {
@@ -471,7 +471,7 @@ int runAllBenchmarks() {
         if (!benchmarkReadFile("ReadFile_1MB", kSize1MB))   ++problems;
         if (!benchmarkCloseHandle())                      ++problems;
     } else {
-        std::cout << "Could not create the read test file, so the benchmarks were skipped.\n";
+        cout << "Could not create the read test file, so the benchmarks were skipped.\n";
         ++problems;
     }
 
@@ -485,53 +485,53 @@ int runAllBenchmarks() {
 int runAll() {
     logger::init();   // default path: logs/syscalls_windows.log
 
-    std::cout << "=== Windows File I/O: demo + benchmarks ===\n\n";
+    cout << "=== Windows File I/O: demo + benchmarks ===\n\n";
 
     bool demoPassed = runDemo();
     deleteTestFile(kDemoFile);   // clean up before deciding the exit code
     if (!demoPassed) {
-        std::cout << "\nDemo FAILED, so the benchmarks were skipped.\n";
+        cout << "\nDemo FAILED, so the benchmarks were skipped.\n";
         return 1;
     }
 
     int problems = runAllBenchmarks();
     if (problems > 0) {
-        std::cout << "\nFinished with " << problems << " benchmark problem(s). See warnings above.\n";
+        cout << "\nFinished with " << problems << " benchmark problem(s). See warnings above.\n";
         return 2;
     }
 
-    std::cout << "\nAll done. Results appended to results/Windows/windows_results.csv\n";
+    cout << "\nAll done. Results appended to results/Windows/windows_results.csv\n";
     return 0;
 }
 
 int main() {
-    // PART 3: copy everything written to std::cout into a text file as well.
-    std::ofstream transcript(kTranscriptFile, std::ios::out | std::ios::trunc);
-    std::streambuf* originalBuffer = std::cout.rdbuf();
+    // PART 3: copy everything written to cout into a text file as well.
+    ofstream transcript(kTranscriptFile, ios::out | ios::trunc);
+    streambuf* originalBuffer = cout.rdbuf();
     TeeBuffer tee(originalBuffer, transcript.rdbuf());
 
     bool teeActive = false;
     if (transcript.is_open()) {
-        std::cout.rdbuf(&tee);
+        cout.rdbuf(&tee);
         teeActive = true;
-        std::cout << "Console output is also being saved to " << kTranscriptFile << "\n";
+        cout << "Console output is also being saved to " << kTranscriptFile << "\n";
     } else {
-        std::cerr << "Warning: cannot open " << kTranscriptFile
+        cerr << "Warning: cannot open " << kTranscriptFile
                   << " (run from the repository root). Continuing without the text file.\n";
     }
 
     int exitCode = 1;
     try {
         exitCode = runAll();
-    } catch (const std::exception& error) {
-        std::cout << "Unexpected error: " << error.what() << std::endl;
+    } catch (const exception& error) {
+        cout << "Unexpected error: " << error.what() << endl;
     }
 
     // Restore the original buffer BEFORE the tee and the file are destroyed.
-    // Otherwise std::cout would point to a dead object and crash at exit.
-    std::cout.flush();
+    // Otherwise cout would point to a dead object and crash at exit.
+    cout.flush();
     if (teeActive) {
-        std::cout.rdbuf(originalBuffer);
+        cout.rdbuf(originalBuffer);
     }
     return exitCode;
 }
