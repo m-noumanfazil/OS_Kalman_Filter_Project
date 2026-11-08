@@ -1,0 +1,183 @@
+Console output is also being saved to Windows/IPC/IPC_Windows.txt
+=== Windows IPC: demo + benchmarks ===
+
+[20:49:40.131] GetModuleFileName("path of this exe") -> OK
+---------- PART 1: DEMO (logged, not timed) ----------
+Parent process id: 4768
+
+-- A. Anonymous pipe: parent writes, child reads --
+[20:49:40.132] CreatePipe("64 KB buffer, inheritable") -> OK
+[20:49:40.133] SetHandleInformation("write end: not inheritable") -> OK
+Message starts with: ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMN
+[20:49:40.134] WriteFile("4096 bytes into the pipe") -> OK
+[20:49:40.134] CloseHandle("pipe write end") -> OK
+Command line: "C:\Users\hp ZBook\Desktop\OS_Kalman_Filter_CCP\Windows\IPC\ipc.exe" --child-pipe 244 4096
+[20:49:40.142] CreateProcess("--child-pipe (4096 bytes)") -> OK
+Child process id: 14992
+[20:49:40.153] WaitForSingleObject("--child-pipe (4096 bytes)") -> OK
+[20:49:40.156] GetExitCodeProcess("--child-pipe (4096 bytes)") -> OK
+[20:49:40.157] CloseHandle("thread handle, --child-pipe (4096 bytes)") -> OK
+[20:49:40.158] CloseHandle("process handle, --child-pipe (4096 bytes)") -> OK
+[20:49:40.159] CloseHandle("pipe read end") -> OK
+Verification PASSED: the child received all 4096 bytes correctly and then saw end-of-data (exit code 0).
+[20:49:40.160] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
+
+-- B. Shared memory: parent <-> child --
+Mapping name: Local\OsKalmanShm_4768
+[20:49:40.161] CreateFileMapping("Local\OsKalmanShm_4768") -> OK
+[20:49:40.162] MapViewOfFile("whole 1 MB") -> OK
+[20:49:40.173] CreateProcess("--child-shm Local\OsKalmanShm_4768") -> OK
+Child process id: 14984
+[20:49:40.192] WaitForSingleObject("--child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.193] GetExitCodeProcess("--child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.194] CloseHandle("thread handle, --child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.194] CloseHandle("process handle, --child-shm Local\OsKalmanShm_4768") -> OK
+Verification PASSED: data travelled parent -> child (first half, 'A' pattern checked by the child) and child -> parent (second half, 'a' pattern checked here).
+[20:49:40.197] VerifySharedMemory("Local\OsKalmanShm_4768") -> OK
+[20:49:40.198] UnmapViewOfFile("whole 1 MB view") -> OK
+[20:49:40.199] CloseHandle("mapping handle") -> OK
+
+-- C. Opening a shared memory block that does not exist --
+OpenFileMapping on a missing name (this FAILURE is expected, error 2):
+[20:49:40.200] OpenFileMapping("Local\OsKalmanNoSuchMapping") -> FAILED, error 2: The system cannot find the file specified.
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+Pointer size: 8 bytes (64-bit build)
+[20:49:40.201] GetProcessHandleCount("before Part 2") -> OK
+Open handles before Part 2: 67
+==== CreatePipe ====
+Iterations    : 1000
+Min           : 8.600 us
+Median        : 13.900 us
+Mean          : 14.359 us
+Max           : 87.300 us
+Std dev       : 6.759 us
+CPU (total)   : 31250.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 31.250 us
+CPU cycles    : 58574918
+Cycles/call   : 58574.918
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:49:40.229] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.237] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.240] CloseHandle_teardown("pipe write end") -> OK
+==== PipeWrite_4KB ====
+Iterations    : 1000
+Min           : 2.100 us
+Median        : 2.500 us
+Mean          : 3.693 us
+Max           : 118.200 us
+Std dev       : 6.302 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 17693970
+Cycles/call   : 17693.970
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[20:49:40.246] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.261] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.262] CloseHandle_teardown("pipe write end") -> OK
+==== PipeWrite_64KB ====
+Iterations    : 1000
+Min           : 5.100 us
+Median        : 5.700 us
+Mean          : 7.222 us
+Max           : 110.200 us
+Std dev       : 5.924 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 34212682
+Cycles/call   : 34212.682
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:49:40.268] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.269] WriteFile_setup("fill the pipe once") -> OK
+[20:49:40.278] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.279] CloseHandle_teardown("pipe write end") -> OK
+==== PipeRead_4KB ====
+Iterations    : 1000
+Min           : 2.500 us
+Median        : 3.400 us
+Mean          : 3.840 us
+Max           : 38.900 us
+Std dev       : 2.152 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 19693976
+Cycles/call   : 19693.976
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[20:49:40.287] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.288] WriteFile_setup("fill the pipe once") -> OK
+[20:49:40.330] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.379] CloseHandle_teardown("pipe write end") -> OK
+==== PipeRead_64KB ====
+Iterations    : 1000
+Min           : 4.700 us
+Median        : 6.700 us
+Mean          : 15.168 us
+Max           : 3044.300 us
+Std dev       : 146.736 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 40790534
+Cycles/call   : 40790.534
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+==== CreateFileMapping_1MB ====
+Iterations    : 1000
+Min           : 3.600 us
+Median        : 6.800 us
+Mean          : 7.767 us
+Max           : 50.600 us
+Std dev       : 4.622 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 47456492
+Cycles/call   : 47456.492
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:49:40.430] CreateFileMapping_setup("1 MB, unnamed") -> OK
+[20:49:40.441] CloseHandle_teardown("mapping handle") -> OK
+==== MapViewOfFile_1MB ====
+Iterations    : 1000
+Min           : 2.800 us
+Median        : 3.800 us
+Mean          : 4.043 us
+Max           : 67.000 us
+Std dev       : 2.981 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 24025338
+Cycles/call   : 24025.338
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:49:40.446] CreateFileMapping_setup("1 MB, unnamed") -> OK
+[20:49:40.450] MapViewOfFile_setup("64 KB x 1050") -> OK
+[20:49:40.459] CloseHandle_teardown("mapping handle") -> OK
+==== UnmapViewOfFile_64KB ====
+Iterations    : 1000
+Min           : 3.700 us
+Median        : 4.700 us
+Mean          : 5.410 us
+Max           : 58.700 us
+Std dev       : 3.345 us
+CPU (total)   : 15625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 15.625 us
+CPU cycles    : 14425900
+Cycles/call   : 14425.900
+Memory delta  : 4.000 KB
+Page faults   : 1
+
+[20:49:40.464] GetProcessHandleCount("after Part 2") -> OK
+Open handles after Part 2 : 67
+Handle leak check PASSED.
+
+All done. Results appended to results/Windows/windows_results.csv

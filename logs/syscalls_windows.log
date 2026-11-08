@@ -58,3 +58,47 @@
 [20:31:05.994] CreateProcess_setup("--child 0 x210") -> OK
 [20:31:06.033] WaitForSingleObject_setup("--child 0 x210") -> OK
 [20:31:08.293] GetProcessHandleCount("after Part 2") -> OK
+[20:49:40.131] GetModuleFileName("path of this exe") -> OK
+[20:49:40.132] CreatePipe("64 KB buffer, inheritable") -> OK
+[20:49:40.133] SetHandleInformation("write end: not inheritable") -> OK
+[20:49:40.134] WriteFile("4096 bytes into the pipe") -> OK
+[20:49:40.134] CloseHandle("pipe write end") -> OK
+[20:49:40.142] CreateProcess("--child-pipe (4096 bytes)") -> OK
+[20:49:40.153] WaitForSingleObject("--child-pipe (4096 bytes)") -> OK
+[20:49:40.156] GetExitCodeProcess("--child-pipe (4096 bytes)") -> OK
+[20:49:40.157] CloseHandle("thread handle, --child-pipe (4096 bytes)") -> OK
+[20:49:40.158] CloseHandle("process handle, --child-pipe (4096 bytes)") -> OK
+[20:49:40.159] CloseHandle("pipe read end") -> OK
+[20:49:40.160] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
+[20:49:40.161] CreateFileMapping("Local\OsKalmanShm_4768") -> OK
+[20:49:40.162] MapViewOfFile("whole 1 MB") -> OK
+[20:49:40.173] CreateProcess("--child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.192] WaitForSingleObject("--child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.193] GetExitCodeProcess("--child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.194] CloseHandle("thread handle, --child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.194] CloseHandle("process handle, --child-shm Local\OsKalmanShm_4768") -> OK
+[20:49:40.197] VerifySharedMemory("Local\OsKalmanShm_4768") -> OK
+[20:49:40.198] UnmapViewOfFile("whole 1 MB view") -> OK
+[20:49:40.199] CloseHandle("mapping handle") -> OK
+[20:49:40.200] OpenFileMapping("Local\OsKalmanNoSuchMapping") -> FAILED, error 2: The system cannot find the file specified.
+[20:49:40.201] GetProcessHandleCount("before Part 2") -> OK
+[20:49:40.229] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.237] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.240] CloseHandle_teardown("pipe write end") -> OK
+[20:49:40.246] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.261] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.262] CloseHandle_teardown("pipe write end") -> OK
+[20:49:40.268] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.269] WriteFile_setup("fill the pipe once") -> OK
+[20:49:40.278] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.279] CloseHandle_teardown("pipe write end") -> OK
+[20:49:40.287] CreatePipe_setup("1 MB buffer") -> OK
+[20:49:40.288] WriteFile_setup("fill the pipe once") -> OK
+[20:49:40.330] CloseHandle_teardown("pipe read end") -> OK
+[20:49:40.379] CloseHandle_teardown("pipe write end") -> OK
+[20:49:40.430] CreateFileMapping_setup("1 MB, unnamed") -> OK
+[20:49:40.441] CloseHandle_teardown("mapping handle") -> OK
+[20:49:40.446] CreateFileMapping_setup("1 MB, unnamed") -> OK
+[20:49:40.450] MapViewOfFile_setup("64 KB x 1050") -> OK
+[20:49:40.459] CloseHandle_teardown("mapping handle") -> OK
+[20:49:40.464] GetProcessHandleCount("after Part 2") -> OK
