@@ -1,0 +1,132 @@
+Console output is also being saved to Linux/Permissions/Permissions_Linux.txt
+=== Linux Permissions: demo + benchmarks ===
+
+---------- PART 1: DEMO (logged, not timed) ----------
+Test file: permissions_test.txt
+[21:16:56.176] open("create permissions test file") -> OK
+[21:16:56.176] write("create permissions test file") -> OK
+[21:16:56.176] close("create permissions test file") -> OK
+[21:16:56.176] stat("save original file ownership and permissions") -> OK
+Original permissions: 0600
+Original owner UID : 1000
+Original group GID : 1000
+[21:16:56.176] getgroups("read supplementary groups") -> OK
+
+-- A. chmod() route (change file permissions) --
+[21:16:56.177] chmod("set permissions to 0400") -> OK
+[21:16:56.177] stat("verify changed permissions") -> OK
+Permissions after chmod: 0400
+Opening the file for writing (this FAILURE is expected):
+[21:16:56.177] open("write blocked, expected to fail") -> OK
+Verification PASSED: chmod removed write access.
+[21:16:56.177] VerifyWriteBlocked("chmod removed write access") -> OK
+[21:16:56.177] close("read verification handle") -> OK
+[21:16:56.177] open("read remains allowed") -> OK
+Verification PASSED: reading is still allowed.
+[21:16:56.177] VerifyReadAllowed("read access remains allowed") -> OK
+[21:16:56.177] chmod("restore original permissions") -> OK
+[21:16:56.177] stat("verify restored permissions") -> OK
+Verification PASSED: original permissions restored.
+[21:16:56.177] VerifyChmodRestore("original permissions restored") -> OK
+
+-- B. chown() route (change file ownership/group) --
+Original group ID: 1000
+Target group ID  : 4
+[21:16:56.177] chown("change file group") -> OK
+[21:16:56.177] stat("verify changed ownership") -> OK
+Group ID after chown: 4
+Verification PASSED: file ownership/group verified.
+[21:16:56.177] VerifyChown("owner unchanged and group verified") -> OK
+[21:16:56.177] chown("restore original ownership") -> OK
+Original ownership restored.
+
+-- C. umask() route (default permissions for new files) --
+Original umask: 02
+New umask     : 027
+[21:16:56.177] umask("set demonstration umask to 0027") -> OK
+[21:16:56.177] umask("restore original umask") -> OK
+[21:16:56.177] open("create file with requested mode 0666") -> OK
+[21:16:56.177] fstat("check new file permissions") -> OK
+[21:16:56.177] close("close umask test file") -> OK
+Requested file mode: 0666
+Actual file mode   : 0640
+Verification PASSED: umask produced permissions 0640.
+[21:16:56.177] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
+[21:16:56.177] unlink("remove umask test file") -> OK
+
+-- D. chmod() on a file that does not exist --
+chmod on a missing file (this FAILURE is expected, ENOENT):
+[21:16:56.177] chmod("missing file, expected ENOENT") -> OK
+Verification PASSED: missing file produced ENOENT.
+[21:16:56.177] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
+
+-- E. Cleanup (restore permissions/ownership and delete) --
+[21:16:56.177] chmod("cleanup: restore original permissions") -> OK
+[21:16:56.178] chown("cleanup: restore original ownership") -> OK
+[21:16:56.178] unlink("delete permissions test file") -> OK
+
+---------- PART 1 COMPLETED SUCCESSFULLY ----------
+[21:16:56.178] open("benchmark test file setup") -> OK
+[21:16:56.178] write("benchmark test file setup") -> OK
+[21:16:56.178] close("benchmark test file setup") -> OK
+[21:16:56.178] stat("save benchmark file metadata") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+Iterations: 1000 | Warm-up: 50
+[21:16:56.178] opendir("before Part 2") -> OK
+[21:16:56.178] closedir("before Part 2") -> OK
+Open descriptors before Part 2: 10
+[21:16:56.188] chmod("final benchmark permission restoration") -> OK
+==== chmod ====
+Iterations    : 1000
+Min           : 3.392 us
+Median        : 3.832 us
+Mean          : 4.457 us
+Max           : 123.234 us
+Std dev       : 4.929 us
+CPU (total)   : 8682.191 us (nanosecond clock on Linux)
+CPU per call  : 8.682 us
+CPU cycles    : 23087218
+Cycles/call   : 23087.218
+Memory delta  : 0.000 KB
+Page faults   : 1
+
+[21:16:56.204] chown("final benchmark ownership restoration") -> OK
+==== chown ====
+Iterations    : 1000
+Min           : 4.435 us
+Median        : 5.716 us
+Mean          : 6.884 us
+Max           : 187.911 us
+Std dev       : 7.963 us
+CPU (total)   : 13783.441 us (nanosecond clock on Linux)
+CPU per call  : 13.783 us
+CPU cycles    : 37221606
+Cycles/call   : 37221.606
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[21:16:56.208] umask("final benchmark umask restoration") -> OK
+==== umask ====
+Iterations    : 1000
+Min           : 1.102 us
+Median        : 1.247 us
+Mean          : 1.688 us
+Max           : 156.466 us
+Std dev       : 5.517 us
+CPU (total)   : 3127.871 us (nanosecond clock on Linux)
+CPU per call  : 3.128 us
+CPU cycles    : 8470244
+Cycles/call   : 8470.244
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[21:16:56.209] chmod("final cleanup: restore original permissions") -> OK
+[21:16:56.209] chown("final cleanup: restore original ownership") -> OK
+[21:16:56.209] unlink("delete benchmark test file") -> OK
+[21:16:56.209] opendir("after Part 2") -> OK
+[21:16:56.209] closedir("after Part 2") -> OK
+Open descriptors after Part 2 : 10
+Descriptor leak check PASSED.
+
+All done. Results appended to results/Linux/linux_results.csv

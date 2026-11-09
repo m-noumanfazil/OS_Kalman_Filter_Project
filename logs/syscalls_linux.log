@@ -105,3 +105,138 @@
 [20:39:55.035] shmat_setup("64 KB x 1050") -> OK
 [20:39:55.040] shmctl_teardown("IPC_RMID, remove the 64 KB segment") -> OK
 [20:39:55.040] opendir("after Part 2") -> OK
+[21:03:41.493] open("create permissions test file") -> OK
+[21:03:41.493] write("create permissions test file") -> OK
+[21:03:41.493] close("create permissions test file") -> OK
+[21:03:41.493] stat("save original file ownership and permissions") -> OK
+[21:03:41.493] getgroups("read supplementary groups") -> OK
+[21:03:41.493] chmod("set permissions to 0400") -> OK
+[21:03:41.494] stat("verify changed permissions") -> OK
+[21:03:41.494] open("write blocked, expected to fail") -> OK
+[21:03:41.494] VerifyWriteBlocked("chmod removed write access") -> OK
+[21:03:41.494] close("read verification handle") -> OK
+[21:03:41.494] open("read remains allowed") -> OK
+[21:03:41.494] VerifyReadAllowed("read access remains allowed") -> OK
+[21:03:41.494] chmod("restore original permissions") -> OK
+[21:03:41.494] stat("verify restored permissions") -> OK
+[21:03:41.494] VerifyChmodRestore("original permissions restored") -> OK
+[21:03:41.494] chown("change file group") -> OK
+[21:03:41.494] stat("verify changed ownership") -> OK
+[21:03:41.494] VerifyChown("owner unchanged and group verified") -> OK
+[21:03:41.494] chown("restore original ownership") -> OK
+[21:03:41.494] umask("set demonstration umask to 0027") -> OK
+[21:03:41.494] umask("restore original umask") -> OK
+[21:03:41.494] open("create file with requested mode 0666") -> OK
+[21:03:41.494] fstat("check new file permissions") -> OK
+[21:03:41.494] close("close umask test file") -> OK
+[21:03:41.494] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
+[21:03:41.494] unlink("remove umask test file") -> OK
+[21:03:41.495] chmod("missing file, expected ENOENT") -> OK
+[21:03:41.495] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
+[21:03:41.495] chmod("cleanup: restore original permissions") -> OK
+[21:03:41.495] chown("cleanup: restore original ownership") -> OK
+[21:03:41.495] unlink("delete permissions test file") -> OK
+[21:03:41.495] open("benchmark test file setup") -> OK
+[21:03:41.495] write("benchmark test file setup") -> OK
+[21:03:41.495] close("benchmark test file setup") -> OK
+[21:03:41.495] stat("save benchmark file metadata") -> OK
+[21:03:41.495] opendir("before Part 2") -> OK
+[21:03:41.495] closedir("before Part 2") -> OK
+[21:03:41.495] open("benchmark test file already exists") -> FAILED, error 17: File exists
+[21:03:41.512] chown("final benchmark ownership restoration") -> OK
+[21:03:41.516] umask("final benchmark umask restoration") -> FAILED, error 17: File exists
+[21:03:41.516] chmod("final cleanup: restore original permissions") -> OK
+[21:03:41.516] chown("final cleanup: restore original ownership") -> OK
+[21:03:41.516] unlink("delete benchmark test file") -> OK
+[21:03:41.516] opendir("after Part 2") -> OK
+[21:03:41.516] closedir("after Part 2") -> OK
+[21:11:38.523] open("create permissions test file") -> OK
+[21:11:38.524] write("create permissions test file") -> OK
+[21:11:38.524] close("create permissions test file") -> OK
+[21:11:38.524] stat("save original file ownership and permissions") -> OK
+[21:11:38.524] getgroups("read supplementary groups") -> OK
+[21:11:38.524] chmod("set permissions to 0400") -> OK
+[21:11:38.524] stat("verify changed permissions") -> OK
+[21:11:38.524] open("write blocked, expected to fail") -> OK
+[21:11:38.524] VerifyWriteBlocked("chmod removed write access") -> OK
+[21:11:38.524] close("read verification handle") -> OK
+[21:11:38.524] open("read remains allowed") -> OK
+[21:11:38.524] VerifyReadAllowed("read access remains allowed") -> OK
+[21:11:38.524] chmod("restore original permissions") -> OK
+[21:11:38.524] stat("verify restored permissions") -> OK
+[21:11:38.524] VerifyChmodRestore("original permissions restored") -> OK
+[21:11:38.524] chown("change file group") -> OK
+[21:11:38.524] stat("verify changed ownership") -> OK
+[21:11:38.524] VerifyChown("owner unchanged and group verified") -> OK
+[21:11:38.524] chown("restore original ownership") -> OK
+[21:11:38.524] umask("set demonstration umask to 0027") -> OK
+[21:11:38.524] umask("restore original umask") -> OK
+[21:11:38.524] open("create file with requested mode 0666") -> OK
+[21:11:38.524] fstat("check new file permissions") -> OK
+[21:11:38.524] close("close umask test file") -> OK
+[21:11:38.525] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
+[21:11:38.525] unlink("remove umask test file") -> OK
+[21:11:38.525] chmod("missing file, expected ENOENT") -> OK
+[21:11:38.525] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
+[21:11:38.525] chmod("cleanup: restore original permissions") -> OK
+[21:11:38.525] chown("cleanup: restore original ownership") -> OK
+[21:11:38.525] unlink("delete permissions test file") -> OK
+[21:11:38.525] open("benchmark test file setup") -> OK
+[21:11:38.525] write("benchmark test file setup") -> OK
+[21:11:38.525] close("benchmark test file setup") -> OK
+[21:11:38.525] stat("save benchmark file metadata") -> OK
+[21:11:38.525] opendir("before Part 2") -> OK
+[21:11:38.525] closedir("before Part 2") -> OK
+[21:11:38.536] chmod("final benchmark permission restoration") -> OK
+[21:11:38.548] chown("final benchmark ownership restoration") -> OK
+[21:11:38.553] umask("final benchmark umask restoration") -> OK
+[21:11:38.553] chmod("final cleanup: restore original permissions") -> OK
+[21:11:38.553] chown("final cleanup: restore original ownership") -> OK
+[21:11:38.553] unlink("delete benchmark test file") -> OK
+[21:11:38.553] opendir("after Part 2") -> OK
+[21:11:38.553] closedir("after Part 2") -> OK
+[21:16:56.176] open("create permissions test file") -> OK
+[21:16:56.176] write("create permissions test file") -> OK
+[21:16:56.176] close("create permissions test file") -> OK
+[21:16:56.176] stat("save original file ownership and permissions") -> OK
+[21:16:56.176] getgroups("read supplementary groups") -> OK
+[21:16:56.177] chmod("set permissions to 0400") -> OK
+[21:16:56.177] stat("verify changed permissions") -> OK
+[21:16:56.177] open("write blocked, expected to fail") -> OK
+[21:16:56.177] VerifyWriteBlocked("chmod removed write access") -> OK
+[21:16:56.177] close("read verification handle") -> OK
+[21:16:56.177] open("read remains allowed") -> OK
+[21:16:56.177] VerifyReadAllowed("read access remains allowed") -> OK
+[21:16:56.177] chmod("restore original permissions") -> OK
+[21:16:56.177] stat("verify restored permissions") -> OK
+[21:16:56.177] VerifyChmodRestore("original permissions restored") -> OK
+[21:16:56.177] chown("change file group") -> OK
+[21:16:56.177] stat("verify changed ownership") -> OK
+[21:16:56.177] VerifyChown("owner unchanged and group verified") -> OK
+[21:16:56.177] chown("restore original ownership") -> OK
+[21:16:56.177] umask("set demonstration umask to 0027") -> OK
+[21:16:56.177] umask("restore original umask") -> OK
+[21:16:56.177] open("create file with requested mode 0666") -> OK
+[21:16:56.177] fstat("check new file permissions") -> OK
+[21:16:56.177] close("close umask test file") -> OK
+[21:16:56.177] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
+[21:16:56.177] unlink("remove umask test file") -> OK
+[21:16:56.177] chmod("missing file, expected ENOENT") -> OK
+[21:16:56.177] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
+[21:16:56.177] chmod("cleanup: restore original permissions") -> OK
+[21:16:56.178] chown("cleanup: restore original ownership") -> OK
+[21:16:56.178] unlink("delete permissions test file") -> OK
+[21:16:56.178] open("benchmark test file setup") -> OK
+[21:16:56.178] write("benchmark test file setup") -> OK
+[21:16:56.178] close("benchmark test file setup") -> OK
+[21:16:56.178] stat("save benchmark file metadata") -> OK
+[21:16:56.178] opendir("before Part 2") -> OK
+[21:16:56.178] closedir("before Part 2") -> OK
+[21:16:56.188] chmod("final benchmark permission restoration") -> OK
+[21:16:56.204] chown("final benchmark ownership restoration") -> OK
+[21:16:56.208] umask("final benchmark umask restoration") -> OK
+[21:16:56.209] chmod("final cleanup: restore original permissions") -> OK
+[21:16:56.209] chown("final cleanup: restore original ownership") -> OK
+[21:16:56.209] unlink("delete benchmark test file") -> OK
+[21:16:56.209] opendir("after Part 2") -> OK
+[21:16:56.209] closedir("after Part 2") -> OK

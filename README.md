@@ -121,9 +121,9 @@ To be added when the Linux side is implemented.
 
 - [x] Repository structure
 - [x] Windows logger and metrics helpers
-- [ ] Part A, Windows: File_IO, Memory, Process, IPC, Permissions
+- [x] Part A, Windows: File_IO, Memory, Process, IPC, Permissions
 - [ ] Part B, Windows: Kalman Filter
-- [ ] Part A, Linux
+- [x] Part A, Linux
 - [ ] Part B, Linux
 - [ ] Linux vs Windows comparison
 - [ ] Report
