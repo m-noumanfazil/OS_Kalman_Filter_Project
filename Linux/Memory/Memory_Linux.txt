@@ -1,0 +1,135 @@
+Console output is also being saved to Linux/Memory/Memory_Linux.txt
+=== Linux Memory: demo + benchmarks ===
+
+---------- PART 1: DEMO (logged, not timed) ----------
+[13:10:20.540] sysconf("_SC_PAGESIZE") -> OK
+Page size              : 4096 bytes (4 KB)
+Linux has no separate "allocation granularity" like Windows (which reserves
+address space in 64 KB units). mmap works in units of ONE PAGE, so even a
+4 KB request uses only 4 KB of address space.
+
+-- Map with PROT_NONE, then make usable, a 1 MB block --
+[13:10:20.540] mmap("1 MB, PROT_NONE") -> OK
+[13:10:20.540] mprotect("1 MB, PROT_READ | PROT_WRITE") -> OK
+Verification PASSED: 1048576 bytes written, read back and identical.
+[13:10:20.557] VerifyContent("1 MB block") -> OK
+munmap on base + 1, not page aligned (this FAILURE is expected, error 22):
+[13:10:20.557] munmap("base+1, expected to fail") -> FAILED, error 22: Invalid argument
+[13:10:20.557] munmap("unmap the 1 MB block") -> OK
+
+-- One-call mmap (PROT_READ | PROT_WRITE), 64 KB --
+[13:10:20.557] mmap("64 KB in one call") -> OK
+Verification PASSED: 65536 bytes written, read back and identical.
+[13:10:20.558] VerifyContent("64 KB block") -> OK
+[13:10:20.559] munmap("unmap the 64 KB block") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+vm.max_map_count: 65530
+==== mmap_4KB ====
+Iterations    : 1000
+Min           : 1.927 us
+Median        : 2.457 us
+Mean          : 3.264 us
+Max           : 71.787 us
+Std dev       : 3.922 us
+CPU (total)   : 5700.293 us (nanosecond clock on Linux)
+CPU per call  : 5.700 us
+CPU cycles    : 14908702
+Cycles/call   : 14908.702
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+==== mmap_64KB ====
+Iterations    : 1000
+Min           : 1.861 us
+Median        : 2.517 us
+Mean          : 3.014 us
+Max           : 189.136 us
+Std dev       : 6.261 us
+CPU (total)   : 7970.219 us (nanosecond clock on Linux)
+CPU per call  : 7.970 us
+CPU cycles    : 20735008
+Cycles/call   : 20735.008
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+==== mmap_1MB ====
+Iterations    : 1000
+Min           : 2.069 us
+Median        : 2.360 us
+Mean          : 3.645 us
+Max           : 528.546 us
+Std dev       : 17.103 us
+CPU (total)   : 5744.828 us (nanosecond clock on Linux)
+CPU per call  : 5.745 us
+CPU cycles    : 16065298
+Cycles/call   : 16065.298
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[13:10:20.585] mmap_setup("64 KB x 1050") -> OK
+[13:10:20.653] munmap_teardown("1050 block(s)") -> OK
+==== FirstTouch_64KB ====
+Iterations    : 1000
+Min           : 33.799 us
+Median        : 38.417 us
+Mean          : 50.308 us
+Max           : 482.116 us
+Std dev       : 31.396 us
+CPU (total)   : 50057.754 us (nanosecond clock on Linux)
+CPU per call  : 50.058 us
+CPU cycles    : 131073058
+Cycles/call   : 131073.058
+Memory delta  : 64000.000 KB
+Page faults   : 16000
+
+[13:10:20.656] mmap_setup("4 KB x 1050") -> OK
+[13:10:20.660] munmap_teardown("0 block(s)") -> OK
+==== munmap_4KB ====
+Iterations    : 1000
+Min           : 1.985 us
+Median        : 3.175 us
+Mean          : 3.698 us
+Max           : 105.926 us
+Std dev       : 4.207 us
+CPU (total)   : 3840.024 us (nanosecond clock on Linux)
+CPU per call  : 3.840 us
+CPU cycles    : 9985738
+Cycles/call   : 9985.738
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[13:10:20.663] mmap_setup("64 KB x 1050") -> OK
+[13:10:20.667] munmap_teardown("0 block(s)") -> OK
+==== munmap_64KB ====
+Iterations    : 1000
+Min           : 2.177 us
+Median        : 2.402 us
+Mean          : 3.320 us
+Max           : 68.024 us
+Std dev       : 3.860 us
+CPU (total)   : 3410.114 us (nanosecond clock on Linux)
+CPU per call  : 3.410 us
+CPU cycles    : 8898712
+Cycles/call   : 8898.712
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[13:10:20.670] mmap_setup("64 KB x 1050") -> OK
+[13:10:20.734] munmap_teardown("0 block(s)") -> OK
+==== munmap_64KB_touched ====
+Iterations    : 1000
+Min           : 10.071 us
+Median        : 11.169 us
+Mean          : 13.804 us
+Max           : 87.460 us
+Std dev       : 7.145 us
+CPU (total)   : 14047.078 us (nanosecond clock on Linux)
+CPU per call  : 14.047 us
+CPU cycles    : 36449104
+Cycles/call   : 36449.104
+Memory delta  : -64000.000 KB
+Page faults   : 0
+
+
+All done. Results appended to results/Linux/linux_results.csv

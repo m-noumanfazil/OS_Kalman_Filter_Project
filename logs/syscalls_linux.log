@@ -28,3 +28,20 @@
 [12:57:36.412] unlink("file_io_bench_read.tmp") -> OK
 [12:57:36.413] unlink("file_io_bench_write.tmp") -> OK
 [12:57:36.413] opendir("after Part 2") -> OK
+[13:10:20.540] sysconf("_SC_PAGESIZE") -> OK
+[13:10:20.540] mmap("1 MB, PROT_NONE") -> OK
+[13:10:20.540] mprotect("1 MB, PROT_READ | PROT_WRITE") -> OK
+[13:10:20.557] VerifyContent("1 MB block") -> OK
+[13:10:20.557] munmap("base+1, expected to fail") -> FAILED, error 22: Invalid argument
+[13:10:20.557] munmap("unmap the 1 MB block") -> OK
+[13:10:20.557] mmap("64 KB in one call") -> OK
+[13:10:20.558] VerifyContent("64 KB block") -> OK
+[13:10:20.559] munmap("unmap the 64 KB block") -> OK
+[13:10:20.585] mmap_setup("64 KB x 1050") -> OK
+[13:10:20.653] munmap_teardown("1050 block(s)") -> OK
+[13:10:20.656] mmap_setup("4 KB x 1050") -> OK
+[13:10:20.660] munmap_teardown("0 block(s)") -> OK
+[13:10:20.663] mmap_setup("64 KB x 1050") -> OK
+[13:10:20.667] munmap_teardown("0 block(s)") -> OK
+[13:10:20.670] mmap_setup("64 KB x 1050") -> OK
+[13:10:20.734] munmap_teardown("0 block(s)") -> OK
