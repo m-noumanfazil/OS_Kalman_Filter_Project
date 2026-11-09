@@ -1,0 +1,124 @@
+Console output is also being saved to Linux/File_IO/File_IO_Linux.txt
+=== Linux File I/O: demo + benchmarks ===
+
+---------- PART 1: DEMO (logged, not timed) ----------
+[12:57:35.438] open("file_io_demo.txt") -> OK
+[12:57:35.438] write("file_io_demo.txt") -> OK
+[12:57:35.438] close("file_io_demo.txt") -> OK
+[12:57:35.438] open("file_io_demo.txt") -> OK
+[12:57:35.438] read("file_io_demo.txt") -> OK
+[12:57:35.439] close("file_io_demo.txt") -> OK
+Verification PASSED: 76 bytes read back and identical to what was written.
+[12:57:35.439] VerifyContent("file_io_demo.txt") -> OK
+Opening a file that does not exist (this FAILURE is expected):
+[12:57:35.439] open("file_io_does_not_exist.txt") -> FAILED, error 2: No such file or directory
+[12:57:35.439] unlink("file_io_demo.txt") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+[12:57:35.439] opendir("before Part 2") -> OK
+Open descriptors before Part 2: 10
+[12:57:35.462] open_setup("file_io_bench_read.tmp") -> OK
+[12:57:35.465] write_setup("file_io_bench_read.tmp") -> OK
+[12:57:35.465] close_setup("file_io_bench_read.tmp") -> OK
+==== open ====
+Iterations    : 1000
+Min           : 7.977 us
+Median        : 10.852 us
+Mean          : 11.304 us
+Max           : 36.252 us
+Std dev       : 2.796 us
+CPU (total)   : 17981.820 us (nanosecond clock on Linux)
+CPU per call  : 17.982 us
+CPU cycles    : 46608076
+Cycles/call   : 46608.076
+Memory delta  : 0.000 KB
+Page faults   : 1
+
+[12:57:35.486] open_setup("file_io_bench_write.tmp") -> OK
+[12:57:35.504] close_teardown("file_io_bench_write.tmp") -> OK
+==== write_4KB ====
+Iterations    : 1000
+Min           : 8.713 us
+Median        : 9.419 us
+Mean          : 10.041 us
+Max           : 52.511 us
+Std dev       : 2.846 us
+CPU (total)   : 14972.976 us (nanosecond clock on Linux)
+CPU per call  : 14.973 us
+CPU cycles    : 38808348
+Cycles/call   : 38808.348
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[12:57:35.525] open_setup("file_io_bench_write.tmp") -> OK
+[12:57:36.125] close_teardown("file_io_bench_write.tmp") -> OK
+==== write_1MB ====
+Iterations    : 1000
+Min           : 388.592 us
+Median        : 562.174 us
+Mean          : 557.984 us
+Max           : 1374.660 us
+Std dev       : 72.361 us
+CPU (total)   : 561671.890 us (nanosecond clock on Linux)
+CPU per call  : 561.672 us
+CPU cycles    : 1462881316
+Cycles/call   : 1462881.316
+Memory delta  : 0.000 KB
+Page faults   : 1
+
+[12:57:36.125] open_setup("file_io_bench_read.tmp") -> OK
+[12:57:36.137] close_teardown("file_io_bench_read.tmp") -> OK
+==== read_4KB ====
+Iterations    : 1000
+Min           : 5.292 us
+Median        : 5.440 us
+Mean          : 5.968 us
+Max           : 26.751 us
+Std dev       : 1.737 us
+CPU (total)   : 10211.864 us (nanosecond clock on Linux)
+CPU per call  : 10.212 us
+CPU cycles    : 26468870
+Cycles/call   : 26468.870
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[12:57:36.138] open_setup("file_io_bench_read.tmp") -> OK
+[12:57:36.391] close_teardown("file_io_bench_read.tmp") -> OK
+==== read_1MB ====
+Iterations    : 1000
+Min           : 192.128 us
+Median        : 222.116 us
+Mean          : 234.685 us
+Max           : 444.026 us
+Std dev       : 40.754 us
+CPU (total)   : 239889.247 us (nanosecond clock on Linux)
+CPU per call  : 239.889 us
+CPU cycles    : 621895516
+Cycles/call   : 621895.516
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[12:57:36.391] getrlimit("RLIMIT_NOFILE") -> OK
+Descriptor limit: soft = 1048576, hard = 1048576
+[12:57:36.402] open_setup("file_io_bench_read.tmp x1050") -> OK
+==== close ====
+Iterations    : 1000
+Min           : 4.803 us
+Median        : 6.094 us
+Mean          : 6.211 us
+Max           : 34.706 us
+Std dev       : 2.236 us
+CPU (total)   : 6657.636 us (nanosecond clock on Linux)
+CPU per call  : 6.658 us
+CPU cycles    : 17256588
+Cycles/call   : 17256.588
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[12:57:36.412] unlink("file_io_bench_read.tmp") -> OK
+[12:57:36.413] unlink("file_io_bench_write.tmp") -> OK
+[12:57:36.413] opendir("after Part 2") -> OK
+Open descriptors after Part 2 : 10
+Descriptor leak check PASSED.
+
+All done. Results appended to results/Linux/linux_results.csv

@@ -2,3 +2,29 @@
 [12:21:41.075] close("test_input.txt") -> OK
 [12:21:41.075] open("does_not_exist.txt") -> FAILED, error 2: No such file or directory
 [12:21:41.096] unlink("test_input.txt") -> OK
+[12:57:35.438] open("file_io_demo.txt") -> OK
+[12:57:35.438] write("file_io_demo.txt") -> OK
+[12:57:35.438] close("file_io_demo.txt") -> OK
+[12:57:35.438] open("file_io_demo.txt") -> OK
+[12:57:35.438] read("file_io_demo.txt") -> OK
+[12:57:35.439] close("file_io_demo.txt") -> OK
+[12:57:35.439] VerifyContent("file_io_demo.txt") -> OK
+[12:57:35.439] open("file_io_does_not_exist.txt") -> FAILED, error 2: No such file or directory
+[12:57:35.439] unlink("file_io_demo.txt") -> OK
+[12:57:35.439] opendir("before Part 2") -> OK
+[12:57:35.462] open_setup("file_io_bench_read.tmp") -> OK
+[12:57:35.465] write_setup("file_io_bench_read.tmp") -> OK
+[12:57:35.465] close_setup("file_io_bench_read.tmp") -> OK
+[12:57:35.486] open_setup("file_io_bench_write.tmp") -> OK
+[12:57:35.504] close_teardown("file_io_bench_write.tmp") -> OK
+[12:57:35.525] open_setup("file_io_bench_write.tmp") -> OK
+[12:57:36.125] close_teardown("file_io_bench_write.tmp") -> OK
+[12:57:36.125] open_setup("file_io_bench_read.tmp") -> OK
+[12:57:36.137] close_teardown("file_io_bench_read.tmp") -> OK
+[12:57:36.138] open_setup("file_io_bench_read.tmp") -> OK
+[12:57:36.391] close_teardown("file_io_bench_read.tmp") -> OK
+[12:57:36.391] getrlimit("RLIMIT_NOFILE") -> OK
+[12:57:36.402] open_setup("file_io_bench_read.tmp x1050") -> OK
+[12:57:36.412] unlink("file_io_bench_read.tmp") -> OK
+[12:57:36.413] unlink("file_io_bench_write.tmp") -> OK
+[12:57:36.413] opendir("after Part 2") -> OK
