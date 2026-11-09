@@ -1,7 +1,20 @@
+# Build directories
 build/
+cmake-build-*/
+
+# Compiled files
 *.o
 *.exe
 *.out
 *.obj
 *.pdb
+*.dll
+*.so
+*.a
+*.ilk
+
+# Linux executables (no extension)
+/Linux/*/*_Linux
+
+# IDE settings
 .vscode/
