@@ -1,0 +1,104 @@
+Console output is also being saved to Linux/Process/Process_Linux.txt
+=== Linux Process: demo + benchmarks ===
+
+[13:32:06.367] readlink("/proc/self/exe") -> OK
+---------- PART 1: DEMO (logged, not timed) ----------
+Parent process id: 108171
+
+-- 1. fork(): the child exits with code 42 --
+Parent: my pid is 108171, the child's pid is 108172
+[13:32:06.368] fork("fork, child exits 42") -> OK
+Child: my pid is 108172, my parent's pid is 108171
+[13:32:06.368] wait("fork, child exits 42") -> OK
+Verification PASSED: child exited normally with code 42 (expected 42).
+[13:32:06.368] VerifyExitCode("fork, child exits 42") -> OK
+
+-- 2. fork() + execv(): the child becomes this same program (--child 7) --
+Parent: my pid is 108171, the child's pid is 108173
+[13:32:06.368] fork("fork + execv --child 7") -> OK
+Child: pid 108173 now replaces itself with this same program using execv (--child 7)
+[13:32:06.370] wait("fork + execv --child 7") -> OK
+Verification PASSED: child exited normally with code 7 (expected 7).
+[13:32:06.371] execv("verified: the new program started and exited with 7") -> OK
+[13:32:06.371] VerifyExitCode("fork + execv --child 7") -> OK
+
+-- 3. fork() + execv() on a program that does not exist --
+Parent: my pid is 108171, the child's pid is 108174
+[13:32:06.371] fork("fork + execv of a missing program") -> OK
+Child: execv on a program that does not exist (this FAILURE is expected, error 2):
+[13:32:06.373] execv("/this_program_does_not_exist, expected to fail") -> FAILED, error 2: No such file or directory
+[13:32:06.373] wait("fork + execv of a missing program") -> OK
+Verification PASSED: child exited normally with code 127 (expected 127).
+[13:32:06.373] VerifyExitCode("fork + execv of a missing program") -> OK
+No child processes left (after the demo).
+[13:32:06.373] VerifyNoChildrenLeft("after the demo") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+(Process creation is slow: this part can take several seconds.)
+[13:32:06.373] opendir("before Part 2") -> OK
+Open descriptors before Part 2: 10
+==== fork ====
+Iterations    : 200
+Min           : 60.071 us
+Median        : 94.355 us
+Mean          : 97.155 us
+Max           : 222.956 us
+Std dev       : 27.053 us
+CPU (total)   : 44051.781 us (nanosecond clock on Linux)
+CPU per call  : 220.259 us
+CPU cycles    : 114264506
+Cycles/call   : 571322.530
+Memory delta  : 0.000 KB
+Page faults   : 410
+
+[13:32:06.444] fork_setup("exit(0) x210") -> OK
+[13:32:06.445] waitid_setup("exit(0) x210") -> OK
+==== wait ====
+Iterations    : 200
+Min           : 2.315 us
+Median        : 2.849 us
+Mean          : 3.438 us
+Max           : 21.807 us
+Std dev       : 2.753 us
+CPU (total)   : 773.864 us (nanosecond clock on Linux)
+CPU per call  : 3.869 us
+CPU cycles    : 2004342
+Cycles/call   : 10021.710
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+==== exec ====
+Iterations    : 200
+Min           : 1268.355 us
+Median        : 1399.372 us
+Mean          : 1443.543 us
+Max           : 2902.896 us
+Std dev       : 191.235 us
+CPU (total)   : 48371.623 us (nanosecond clock on Linux)
+CPU per call  : 241.858 us
+CPU cycles    : 933278568
+Cycles/call   : 4666392.840
+Memory delta  : 0.000 KB
+Page faults   : 1007
+
+==== fork_exec_wait ====
+Iterations    : 200
+Min           : 1515.959 us
+Median        : 1736.624 us
+Mean          : 1789.173 us
+Max           : 2659.321 us
+Std dev       : 211.905 us
+CPU (total)   : 358542.790 us (nanosecond clock on Linux)
+CPU per call  : 1792.714 us
+CPU cycles    : 929360670
+Cycles/call   : 4646803.350
+Memory delta  : 0.000 KB
+Page faults   : 410
+
+No child processes left (after Part 2).
+[13:32:07.206] VerifyNoChildrenLeft("after Part 2") -> OK
+[13:32:07.206] opendir("after Part 2") -> OK
+Open descriptors after Part 2 : 10
+Descriptor leak check PASSED.
+
+All done. Results appended to results/Linux/linux_results.csv

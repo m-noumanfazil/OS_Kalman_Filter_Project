@@ -45,3 +45,21 @@
 [13:10:20.667] munmap_teardown("0 block(s)") -> OK
 [13:10:20.670] mmap_setup("64 KB x 1050") -> OK
 [13:10:20.734] munmap_teardown("0 block(s)") -> OK
+[13:32:06.367] readlink("/proc/self/exe") -> OK
+[13:32:06.368] fork("fork, child exits 42") -> OK
+[13:32:06.368] wait("fork, child exits 42") -> OK
+[13:32:06.368] VerifyExitCode("fork, child exits 42") -> OK
+[13:32:06.368] fork("fork + execv --child 7") -> OK
+[13:32:06.370] wait("fork + execv --child 7") -> OK
+[13:32:06.371] execv("verified: the new program started and exited with 7") -> OK
+[13:32:06.371] VerifyExitCode("fork + execv --child 7") -> OK
+[13:32:06.371] fork("fork + execv of a missing program") -> OK
+[13:32:06.373] execv("/this_program_does_not_exist, expected to fail") -> FAILED, error 2: No such file or directory
+[13:32:06.373] wait("fork + execv of a missing program") -> OK
+[13:32:06.373] VerifyExitCode("fork + execv of a missing program") -> OK
+[13:32:06.373] VerifyNoChildrenLeft("after the demo") -> OK
+[13:32:06.373] opendir("before Part 2") -> OK
+[13:32:06.444] fork_setup("exit(0) x210") -> OK
+[13:32:06.445] waitid_setup("exit(0) x210") -> OK
+[13:32:07.206] VerifyNoChildrenLeft("after Part 2") -> OK
+[13:32:07.206] opendir("after Part 2") -> OK
