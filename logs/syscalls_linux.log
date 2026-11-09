@@ -63,3 +63,45 @@
 [13:32:06.445] waitid_setup("exit(0) x210") -> OK
 [13:32:07.206] VerifyNoChildrenLeft("after Part 2") -> OK
 [13:32:07.206] opendir("after Part 2") -> OK
+[20:39:54.906] readlink("/proc/self/exe") -> OK
+[20:39:54.908] pipe("default 64 KB buffer") -> OK
+[20:39:54.908] write("4096 bytes into the pipe") -> OK
+[20:39:54.908] close("pipe write end") -> OK
+[20:39:54.908] fork("--child-pipe (4096 bytes)") -> OK
+[20:39:54.911] waitpid("--child-pipe (4096 bytes)") -> OK
+[20:39:54.911] close("pipe read end") -> OK
+[20:39:54.911] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
+[20:39:54.911] shmget("1 MB, IPC_PRIVATE") -> OK
+[20:39:54.911] shmat("whole 1 MB segment") -> OK
+[20:39:54.917] fork("--child-shm 1015871") -> OK
+[20:39:54.930] waitpid("--child-shm 1015871") -> OK
+[20:39:54.934] VerifySharedMemory("--child-shm 1015871") -> OK
+[20:39:54.934] shmdt("whole 1 MB attachment") -> OK
+[20:39:54.935] shmctl("IPC_RMID, remove the 1 MB segment") -> OK
+[20:39:54.935] shmget("key 0x4F534B4D, expected to fail") -> FAILED, error 2: No such file or directory
+[20:39:54.935] VerifyNoChildrenLeft("after the demo") -> OK
+[20:39:54.935] opendir("before Part 2") -> OK
+[20:39:54.946] pipe_setup("benchmark pipe") -> OK
+[20:39:54.946] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[20:39:54.952] close_teardown("pipe read end") -> OK
+[20:39:54.952] close_teardown("pipe write end") -> OK
+[20:39:54.953] pipe_setup("benchmark pipe") -> OK
+[20:39:54.953] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[20:39:54.977] close_teardown("pipe read end") -> OK
+[20:39:54.978] close_teardown("pipe write end") -> OK
+[20:39:54.978] pipe_setup("benchmark pipe") -> OK
+[20:39:54.978] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[20:39:54.978] write_setup("fill the pipe once") -> OK
+[20:39:54.982] close_teardown("pipe read end") -> OK
+[20:39:54.982] close_teardown("pipe write end") -> OK
+[20:39:54.983] pipe_setup("benchmark pipe") -> OK
+[20:39:54.984] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[20:39:54.984] write_setup("fill the pipe once") -> OK
+[20:39:55.006] close_teardown("pipe read end") -> OK
+[20:39:55.006] close_teardown("pipe write end") -> OK
+[20:39:55.018] shmget_setup("1 MB, IPC_PRIVATE") -> OK
+[20:39:55.027] shmctl_teardown("IPC_RMID, remove the 1 MB segment") -> OK
+[20:39:55.028] shmget_setup("64 KB, IPC_PRIVATE") -> OK
+[20:39:55.035] shmat_setup("64 KB x 1050") -> OK
+[20:39:55.040] shmctl_teardown("IPC_RMID, remove the 64 KB segment") -> OK
+[20:39:55.040] opendir("after Part 2") -> OK
