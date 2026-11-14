@@ -263,6 +263,7 @@ Some metrics are platform-specific. For example, CPU-cycle measurements may use 
 
 ### Final Deliverables
 
-- [ ] Linux vs. Windows performance comparison
-- [ ] Project report
-- [ ] Project presentation (10–12 slides)
+- [x] Project report (`report/report.md`)
+- [x] Project presentation 10–12 slides (`presentation/slides.md`)
+- [x] Performance & verification charts (`results/charts/`)
+- [ ] Native compilation & runtime execution on dual-boot machine (HP ZBook)
