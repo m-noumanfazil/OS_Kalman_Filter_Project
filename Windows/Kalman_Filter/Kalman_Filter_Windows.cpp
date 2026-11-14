@@ -70,7 +70,7 @@ const char* const kOutputCsvPath      = "results/Windows/filtered_sensor_data.cs
 const char* const kTranscriptFile     = "Windows/Kalman_Filter/Kalman_Filter_Windows.txt";
 const char* const kMissingShmName     = "Local\\KalmanRadarNonExistentShm";
 
-const int   kMaxRecords               = 16000;
+const int   kMaxRecords               = 100000;
 const int   kTotalTracks              = 8;
 const int   kBenchIterations          = 50;
 const int   kBenchWarmup              = 5;
@@ -266,6 +266,16 @@ int runWorkerChild(int argc, char* argv[]) {
     int totalWorkers = atoi(argv[3]);
     const char* shmName = argv[4];
 
+    // --- CPU Core Affinity Optimization (Option B) ---
+    // Locks worker process to dedicated CPU core, preventing OS thread migration & L1/L2 cache thrashing
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    DWORD numCores = sysInfo.dwNumberOfProcessors;
+    if (numCores > 0) {
+        DWORD_PTR affinityMask = (1ULL << (workerId % min<DWORD>(numCores, 64)));
+        SetProcessAffinityMask(GetCurrentProcess(), affinityMask);
+    }
+
     HANDLE hMap = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, shmName);
     if (hMap == nullptr) return 3;
 
@@ -318,6 +328,15 @@ bool spawnAndJoinWorkers(const string& exePath, const string& shmName, int numWo
             }
             for (HANDLE h : threadHandles) CloseHandle(h);
             return false;
+        }
+
+        // Apply CPU affinity to child process handle
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        DWORD numCores = sysInfo.dwNumberOfProcessors;
+        if (numCores > 0) {
+            DWORD_PTR affinityMask = (1ULL << (w % min<DWORD>(numCores, 64)));
+            SetProcessAffinityMask(pi.hProcess, affinityMask);
         }
 
         processHandles.push_back(pi.hProcess);

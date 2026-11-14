@@ -91,7 +91,7 @@ def main():
     output_path = os.path.join(script_dir, 'sensor_data.csv')
 
     num_tracks = 8
-    points_per_track = 1000
+    points_per_track = 10000
     dt = 0.05
     noise_std = 50.0
 

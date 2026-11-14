@@ -135,17 +135,17 @@ Physical copy made ONLY when child writes to a page
 
 ### Scenario
 - **8 supersonic fighter jets** flying at **Mach 1.5–2.0** (540–720 m/s)
-- Air defense radar pings at **20 Hz** (every 50 ms)
+- Air defense radar pings at **20 Hz** (every 50 ms) over 10,000 steps = **80,000 total pings**
 - Each ping has **Gaussian noise σ = 50 m** (atmospheric scattering, multipath)
-- Need to track all jets simultaneously in **real time**
+- Need to track all jets simultaneously in **real time** (8.3 minutes of supersonic flight)
 
 ### The Problem: Raw Radar is Too Noisy
 
 | Jet | True Position Error | Raw Radar RMSE |
 |---|---|---|
-| Jet 0 (Climbing Right Turn) | 0 m (by definition) | 71.08 m |
-| Jet 7 (Combat Air Patrol) | 0 m (by definition) | 69.51 m |
-| **All 8 jets average** | — | **70.48 m** |
+| Jet 0 (Climbing Right Turn) | 0 m (by definition) | 70.63 m |
+| Jet 7 (Combat Air Patrol) | 0 m (by definition) | 70.85 m |
+| **All 8 jets average** | — | **70.81 m** |
 
 **A 70-meter positional error at Mach 2 (680 m/s) means the jet moves past your error radius in ~0.1 seconds.** A Kalman Filter is needed.
 
@@ -181,19 +181,19 @@ Radar Ping (meas_x, meas_y)
 
 ## Slide 9: Part B — Tracking Results
 
-### RMSE Reduction After Kalman Filtering
+### RMSE Reduction After Kalman Filtering (80,000 Telemetry Points)
 
 | Jet | Profile | Raw Radar | Filtered | Reduction |
 |---|---|---|---|---|
-| Jet 0 | Climbing Right Turn | 71.08 m | 32.20 m | **54.70%** |
-| Jet 1 | Diving Left Turn | 70.73 m | 33.55 m | 52.57% |
-| Jet 2 | Tactical 7G Turn | 70.11 m | 29.32 m | **58.17%** |
-| Jet 3 | Supersonic Sweep | 70.79 m | 33.92 m | 52.09% |
-| Jet 4 | Intercept Vector | 70.71 m | 32.63 m | 53.85% |
-| Jet 5 | High-Speed Dash | 70.12 m | 32.93 m | 53.03% |
-| Jet 6 | Evasive Weave | 70.79 m | 33.16 m | 53.15% |
-| Jet 7 | Combat Air Patrol | 69.51 m | 28.69 m | **58.72%** |
-| **Average** | — | **70.48 m** | **32.10 m** | **54.45%** |
+| Jet 0 | Climbing Right Turn | 70.63 m | 23.14 m | **67.24%** |
+| Jet 1 | Diving Left Turn | 70.81 m | 22.96 m | **67.57%** |
+| Jet 2 | Tactical 7G Turn | 71.13 m | 22.86 m | **67.87%** |
+| Jet 3 | Supersonic Sweep | 71.21 m | 23.39 m | **67.16%** |
+| Jet 4 | Intercept Vector | 70.70 m | 22.77 m | **67.80%** |
+| Jet 5 | High-Speed Dash | 70.15 m | 22.29 m | **68.22%** |
+| Jet 6 | Evasive Weave | 70.95 m | 23.52 m | **66.86%** |
+| Jet 7 | Combat Air Patrol | 70.85 m | 22.68 m | **67.99%** |
+| **Average** | — | **70.81 m** | **22.95 m** | **67.58%** |
 
 > **Validation:** Python `verify_part_b.py` confirmed **bit-for-bit numerical parity** across 1, 2, 4, and 8 worker configurations. Max discrepancy = **0.00e+00 m** ✅
 
@@ -201,17 +201,22 @@ Radar Ping (meas_x, meas_y)
 
 ---
 
-## Slide 10: Part B — Multi-Process Parallelism
+## Slide 10: Part B — Multi-Process Parallelism & CPU Affinity
 
-### Worker Assignment Strategy
+### Worker Assignment Strategy & OS Optimizations
 ```
 8 Jets → assigned by: jet_id % num_workers
 
-1 Worker:  W0 → {0,1,2,3,4,5,6,7}
-2 Workers: W0 → {0,2,4,6}  |  W1 → {1,3,5,7}
-4 Workers: W0 → {0,4}      |  W1 → {1,5}      |  W2 → {2,6}      |  W3 → {3,7}
-8 Workers: W0 → {0}        |  W1 → {1}        |  ...              |  W7 → {7}
+1 Worker:  W0 → {0,1,2,3,4,5,6,7} [Core 0]
+2 Workers: W0 → {0,2,4,6} [Core 0]  |  W1 → {1,3,5,7} [Core 1]
+4 Workers: W0 → {0,4} [Core 0]      |  W1 → {1,5} [Core 1] ...
+8 Workers: W0 → {0} [Core 0]        |  W1 → {1} [Core 1]   ...
 ```
+
+### Advanced OS Feature: CPU Core Affinity
+- **Windows:** `SetProcessAffinityMask(GetCurrentProcess(), 1ULL << (w % numCores))`
+- **Linux:** `sched_setaffinity(0, sizeof(cpuset), &cpuset)`
+- **Why it matters:** Eliminates OS context switching and cache thrashing across CPU cores!
 
 ### Why No Race Conditions?
 - Each `FilteredOutput[jet_id]` slot is written by **exactly one worker**

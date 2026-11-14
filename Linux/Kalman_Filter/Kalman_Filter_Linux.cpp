@@ -59,6 +59,7 @@
 #include <vector>
 
 #include <fcntl.h>
+#include <sched.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -74,7 +75,7 @@ const char* const kOutputCsvPath      = "results/Linux/filtered_sensor_data.csv"
 const char* const kTranscriptFile     = "Linux/Kalman_Filter/Kalman_Filter_Linux.txt";
 const char* const kMissingFilePath    = "common/sensor_data_missing_file.tmp";
 
-const int   kMaxRecords               = 16000;
+const int   kMaxRecords               = 100000;
 const int   kTotalTracks              = 8;
 const int   kBenchIterations          = 50;
 const int   kBenchWarmup              = 5;
@@ -279,6 +280,16 @@ bool spawnAndJoinWorkers(SharedRadarArena* arena, int numWorkers) {
         }
         if (pid == 0) {
             // Child Worker Process
+            // --- CPU Core Affinity Optimization (Option B) ---
+            // Locks worker to dedicated CPU core, preventing thread migration & L1/L2 cache thrashing
+            long numCores = sysconf(_SC_NPROCESSORS_ONLN);
+            if (numCores > 0) {
+                cpu_set_t cpuset;
+                CPU_ZERO(&cpuset);
+                CPU_SET(w % numCores, &cpuset);
+                sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+            }
+
             executeWorkerFiltering(arena, w, numWorkers);
             _exit(0);
         }

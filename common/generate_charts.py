@@ -57,7 +57,7 @@ filtered_data = load_track(FILTERED_WIN_CSV, 0, ['est_x',  'est_y'])
 
 fig, ax = plt.subplots(figsize=FIGSIZE)
 ax.plot(true_data['true_x'],     true_data['true_y'],     'g-',  linewidth=2.0, label='True Flight Path', zorder=3)
-ax.scatter(noisy_data['meas_x'], noisy_data['meas_y'],    c='r', s=4,  alpha=0.4, label='Raw Radar Pings (σ=50 m)', zorder=2)
+ax.scatter(noisy_data['meas_x'], noisy_data['meas_y'],    c='r', s=2,  alpha=0.25, label='Raw Radar Pings (σ=50 m)', zorder=2)
 ax.plot(filtered_data['est_x'],  filtered_data['est_y'],  'b-',  linewidth=1.8, label='Kalman Filtered Path', zorder=4)
 
 ax.set_title('Jet 0 (Climbing Right Turn): Kalman Filter Tracking', fontsize=14, fontweight='bold')
@@ -86,8 +86,8 @@ jet_labels = [
     "Jet 6\nEvasive\nWeave",
     "Jet 7\nCombat Air\nPatrol",
 ]
-raw_rmse      = [71.08, 70.73, 70.11, 70.79, 70.71, 70.12, 70.79, 69.51]
-filtered_rmse = [32.20, 33.55, 29.32, 33.92, 32.63, 32.93, 33.16, 28.69]
+raw_rmse      = [70.63, 70.81, 71.13, 71.21, 70.70, 70.15, 70.95, 70.85]
+filtered_rmse = [23.14, 22.96, 22.86, 23.39, 22.77, 22.29, 23.52, 22.68]
 
 x    = np.arange(len(jet_labels))
 w    = 0.35

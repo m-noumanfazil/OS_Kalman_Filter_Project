@@ -237,7 +237,7 @@ $$\text{RMSE} = \sqrt{\frac{1}{N} \sum_{k=1}^{N} \left[(x_{\text{est},k} - x_{\t
 
 ### 4.3 Sensor Data Design
 
-The synthetic dataset (`common/sensor_data.csv`) simulates **8 fighter jets** with distinct tactical profiles over **1,000 timesteps** each (Δt = 0.05 s → 50 seconds of flight), generated with seed=42 for reproducibility:
+The synthetic dataset (`common/sensor_data.csv`) simulates **8 fighter jets** with distinct tactical profiles over **10,000 timesteps** each (Δt = 0.05 s → 500 seconds / 8.3 minutes of flight), generated with seed=42 for reproducibility:
 
 | Jet ID | Tactical Profile | Speed Range | Flight Pattern |
 |---|---|---|---|
@@ -251,41 +251,42 @@ The synthetic dataset (`common/sensor_data.csv`) simulates **8 fighter jets** wi
 | Jet 7 | Combat Air Patrol | Mach 1.6 | Racetrack CAP orbit |
 
 **Dataset statistics:**
-- 8,000 total radar measurements (8 jets × 1,000 steps)
+- 80,000 total radar measurements (8 jets × 10,000 steps)
 - Radar noise: Gaussian, σ = 50 m (independent on X and Y axes)
-- Raw RMSE across all jets: **70.48 m** (≈ √2 × 50 m, as expected from 2D Gaussian)
+- Raw RMSE across all jets: **70.81 m** (≈ √2 × 50 m, as expected from 2D Gaussian)
 
 ---
 
-### 4.4 System Architecture
+### 4.4 System Architecture & OS Optimizations
 
 ```
-                    common/sensor_data.csv
-                           │
-              ┌────────────▼─────────────┐
-              │  Shared Memory Arena      │
-              │  (1.5–2 MB)               │
-              │  - RadarMeasurement[8000] │
-              │  - FilteredOutput[8000]   │
-              └──┬──────────┬────────────┘
-                 │          │
-         ┌───────▼──┐  ┌───▼───────┐
-         │ Worker 0  │  │ Worker 1  │  ...  │ Worker N-1 │
-         │ Jets 0,2  │  │ Jets 1,3  │       │ Jets ...   │
-         │ (even ids)│  │ (odd ids) │       │            │
-         └───────────┘  └───────────┘
-                 │
-         ┌───────▼──────────────────┐
-         │  Kalman Filter (per jet) │
-         │  AxisKalmanFilter (X, Y) │
-         │  Q=1500, R=2500, Δt=0.05 │
-         └──────────────────────────┘
+                    common/sensor_data.csv (80,000 pings)
+                                   │
+                      ┌────────────▼─────────────┐
+                      │  Shared Memory Arena      │
+                      │  (~6.4 MB in RAM)         │
+                      │  - RadarMeasurement[80k]  │
+                      │  - FilteredOutput[80k]    │
+                      └──┬──────────┬────────────┘
+                         │          │
+                 ┌───────▼──┐  ┌───▼───────┐
+                 │ Worker 0  │  │ Worker 1  │  ...  │ Worker N-1 │
+                 │ Jets 0,2  │  │ Jets 1,3  │       │ Jets ...   │
+                 │ [Core 0]  │  │ [Core 1]  │       │ [Core N-1] │
+                 └───────────┘  └───────────┘
+                         │
+                 ┌───────▼──────────────────┐
+                 │  Kalman Filter (per jet) │
+                 │  AxisKalmanFilter (X, Y) │
+                 │  Q=1500, R=2500, Δt=0.05 │
+                 └──────────────────────────┘
 ```
 
 **Track assignment:** Jet `j` is processed by Worker `j % numWorkers`. This ensures:
 - **Load balance:** Jets are distributed evenly (8 jets / 8 workers = 1 jet each maximum)
 - **No data races:** Each jet's output slots (`FilteredOutput[jet_id]`) are written by exactly one worker
 - **Numerical parity:** Deterministic assignment ensures single vs. multi-worker give identical results
+- **CPU Core Affinity (OS Optimization):** Each worker process is explicitly bound to a dedicated physical CPU core (`SetProcessAffinityMask` on Windows, `sched_setaffinity` on Linux). This eliminates OS thread migration, context switching overhead, and L1/L2 cache thrashing across cores.
 
 ---
 
@@ -299,6 +300,7 @@ The synthetic dataset (`common/sensor_data.csv`) simulates **8 fighter jets** wi
 | `MapViewOfFile` | Map the shared arena into parent's address space |
 | `OpenFileMappingA` | Workers open the named mapping by name (passed via argv) |
 | `CreateProcessA` | Spawn worker child processes (`--worker <id> <total> <shmName>`) |
+| `SetProcessAffinityMask` | Lock child process to a dedicated CPU core to eliminate cache bouncing |
 | `WaitForMultipleObjects` | Parent waits for all N workers to complete |
 | `CreateFileA` / `ReadFile` | Load sensor_data.csv into shared arena |
 | `WriteFile` | Write results to windows_results.csv |
@@ -325,6 +327,7 @@ Windows\Kalman_Filter\kalman_filter.exe
 | `mmap(MAP_SHARED\|MAP_ANONYMOUS)` | Create anonymous shared memory arena (inherited by children) |
 | `munmap` | Release the shared arena |
 | `fork()` | Spawn worker child processes (inherits mapped region via COW) |
+| `sched_setaffinity` | Lock child worker to a dedicated CPU core via `<sched.h>` |
 | `waitpid` | Parent waits for each worker to complete |
 | `open` / `read` / `fstat` | Load sensor_data.csv into shared arena |
 | `write` | Write results to linux_results.csv |
@@ -349,24 +352,24 @@ g++ -std=c++17 Linux/Kalman_Filter/Kalman_Filter_Linux.cpp -o Linux/Kalman_Filte
 The Python verification script (`common/verify_part_b.py`) implements the **identical Kalman Filter algorithm** as the C++ code and validates:
 
 1. **Bit-for-bit parity** across 1, 2, 4, 8 worker configurations: Max discrepancy = **0.00e+00 m** ✅
-2. **RMSE reduction** confirms filter effectiveness
+2. **RMSE reduction** confirms filter effectiveness across 80,000 pings:
 
 | Metric | Value |
 |---|---|
-| Raw Radar RMSE (all 8 jets) | **70.48 m** |
-| Kalman Filtered RMSE | **32.10 m** |
-| **Noise Reduction** | **54.45%** |
+| Raw Radar RMSE (all 8 jets) | **70.81 m** |
+| Kalman Filtered RMSE | **22.95 m** |
+| **Noise Reduction** | **67.58%** |
 
 | Jet | Profile | Raw RMSE | Filtered RMSE | Reduction |
 |---|---|---|---|---|
-| 0 | Climbing Right Turn | 71.08 m | 32.20 m | 54.70% |
-| 1 | Diving Left Turn | 70.73 m | 33.55 m | 52.57% |
-| 2 | Tactical 7G Turn | 70.11 m | 29.32 m | 58.17% |
-| 3 | Supersonic Sweep | 70.79 m | 33.92 m | 52.09% |
-| 4 | Intercept Vector | 70.71 m | 32.63 m | 53.85% |
-| 5 | High-Speed Dash | 70.12 m | 32.93 m | 53.03% |
-| 6 | Evasive Weave | 70.79 m | 33.16 m | 53.15% |
-| 7 | Combat Air Patrol | 69.51 m | 28.69 m | 58.72% |
+| 0 | Climbing Right Turn | 70.63 m | 23.14 m | 67.24% |
+| 1 | Diving Left Turn | 70.81 m | 22.96 m | 67.57% |
+| 2 | Tactical 7G Turn | 71.13 m | 22.86 m | 67.87% |
+| 3 | Supersonic Sweep | 71.21 m | 23.39 m | 67.16% |
+| 4 | Intercept Vector | 70.70 m | 22.77 m | 67.80% |
+| 5 | High-Speed Dash | 70.15 m | 22.29 m | 68.22% |
+| 6 | Evasive Weave | 70.95 m | 23.52 m | 66.86% |
+| 7 | Combat Air Patrol | 70.85 m | 22.68 m | 67.99% |
 
 ---
 
