@@ -254,12 +254,12 @@ Some metrics are platform-specific. For example, CPU-cycle measurements may use 
 
 ### Part B — Kalman Filter
 
-- [ ] Shared Kalman Filter mathematical implementation
-- [ ] Sensor data generation
-- [ ] Windows Kalman Filter implementation
-- [ ] Linux Kalman Filter implementation
-- [ ] Multi-process execution and IPC integration
-- [ ] Performance comparison
+- [x] Shared Kalman Filter mathematical implementation (`common/kalman_core.hpp`)
+- [x] Sensor data generation (`common/generate_sensor_data.py` & `common/sensor_data.csv`)
+- [x] Windows Kalman Filter implementation (`Windows/Kalman_Filter/Kalman_Filter_Windows.cpp`)
+- [x] Linux Kalman Filter implementation (`Linux/Kalman_Filter/Kalman_Filter_Linux.cpp`)
+- [x] Multi-process execution and IPC integration (1, 2, 4, 8 workers via shared memory)
+- [ ] Performance comparison (execution & benchmark data collection)
 
 ### Final Deliverables
 
