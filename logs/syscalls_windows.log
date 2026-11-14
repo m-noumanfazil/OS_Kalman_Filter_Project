@@ -1,0 +1,167 @@
+[03:43:19.137] CreateFile("file_io_demo.txt") -> OK
+[03:43:19.138] WriteFile("file_io_demo.txt") -> OK
+[03:43:19.139] CloseHandle("file_io_demo.txt") -> OK
+[03:43:19.140] CreateFile("file_io_demo.txt") -> OK
+[03:43:19.141] ReadFile("file_io_demo.txt") -> OK
+[03:43:19.142] CloseHandle("file_io_demo.txt") -> OK
+[03:43:19.143] VerifyContent("file_io_demo.txt") -> OK
+[03:43:19.150] CreateFile("file_io_does_not_exist.txt") -> FAILED, error 2: The system cannot find the file specified.
+[03:43:19.153] DeleteFile("file_io_demo.txt") -> OK
+[03:43:19.159] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[03:43:19.162] WriteFile_setup("file_io_bench_read.tmp") -> OK
+[03:43:19.163] CloseHandle_setup("file_io_bench_read.tmp") -> OK
+[03:43:19.243] CreateFile_setup("file_io_bench_write.tmp") -> OK
+[03:43:19.252] CloseHandle_teardown("file_io_bench_write.tmp") -> OK
+[03:43:19.261] CreateFile_setup("file_io_bench_write.tmp") -> OK
+[03:43:19.375] CloseHandle_teardown("file_io_bench_write.tmp") -> OK
+[03:43:19.379] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[03:43:19.385] CloseHandle_teardown("file_io_bench_read.tmp") -> OK
+[03:43:19.389] CreateFile_setup("file_io_bench_read.tmp") -> OK
+[03:43:19.465] CloseHandle_teardown("file_io_bench_read.tmp") -> OK
+[03:43:19.499] CreateFile_setup("file_io_bench_read.tmp x1050") -> OK
+[03:43:19.518] DeleteFile("file_io_bench_read.tmp") -> OK
+[03:43:19.519] DeleteFile("file_io_bench_write.tmp") -> OK
+[03:44:02.825] GetModuleFileName("path of this exe") -> OK
+[03:44:02.826] CreatePipe("64 KB buffer, inheritable") -> OK
+[03:44:02.827] SetHandleInformation("write end: not inheritable") -> OK
+[03:44:02.828] WriteFile("4096 bytes into the pipe") -> OK
+[03:44:02.844] CloseHandle("pipe write end") -> OK
+[03:44:02.854] CreateProcess("--child-pipe (4096 bytes)") -> OK
+[03:44:02.872] WaitForSingleObject("--child-pipe (4096 bytes)") -> OK
+[03:44:02.873] GetExitCodeProcess("--child-pipe (4096 bytes)") -> OK
+[03:44:02.874] CloseHandle("thread handle, --child-pipe (4096 bytes)") -> OK
+[03:44:02.875] CloseHandle("process handle, --child-pipe (4096 bytes)") -> OK
+[03:44:02.876] CloseHandle("pipe read end") -> OK
+[03:44:02.876] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
+[03:44:02.877] CreateFileMapping("Local\OsKalmanShm_6272") -> OK
+[03:44:02.878] MapViewOfFile("whole 1 MB") -> OK
+[03:44:02.886] CreateProcess("--child-shm Local\OsKalmanShm_6272") -> OK
+[03:44:02.906] WaitForSingleObject("--child-shm Local\OsKalmanShm_6272") -> OK
+[03:44:02.907] GetExitCodeProcess("--child-shm Local\OsKalmanShm_6272") -> OK
+[03:44:02.907] CloseHandle("thread handle, --child-shm Local\OsKalmanShm_6272") -> OK
+[03:44:02.908] CloseHandle("process handle, --child-shm Local\OsKalmanShm_6272") -> OK
+[03:44:02.910] VerifySharedMemory("Local\OsKalmanShm_6272") -> OK
+[03:44:02.911] UnmapViewOfFile("whole 1 MB view") -> OK
+[03:44:02.912] CloseHandle("mapping handle") -> OK
+[03:44:02.913] OpenFileMapping("Local\OsKalmanNoSuchMapping") -> FAILED, error 2: The system cannot find the file specified.
+[03:44:02.915] GetProcessHandleCount("before Part 2") -> OK
+[03:44:02.943] CreatePipe_setup("1 MB buffer") -> OK
+[03:44:02.948] CloseHandle_teardown("pipe read end") -> OK
+[03:44:02.949] CloseHandle_teardown("pipe write end") -> OK
+[03:44:02.953] CreatePipe_setup("1 MB buffer") -> OK
+[03:44:02.969] CloseHandle_teardown("pipe read end") -> OK
+[03:44:02.970] CloseHandle_teardown("pipe write end") -> OK
+[03:44:02.973] CreatePipe_setup("1 MB buffer") -> OK
+[03:44:02.974] WriteFile_setup("fill the pipe once") -> OK
+[03:44:02.981] CloseHandle_teardown("pipe read end") -> OK
+[03:44:02.982] CloseHandle_teardown("pipe write end") -> OK
+[03:44:02.987] CreatePipe_setup("1 MB buffer") -> OK
+[03:44:02.988] WriteFile_setup("fill the pipe once") -> OK
+[03:44:03.004] CloseHandle_teardown("pipe read end") -> OK
+[03:44:03.004] CloseHandle_teardown("pipe write end") -> OK
+[03:44:03.027] CreateFileMapping_setup("1 MB, unnamed") -> OK
+[03:44:03.035] CloseHandle_teardown("mapping handle") -> OK
+[03:44:03.042] CreateFileMapping_setup("1 MB, unnamed") -> OK
+[03:44:03.046] MapViewOfFile_setup("64 KB x 1050") -> OK
+[03:44:03.051] CloseHandle_teardown("mapping handle") -> OK
+[03:44:03.057] GetProcessHandleCount("after Part 2") -> OK
+[03:44:29.429] GetSystemInfo("page size and allocation granularity") -> OK
+[03:44:29.437] VirtualAlloc("reserve 1 MB, PAGE_NOACCESS") -> OK
+[03:44:29.439] VirtualAlloc("commit 1 MB, PAGE_READWRITE") -> OK
+[03:44:29.450] VerifyContent("1 MB block") -> OK
+[03:44:29.452] VirtualFree("base+4096, expected to fail") -> FAILED, error 487: Attempt to access invalid address.
+[03:44:29.458] VirtualFree("release 1 MB block") -> OK
+[03:44:29.459] VirtualAlloc("reserve+commit 64 KB in one call") -> OK
+[03:44:29.461] VerifyContent("64 KB block") -> OK
+[03:44:29.463] VirtualFree("release 64 KB block") -> OK
+[03:44:29.563] VirtualAlloc_setup("64 KB x 1050") -> OK
+[03:44:29.695] VirtualFree_teardown("1050 block(s)") -> OK
+[03:44:29.738] VirtualAlloc_setup("4 KB x 1050") -> OK
+[03:44:29.772] VirtualFree_teardown("0 block(s)") -> OK
+[03:44:29.816] VirtualAlloc_setup("64 KB x 1050") -> OK
+[03:44:29.824] VirtualFree_teardown("0 block(s)") -> OK
+[03:44:29.874] VirtualAlloc_setup("64 KB x 1050") -> OK
+[03:44:29.998] VirtualFree_teardown("0 block(s)") -> OK
+[03:44:53.114] CreateFile("permissions_test.txt") -> OK
+[03:44:53.115] WriteFile("permissions_test.txt") -> OK
+[03:44:53.116] CloseHandle("permissions_test.txt") -> OK
+[03:44:53.128] GetFileSecurity("save original DACL") -> OK
+[03:44:53.136] ConvertSecurityDescriptorToString("Original DACL") -> OK
+[03:44:53.146] ConvertStringSecurityDescriptorToSecurityDescriptor("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[03:44:53.147] SetFileSecurity("apply DENY write DACL") -> OK
+[03:44:53.150] GetFileSecurity("read DACL after deny") -> OK
+[03:44:53.153] ConvertSecurityDescriptorToString("DACL after SetFileSecurity (deny write)") -> OK
+[03:44:53.155] CreateFile("write blocked, expected to fail") -> FAILED, error 5: Access is denied.
+[03:44:53.158] VerifyWriteBlocked("the DACL blocks writing") -> OK
+[03:44:53.160] CreateFile("read still allowed") -> OK
+[03:44:53.163] CloseHandle("permissions_test.txt") -> OK
+[03:44:53.164] VerifyReadStillAllowed("read still allowed") -> OK
+[03:44:53.166] SetFileSecurity("restore original DACL") -> OK
+[03:44:53.166] CreateFile("write allowed") -> OK
+[03:44:53.167] CloseHandle("permissions_test.txt") -> OK
+[03:44:53.168] VerifyWriteAllowedAgain("writing works again after the restore") -> OK
+[03:44:53.169] SetFileAttributes("read-only on") -> OK
+[03:44:53.173] CreateFile("write blocked, expected to fail") -> FAILED, error 5: Access is denied.
+[03:44:53.176] VerifyReadOnlyBlocksWrite("the read-only flag blocks writing") -> OK
+[03:44:53.179] SetFileAttributes("read-only off") -> OK
+[03:44:53.180] CreateFile("write allowed") -> OK
+[03:44:53.181] CloseHandle("permissions_test.txt") -> OK
+[03:44:53.183] VerifyWriteAfterClearingReadOnly("writing works after clearing read-only") -> OK
+[03:44:53.185] ConvertStringSecurityDescriptorToSecurityDescriptor("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[03:44:53.186] SetFileSecurity("permissions_does_not_exist.txt, expected to fail") -> FAILED, error 2: The system cannot find the file specified.
+[03:44:53.189] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.190] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.191] DeleteFile("permissions_test.txt") -> OK
+[03:44:53.192] GetProcessHandleCount("before Part 2") -> OK
+[03:44:53.196] CreateFile_setup("permissions_test.txt") -> OK
+[03:44:53.199] WriteFile_setup("permissions_test.txt") -> OK
+[03:44:53.207] CloseHandle_setup("permissions_test.txt") -> OK
+[03:44:53.209] GetFileSecurity_setup("save original DACL") -> OK
+[03:44:53.211] ConvertStringSecurityDescriptorToSecurityDescriptor_setup("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[03:44:53.490] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.491] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.498] CreateFile_setup("permissions_test.txt") -> OK
+[03:44:53.503] WriteFile_setup("permissions_test.txt") -> OK
+[03:44:53.505] CloseHandle_setup("permissions_test.txt") -> OK
+[03:44:53.507] GetFileSecurity_setup("save original DACL") -> OK
+[03:44:53.548] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.549] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.554] CreateFile_setup("permissions_test.txt") -> OK
+[03:44:53.554] WriteFile_setup("permissions_test.txt") -> OK
+[03:44:53.556] CloseHandle_setup("permissions_test.txt") -> OK
+[03:44:53.557] GetFileSecurity_setup("save original DACL") -> OK
+[03:44:53.952] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.953] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.958] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.961] DeleteFile("permissions_test.txt") -> OK
+[03:44:53.963] GetProcessHandleCount("after Part 2") -> OK
+[03:45:25.031] GetModuleFileName("path of this exe") -> OK
+[03:45:25.038] CreateProcess("--child 42") -> OK
+[03:45:25.068] WaitForSingleObject("--child 42") -> OK
+[03:45:25.069] GetExitCodeProcess("--child 42") -> OK
+[03:45:25.084] VerifyExitCode("--child 42") -> OK
+[03:45:25.084] GetProcessTimes("--child 42") -> OK
+[03:45:25.087] CloseHandle("thread handle, --child 42") -> OK
+[03:45:25.088] CloseHandle("process handle, --child 42") -> OK
+[03:45:25.100] CreateProcess("--child 7") -> OK
+[03:45:25.121] WaitForSingleObject("--child 7") -> OK
+[03:45:25.124] GetExitCodeProcess("--child 7") -> OK
+[03:45:25.132] VerifyExitCode("--child 7") -> OK
+[03:45:25.133] GetProcessTimes("--child 7") -> OK
+[03:45:25.135] CloseHandle("thread handle, --child 7") -> OK
+[03:45:25.136] CloseHandle("process handle, --child 7") -> OK
+[03:45:25.137] CreateProcess("C:\this_program_does_not_exist.exe, expected to fail") -> FAILED, error 2: The system cannot find the file specified.
+[03:45:25.138] GetProcessHandleCount("before Part 2") -> OK
+[03:45:28.488] CreateProcess_setup("--child 0 x210") -> OK
+[03:45:28.529] WaitForSingleObject_setup("--child 0 x210") -> OK
+[03:45:30.860] GetProcessHandleCount("after Part 2") -> OK
+[03:45:54.018] CreateFileA("common/sensor_data.csv") -> OK
+[03:45:54.028] ReadFile("common/sensor_data.csv") -> OK
+[03:45:54.551] CreateFileMappingA("Local\KalmanRadarShm_10584") -> OK
+[03:45:54.552] MapViewOfFile("2 MB shared arena") -> OK
+[03:45:54.564] VerifyFilterAccuracy("Noise reduction > 50%") -> OK
+[03:45:54.638] CreateProcess_Workers_4("Spawn 4 child workers") -> OK
+[03:45:54.641] VerifyParallelParity("Single vs Multi parity < 1e-9") -> OK
+[03:45:54.642] OpenFileMappingA_Missing("Local\KalmanRadarNonExistentShm") -> FAILED, error 2: The system cannot find the file specified.
+[03:46:01.213] CreateFileA("results/Windows/filtered_sensor_data.csv") -> OK
+[03:46:01.724] WriteFile("results/Windows/filtered_sensor_data.csv") -> OK

@@ -1,0 +1,92 @@
+Console output is also being saved to Windows/Process/Process_Windows.txt
+=== Windows Process: demo + benchmarks ===
+
+[03:45:25.031] GetModuleFileName("path of this exe") -> OK
+---------- PART 1: DEMO (logged, not timed) ----------
+Parent process id: 10544
+
+-- Child with exit code 42 --
+Command line: "C:\Users\hp ZBook\Desktop\OS_Kalman_Filter_CCP\Windows\Process\process_windows.exe" --child 42
+[03:45:25.038] CreateProcess("--child 42") -> OK
+Child process id: 18564
+[03:45:25.068] WaitForSingleObject("--child 42") -> OK
+[03:45:25.069] GetExitCodeProcess("--child 42") -> OK
+Verification PASSED: child returned exit code 42 (expected 42).
+[03:45:25.084] VerifyExitCode("--child 42") -> OK
+[03:45:25.084] GetProcessTimes("--child 42") -> OK
+Child lifetime (exit - creation): 32056.4 us
+Child CPU time (kernel + user)  : 31250.0 us (may be coarse for such a short child)
+[03:45:25.087] CloseHandle("thread handle, --child 42") -> OK
+[03:45:25.088] CloseHandle("process handle, --child 42") -> OK
+
+-- Child with exit code 7 --
+Command line: "C:\Users\hp ZBook\Desktop\OS_Kalman_Filter_CCP\Windows\Process\process_windows.exe" --child 7
+[03:45:25.100] CreateProcess("--child 7") -> OK
+Child process id: 2632
+[03:45:25.121] WaitForSingleObject("--child 7") -> OK
+[03:45:25.124] GetExitCodeProcess("--child 7") -> OK
+Verification PASSED: child returned exit code 7 (expected 7).
+[03:45:25.132] VerifyExitCode("--child 7") -> OK
+[03:45:25.133] GetProcessTimes("--child 7") -> OK
+Child lifetime (exit - creation): 26110.9 us
+Child CPU time (kernel + user)  : 15625.0 us (may be coarse for such a short child)
+[03:45:25.135] CloseHandle("thread handle, --child 7") -> OK
+[03:45:25.136] CloseHandle("process handle, --child 7") -> OK
+
+-- Starting a program that does not exist --
+CreateProcess on a missing program (this FAILURE is expected, error 2 or 3):
+[03:45:25.137] CreateProcess("C:\this_program_does_not_exist.exe, expected to fail") -> FAILED, error 2: The system cannot find the file specified.
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+(Process creation is slow: this part can take from several seconds to a minute or more.)
+[03:45:25.138] GetProcessHandleCount("before Part 2") -> OK
+Open handles before Part 2: 67
+==== CreateProcess ====
+Iterations    : 200
+Min           : 1355.600 us
+Median        : 1659.000 us
+Mean          : 1881.372 us
+Max           : 4156.600 us
+Std dev       : 559.551 us
+CPU (total)   : 265625.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 1328.125 us
+CPU cycles    : 638231618
+Cycles/call   : 3191158.090
+Memory delta  : 208.000 KB
+Page faults   : 52
+
+[03:45:28.488] CreateProcess_setup("--child 0 x210") -> OK
+[03:45:28.529] WaitForSingleObject_setup("--child 0 x210") -> OK
+==== WaitForSingleObject ====
+Iterations    : 200
+Min           : 1.400 us
+Median        : 2.100 us
+Mean          : 3.864 us
+Max           : 137.500 us
+Std dev       : 12.684 us
+CPU (total)   : 0.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 0.000 us
+CPU cycles    : 1298434
+Cycles/call   : 6492.170
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+==== CreateProcess_plus_Wait ====
+Iterations    : 200
+Min           : 8413.600 us
+Median        : 10670.000 us
+Mean          : 10764.579 us
+Max           : 17241.400 us
+Std dev       : 1410.205 us
+CPU (total)   : 234375.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 1171.875 us
+CPU cycles    : 580767250
+Cycles/call   : 2903836.250
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[03:45:30.860] GetProcessHandleCount("after Part 2") -> OK
+Open handles after Part 2 : 67
+Handle leak check PASSED.
+
+All done. Results appended to results/Windows/windows_results.csv

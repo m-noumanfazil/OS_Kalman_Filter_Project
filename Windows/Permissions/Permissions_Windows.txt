@@ -1,0 +1,130 @@
+Console output is also being saved to Windows/Permissions/Permissions_Windows.txt
+=== Windows Permissions: demo + benchmarks ===
+
+---------- PART 1: DEMO (logged, not timed) ----------
+Test file: permissions_test.txt
+If a run is ever killed half-way, repair the file with: icacls permissions_test.txt /reset
+
+-- A. SetFileSecurity route (replace the DACL) --
+[03:44:53.114] CreateFile("permissions_test.txt") -> OK
+[03:44:53.115] WriteFile("permissions_test.txt") -> OK
+[03:44:53.116] CloseHandle("permissions_test.txt") -> OK
+GetFileSecurity is called twice: the first call only asks how big the buffer must be
+(it is EXPECTED to fail with ERROR_INSUFFICIENT_BUFFER), the second call fills it.
+[03:44:53.128] GetFileSecurity("save original DACL") -> OK
+[03:44:53.136] ConvertSecurityDescriptorToString("Original DACL") -> OK
+Original DACL:
+    D:AI(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;S-1-5-21-1027900058-380961044-1646099255-1001)
+[03:44:53.146] ConvertStringSecurityDescriptorToSecurityDescriptor("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[03:44:53.147] SetFileSecurity("apply DENY write DACL") -> OK
+[03:44:53.150] GetFileSecurity("read DACL after deny") -> OK
+[03:44:53.153] ConvertSecurityDescriptorToString("DACL after SetFileSecurity (deny write)") -> OK
+DACL after SetFileSecurity (deny write):
+    D:(D;;DCLC;;;WD)(A;;FA;;;WD)
+Opening the file for writing (this FAILURE is expected, error 5):
+[03:44:53.155] CreateFile("write blocked, expected to fail") -> FAILED, error 5: Access is denied.
+Verification PASSED: the DACL blocks writing.
+[03:44:53.158] VerifyWriteBlocked("the DACL blocks writing") -> OK
+[03:44:53.160] CreateFile("read still allowed") -> OK
+[03:44:53.163] CloseHandle("permissions_test.txt") -> OK
+Verification PASSED: reading is still allowed (the deny rule covers write only).
+[03:44:53.164] VerifyReadStillAllowed("read still allowed") -> OK
+[03:44:53.166] SetFileSecurity("restore original DACL") -> OK
+[03:44:53.166] CreateFile("write allowed") -> OK
+[03:44:53.167] CloseHandle("permissions_test.txt") -> OK
+Verification PASSED: writing works again after the restore.
+[03:44:53.168] VerifyWriteAllowedAgain("writing works again after the restore") -> OK
+
+-- B. SetFileAttributes route (read-only flag) --
+[03:44:53.169] SetFileAttributes("read-only on") -> OK
+Opening the file for writing (this FAILURE is expected, error 5):
+[03:44:53.173] CreateFile("write blocked, expected to fail") -> FAILED, error 5: Access is denied.
+Verification PASSED: the read-only flag blocks writing.
+[03:44:53.176] VerifyReadOnlyBlocksWrite("the read-only flag blocks writing") -> OK
+[03:44:53.179] SetFileAttributes("read-only off") -> OK
+[03:44:53.180] CreateFile("write allowed") -> OK
+[03:44:53.181] CloseHandle("permissions_test.txt") -> OK
+Verification PASSED: writing works after clearing read-only.
+[03:44:53.183] VerifyWriteAfterClearingReadOnly("writing works after clearing read-only") -> OK
+
+-- C. SetFileSecurity on a file that does not exist --
+[03:44:53.185] ConvertStringSecurityDescriptorToSecurityDescriptor("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+SetFileSecurity on a missing file (this FAILURE is expected, error 2):
+[03:44:53.186] SetFileSecurity("permissions_does_not_exist.txt, expected to fail") -> FAILED, error 2: The system cannot find the file specified.
+
+-- D. Cleanup (restore, clear read-only, delete) --
+[03:44:53.189] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.190] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.191] DeleteFile("permissions_test.txt") -> OK
+
+---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
+[03:44:53.192] GetProcessHandleCount("before Part 2") -> OK
+Open handles before Part 2: 73
+[03:44:53.196] CreateFile_setup("permissions_test.txt") -> OK
+[03:44:53.199] WriteFile_setup("permissions_test.txt") -> OK
+[03:44:53.207] CloseHandle_setup("permissions_test.txt") -> OK
+[03:44:53.209] GetFileSecurity_setup("save original DACL") -> OK
+[03:44:53.211] ConvertStringSecurityDescriptorToSecurityDescriptor_setup("D:(D;;0x6;;;WD)(A;;FA;;;WD)") -> OK
+[03:44:53.490] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.491] SetFileAttributes_restore("clear read-only") -> OK
+==== SetFileSecurity ====
+Iterations    : 1000
+Min           : 70.000 us
+Median        : 121.800 us
+Mean          : 130.623 us
+Max           : 1155.800 us
+Std dev       : 57.697 us
+CPU (total)   : 234375.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 234.375 us
+CPU cycles    : 630512224
+Cycles/call   : 630512.224
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[03:44:53.498] CreateFile_setup("permissions_test.txt") -> OK
+[03:44:53.503] WriteFile_setup("permissions_test.txt") -> OK
+[03:44:53.505] CloseHandle_setup("permissions_test.txt") -> OK
+[03:44:53.507] GetFileSecurity_setup("save original DACL") -> OK
+[03:44:53.548] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.549] SetFileAttributes_restore("clear read-only") -> OK
+==== GetFileSecurity ====
+Iterations    : 1000
+Min           : 26.400 us
+Median        : 32.750 us
+Mean          : 37.525 us
+Max           : 180.800 us
+Std dev       : 14.682 us
+CPU (total)   : 31250.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 31.250 us
+CPU cycles    : 95625756
+Cycles/call   : 95625.756
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+[03:44:53.554] CreateFile_setup("permissions_test.txt") -> OK
+[03:44:53.554] WriteFile_setup("permissions_test.txt") -> OK
+[03:44:53.556] CloseHandle_setup("permissions_test.txt") -> OK
+[03:44:53.557] GetFileSecurity_setup("save original DACL") -> OK
+[03:44:53.952] SetFileSecurity_restore("restore original DACL") -> OK
+[03:44:53.953] SetFileAttributes_restore("clear read-only") -> OK
+==== SetFileAttributes ====
+Iterations    : 1000
+Min           : 81.400 us
+Median        : 167.300 us
+Mean          : 186.339 us
+Max           : 1192.500 us
+Std dev       : 91.786 us
+CPU (total)   : 296875.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 296.875 us
+CPU cycles    : 832183354
+Cycles/call   : 832183.354
+Memory delta  : 200.000 KB
+Page faults   : 50
+
+[03:44:53.958] SetFileAttributes_restore("clear read-only") -> OK
+[03:44:53.961] DeleteFile("permissions_test.txt") -> OK
+[03:44:53.963] GetProcessHandleCount("after Part 2") -> OK
+Open handles after Part 2 : 73
+Handle leak check PASSED.
+
+All done. Results appended to results/Windows/windows_results.csv

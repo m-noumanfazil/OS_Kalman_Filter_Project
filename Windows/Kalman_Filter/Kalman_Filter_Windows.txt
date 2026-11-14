@@ -1,0 +1,100 @@
+Console output is also being saved to Windows/Kalman_Filter/Kalman_Filter_Windows.txt
+=== Windows Kalman Filter: Supersonic Fighter Jet Radar Tracker ===
+
+[03:45:54.018] CreateFileA("common/sensor_data.csv") -> OK
+[03:45:54.028] ReadFile("common/sensor_data.csv") -> OK
+Ingested 80000 radar pings for 8 supersonic fighter jets.
+
+---------- PART 1: DEMO & VALIDATION (logged, not timed) ----------
+[03:45:54.551] CreateFileMappingA("Local\KalmanRadarShm_10584") -> OK
+[03:45:54.552] MapViewOfFile("2 MB shared arena") -> OK
+
+[1] Running Single-Process Baseline (1 Worker)...
+  Raw Radar Sensor RMSE    : 70.81 m
+  Kalman Filtered RMSE     : 22.95 m
+  Tracking Error Reduction : 67.58%
+[03:45:54.564] VerifyFilterAccuracy("Noise reduction > 50%") -> OK
+
+[2] Running Multi-Process Parallel Filtering (4 Workers via CreateProcess)...
+[03:45:54.638] CreateProcess_Workers_4("Spawn 4 child workers") -> OK
+
+[3] Verifying Numerical Parity (Single-Process vs 4-Process Parallel)...
+  Max Difference Across 8,000 Coordinates: 0.00e+00 m
+[03:45:54.641] VerifyParallelParity("Single vs Multi parity < 1e-9") -> OK
+
+[4] Deliberate Failure Handling (OpenFileMapping on non-existent object):
+[03:45:54.642] OpenFileMappingA_Missing("Local\KalmanRadarNonExistentShm") -> FAILED, error 2: The system cannot find the file specified.
+
+---------- PART 2: BENCHMARKS & SCALABILITY (timed, zero logging) ----------
+==== KalmanFilter_1Worker ====
+Iterations    : 50
+Min           : 1629.800 us
+Median        : 1952.950 us
+Mean          : 2350.510 us
+Max           : 4862.100 us
+Std dev       : 782.310 us
+CPU (total)   : 125000.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 2500.000 us
+CPU cycles    : 304096358
+Cycles/call   : 6081927.160
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+  [Baseline] 1 Worker Execution Time: 2350.51 us
+
+==== KalmanFilter_2Workers ====
+Iterations    : 50
+Min           : 23520.900 us
+Median        : 29948.450 us
+Mean          : 30210.732 us
+Max           : 38815.100 us
+Std dev       : 3503.594 us
+CPU (total)   : 187500.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 3750.000 us
+CPU cycles    : 405577100
+Cycles/call   : 8111542.000
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+  Parallel Speedup    : 0.08x (Amdahl scaling)
+  Parallel Efficiency : 3.89%
+
+==== KalmanFilter_4Workers ====
+Iterations    : 50
+Min           : 27813.300 us
+Median        : 33824.850 us
+Mean          : 36403.950 us
+Max           : 121914.900 us
+Std dev       : 13468.742 us
+CPU (total)   : 484375.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 9687.500 us
+CPU cycles    : 764075714
+Cycles/call   : 15281514.280
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+  Parallel Speedup    : 0.06x (Amdahl scaling)
+  Parallel Efficiency : 1.61%
+
+==== KalmanFilter_8Workers ====
+Iterations    : 50
+Min           : 37239.400 us
+Median        : 43462.550 us
+Mean          : 49416.734 us
+Max           : 131785.800 us
+Std dev       : 17435.011 us
+CPU (total)   : 656250.000 us (coarse, ~15.6 ms steps)
+CPU per call  : 13125.000 us
+CPU cycles    : 1473520192
+Cycles/call   : 29470403.840
+Memory delta  : 16.000 KB
+Page faults   : 4
+
+  Parallel Speedup    : 0.05x (Amdahl scaling)
+  Parallel Efficiency : 0.59%
+
+Exporting final filtered supersonic trajectory to results/Windows/filtered_sensor_data.csv...
+[03:46:01.213] CreateFileA("results/Windows/filtered_sensor_data.csv") -> OK
+[03:46:01.724] WriteFile("results/Windows/filtered_sensor_data.csv") -> OK
+
+Part B Windows execution fully verified, logged, and appended to results.
