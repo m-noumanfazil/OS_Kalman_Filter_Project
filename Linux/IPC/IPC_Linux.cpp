@@ -1226,9 +1226,11 @@ int main(int argc, char* argv[]) {
     // ends with _exit and does NOTHING else (see the CHILD MODES comment).
     if (argc >= 2 && strcmp(argv[1], "--child-pipe") == 0) {
         runPipeChild(argc, argv);
+        _exit(0);
     }
     if (argc >= 2 && strcmp(argv[1], "--child-shm") == 0) {
         runSharedMemoryChild(argc, argv);
+        _exit(0);
     }
 
     // PART 3: copy everything written to cout into a text file as well.
