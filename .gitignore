@@ -18,3 +18,9 @@ cmake-build-*/
 
 # IDE settings
 .vscode/
+
+# Python virtual envs and caches
+.venv/
+*/.venv/
+__pycache__/
+*.pyc
