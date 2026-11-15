@@ -3,296 +3,248 @@
 
 ---
 
-## Slide 1: Title
+## Slide 1: Title & Team
 
 # CT-353 Operating Systems
 ## Complex Computing Activity (CCA)
 
 ### **Supersonic Fighter Jet Radar Tracking**
-### via Multi-Process Kalman Filter on Windows & Linux
+### Native System Calls & Multi-Process Kalman Filter on Windows 10 & Ubuntu 22.04
 
 ---
 
-**Team:** Muhammad Nouman Fazil  
-**Repo:** [github.com/m-noumanfazil/OS_Kalman_Filter_Project](https://github.com/m-noumanfazil/OS_Kalman_Filter_Project)  
+**Department:** Department of Computer Science & Information Technology  
+**Institution:** NED University of Engineering & Technology  
+
+**Team Members:**
+1. **Muhammad Nouman Fazil** (CT-24259) — Systems Architecture, Linux/Win32 Implementations, Benchmarking Harness
+2. **Muhammad Usman Murtaze** (CT-24262) — Kalman Filter Kinematic Modeling, Telemetry Generation, Validation Analysis
+3. **Muneeb ur Rehman** (CT-24282) — Performance Profiling, OS Anomaly Research, Documentation and Verification
+
+**Repository:** [github.com/m-noumanfazil/OS_Kalman_Filter_Project](https://github.com/m-noumanfazil/OS_Kalman_Filter_Project)  
 **Date:** November 2026
 
 ---
 
 ## Slide 2: Project Overview
 
-### What We Built
+### Two Interconnected Phases
 
-| Part | Description |
-|---|---|
-| **Part A** | Benchmarked **28 syscalls** (5 categories) on both Windows 10 & Ubuntu 22.04 |
-| **Part B** | Built a **parallel Kalman Filter** using those exact syscalls to track **8 supersonic fighter jets** |
+| Phase | Scope | Objective |
+|---|---|---|
+| **Part A — Micro-benchmarking** | **31 Windows APIs** vs **32 Linux Syscalls** across 5 categories | Measure sub-microsecond latency, CPU time, cycles, memory deltas, and page faults |
+| **Part B — Real-World Application** | **Multi-process 2D Kalman Filter** tracking **8 supersonic fighter jets** | Evaluate how native OS primitives (shared memory, process spawning, CPU affinity) perform in practice |
 
-### Why Fighter Jet Tracking?
-- Real-world radar data is **noisy** (±50 m error at 20 Hz)
-- Multiple jets need to be tracked **simultaneously** → perfect for multi-process parallelism
-- Uses **every OS primitive** benchmarked in Part A: file I/O, shared memory, process creation, IPC
+### Why Supersonic Fighter Jet Tracking?
+- Air defense radar operates at **20 Hz** ($\Delta t = 0.05\text{ s}$), but pings suffer from atmospheric and sensor noise ($\sigma = 50\text{ m}$).
+- 8 supersonic jets (Mach 1.5–2.0, 540–680 m/s) maneuvering concurrently $\rightarrow$ **perfect candidate for multi-process parallelism**.
+- Exercises all 5 Part A OS domains: **File I/O**, **Shared Memory**, **Process Lifecycle**, **IPC**, and **Hardware Probes**.
 
 ---
 
 ## Slide 3: System Architecture
 
 ```
-Radar Sensor Data (CSV)
-      │  8 jets × 1,000 steps = 8,000 pings
+Radar Telemetry Dataset (common/sensor_data.csv)
+      │  8 fighter jets × 10,000 steps = 80,000 pings (500 s flight)
       ▼
-┌─────────────────────────────────┐
-│   Shared Memory Arena (1.5 MB)  │  ◄── OS Shared Memory Syscalls
-│   - 8,000 RadarMeasurements    │      (mmap / CreateFileMapping)
-│   - 8,000 FilteredOutputs      │
-└──────────┬────────────┬─────────┘
-           │            │
-     Worker 0      Worker 1 ... Worker N-1
-   (Jets 0,2,4)  (Jets 1,3,5)             ◄── OS Process Syscalls
-         │                                     (fork / CreateProcess)
-   ┌─────▼──────┐
-   │ Kalman     │  ◄── Pure math, no extra syscalls
-   │ Filter     │      Runs entirely in shared memory
-   │ (per jet)  │
-   └────────────┘
-         │
-   Results CSV  ◄── OS File I/O Syscalls (write / WriteFile)
+┌──────────────────────────────────────────┐
+│   Shared Memory Arena (~8 MB in RAM)     │  ◄── OS Zero-Copy Memory
+│   - recordCount, trackCount              │      Windows: CreateFileMapping + MapViewOfFile
+│   - 80,000 RadarMeasurements (input)     │      Linux:   mmap(MAP_SHARED|MAP_ANONYMOUS)
+│   - 80,000 FilteredOutputs (output)      │
+└────────────────────┬─────────────────────┘
+                     │
+     ┌───────────────┼───────────────┐
+     ▼               ▼               ▼
+ Worker Process 0  Worker Process 1 ... Worker Process N-1  ◄── OS Process Spawning
+  Windows: Core 0   Windows: Core 1      Windows: Core N-1      Win: CreateProcessA + SetProcessAffinityMask
+  Linux:   Core 0   Linux:   Core 1      Linux:   Core N-1      Lin: fork() + sched_setaffinity
+   (Jets 0, 4)       (Jets 1, 5)          (Jets ...)
+         │               │                    │
+         └───────────────┼────────────────────┘
+                         ▼
+             Filtered Trajectory CSV  ◄── OS Native File I/O (WriteFile / write)
 ```
 
-**OS Environment:** Dual-boot HP ZBook — Windows 10 + Ubuntu 22.04 LTS
+**Benchmarking Environment:** Bare-metal dual-boot **HP ZBook** (Intel Core i7) running Windows 10 Pro & Ubuntu 22.04 LTS natively (no VMs, no WSL).
 
 ---
 
-## Slide 4: Part A — 5 Benchmark Categories
+## Slide 4: Part A — 5 System Call Benchmark Categories
 
-| # | Category | Windows Syscalls | Linux Syscalls |
-|---|---|---|---|
-| 1 | File I/O | CreateFile, WriteFile, ReadFile, CloseHandle | open, write, read, close |
-| 2 | Memory | VirtualAlloc, VirtualFree | mmap, munmap |
-| 3 | Process | CreateProcess, WaitForSingleObject | fork, execve, waitpid |
-| 4 | IPC | CreatePipe, CreateFileMapping, MapViewOfFile | pipe, shmget, shmat |
-| 5 | Permissions | SetFileSecurity, GetFileSecurity, SetFileAttributes | chmod, chown, umask |
+| # | Category | Windows Win32 APIs | Linux POSIX Syscalls | Key Metric Evaluated |
+|---|---|---|---|---|
+| 1 | **File I/O** | `CreateFileA`, `ReadFile`, `WriteFile`, `CloseHandle` | `open`, `read`, `write`, `close` | 4 KB vs 1 MB block latency & kernel writeback |
+| 2 | **Memory** | `VirtualAlloc`, `VirtualFree` | `mmap`, `munmap` | Lazy demand paging vs first-touch page faults |
+| 3 | **Process** | `CreateProcessA`, `WaitForSingleObject` | `fork`, `execve`, `waitpid` | Address space initialization vs COW cloning |
+| 4 | **IPC** | `CreatePipe`, `CreateFileMappingA`, `MapViewOfFile` | `pipe`, `shmget`, `shmat`, `shmdt` | Pipe buffer throughput vs shared memory zero-copy |
+| 5 | **Permissions** | `SetFileSecurityA`, `GetFileSecurityA`, `SetFileAttributesA` | `chmod`, `chown`, `umask` | NTFS DACL/SID security evaluation vs 9-bit mode bits |
 
-**Methodology:**
-- **1,000 iterations** per syscall (200 for process creation)
-- Timing: `QueryPerformanceCounter` (Win) / `clock_gettime(MONO)` (Linux)
-- Metric: **Median latency** (robust to outliers)
-- Also measured: CPU time, CPU cycles, memory delta, page faults
+**Statistical Rigor:** 1,000 iterations per call (200 for process routines) with warm-up runs. Median latency used as the robust primary metric.
 
 ---
 
-## Slide 5: Part A — Key Performance Findings
+## Slide 5: Part A — Empirical Cross-OS Findings
 
-### Top 5 Cross-OS Comparisons (Median Latency)
+### Key Benchmark Measurements (Median Latencies on HP ZBook)
 
-| Operation | Windows | Linux | Winner |
-|---|---|---|---|
-| **Process Create** | 2,113 µs | 94 µs | 🐧 Linux **22×** faster |
-| **Permissions Set** | 133 µs | 3.8 µs | 🐧 Linux **35×** faster |
-| **Pipe Create** | 13.9 µs | 3.2 µs | 🐧 Linux **4.3×** faster |
-| **Write 1 MB** | 55 µs | 562 µs | 🪟 Windows **10×** faster |
-| **Memory Alloc** | 2.0–2.9 µs | 2.4–2.5 µs | 🤝 Tie |
+| Operation | Windows 10 | Ubuntu 22.04 | Measured Margin | Architectural Cause |
+|---|---|---|---|---|
+| **Process Creation** | 1,659.0 µs | **115.4 µs** | 🐧 Linux **14.4× faster** | Linux COW page-table duplication vs Win32 PE loading |
+| **Full Spawn+Wait** | 10,670.0 µs | **2,248.9 µs** | 🐧 Linux **4.7× faster** | Win32 subsystem & DLL initialization overhead |
+| **File Permissions** | 121.8 µs | **5.3 µs** | 🐧 Linux **22.8× faster** | Simple inode mode write vs complex NTFS DACL traversal |
+| **File Creation** | 19.7 µs | **1.9 µs** | 🐧 Linux **10.6× faster** | dentry/inode cache vs NTFS MFT metadata transaction |
+| **Large Write (1 MB)** | **62.0 µs** | 200.4 µs | 🪟 Windows **3.2× faster** | NT Cache Manager asynchronous write-behind buffering |
+| **Demand Page Alloc** | 2.1 µs | 2.5 µs | 🤝 **Parity (~1.0×)** | Both OSes defer physical frame allocation to first touch |
 
-### Notable Anomaly
-> **Windows PipeRead_64KB:** median = 6.7 µs, but max = **3,044 µs**  
-> → Windows scheduler preempted the benchmark thread for one full quantum (~15 ms). This is real OS behavior, not an error.
+> **Documented OS Scheduler Anomaly:** Windows `PipeRead_64KB` displayed median 6.7 µs but a maximum of **3,044.3 µs** ($\text{stddev} = 146\text{ µs}$) due to thread preemption by the 15 ms Windows client scheduler quantum.
 
 ---
 
-## Slide 6: Part A — Why Is Linux Process Creation 22× Faster?
+## Slide 6: Part A Deep Dive — Why Is Linux Process Creation 14.4× Faster?
 
-### Linux `fork()`: Copy-on-Write (COW)
+### Linux `fork()`: Copy-on-Write (COW) Semantics
 ```
-Parent Process Memory
+Parent Address Space
       │
       ▼
-Page Table (copied)
-      │
-      ├── Page 1 → [shared, read-only]  ← No copy made
-      ├── Page 2 → [shared, read-only]  ← No copy made
-      └── Page N → [shared, read-only]  ← No copy made
+Page Table Duplication (~115 µs)
+      ├── Frame 0x1A00 → [Shared Read-Only] ◄── Zero memory copied
+      ├── Frame 0x1B00 → [Shared Read-Only] ◄── Zero memory copied
+      └── Frame 0x1C00 → [Shared Read-Only] ◄── Zero memory copied
 
-Physical copy made ONLY when child writes to a page
+Physical copy occurs ONLY when a process performs a write (Page Fault)
 ```
-**fork() cost = copy page table only → ~94 µs**
 
-### Windows `CreateProcess()`: Full Spawn
+### Windows `CreateProcessA()`: Full Subsystem Initialization
 ```
-1. Parse PE executable from disk
-2. Create new address space (VirtualAlloc)
-3. Load ntdll.dll, kernel32.dll, etc.
-4. Initialize Win32 subsystem
-5. Create primary thread
-6. Apply security token + ACL checks
+1. Parse PE binary header from disk
+2. Allocate entirely new virtual address space (VAD tree)
+3. Map ntdll.dll, kernel32.dll, and CRT dependencies
+4. Initialize the Win32 subsystem client structures
+5. Construct primary thread stack and register context (~1,659 µs)
+6. Security token and DACL validation
 ```
-**CreateProcess cost = all of the above → ~2,113 µs**
 
-**Implication for Part B:** Linux workers spawn 22× faster → better scalability
+**Crucial Takeaway for Part B:** Because `fork()` is 14× lighter, Linux can orchestrate multi-process workers with dramatically less OS friction than Windows.
 
 ---
 
-## Slide 7: Part B — The Fighter Jet Tracking Problem
+## Slide 7: Part B — Supersonic Fighter Jet Radar Scenario
 
-### Scenario
-- **8 supersonic fighter jets** flying at **Mach 1.5–2.0** (540–720 m/s)
-- Air defense radar pings at **20 Hz** (every 50 ms) over 10,000 steps = **80,000 total pings**
-- Each ping has **Gaussian noise σ = 50 m** (atmospheric scattering, multipath)
-- Need to track all jets simultaneously in **real time** (8.3 minutes of supersonic flight)
+### Mission Context
+- **8 supersonic fighter jets** flying at **Mach 1.5 to 2.0** (540 to 680 m/s).
+- Tracking duration: **10,000 steps** at 20 Hz ($\Delta t = 0.05\text{ s}$) = **80,000 total observations** (~8.3 minutes of supersonic flight).
+- Radar sensor corrupted by Gaussian range and bearing noise ($\sigma = 50\text{ m}$).
 
-### The Problem: Raw Radar is Too Noisy
+### The Air Defense Challenge: Radar Jitter at Mach 2
 
-| Jet | True Position Error | Raw Radar RMSE |
-|---|---|---|
-| Jet 0 (Climbing Right Turn) | 0 m (by definition) | 70.63 m |
-| Jet 7 (Combat Air Patrol) | 0 m (by definition) | 70.85 m |
-| **All 8 jets average** | — | **70.81 m** |
+| Aircraft ID | Tactical Profile | True Position Error | Raw Radar RMSE |
+|---|---|---|---|
+| **Jet 0** | Climbing Right Turn | 0.00 m (Ground Truth) | 70.63 m |
+| **Jet 2** | Tactical 7G Combat Turn | 0.00 m (Ground Truth) | 71.13 m |
+| **Jet 7** | Combat Air Patrol (CAP Orbit) | 0.00 m (Ground Truth) | 70.85 m |
+| **Fleet Average** | **All 8 Supersonic Jets** | — | **70.81 m** |
 
-**A 70-meter positional error at Mach 2 (680 m/s) means the jet moves past your error radius in ~0.1 seconds.** A Kalman Filter is needed.
-
----
-
-## Slide 8: Part B — Kalman Filter Design
-
-### State Vector (per axis, per jet)
-
-$$\mathbf{x} = \begin{bmatrix} \text{position (m)} \\ \text{velocity (m/s)} \end{bmatrix}$$
-
-### Filter Parameters
-
-| Parameter | Value | Meaning |
-|---|---|---|
-| Δt | 0.05 s | Radar update rate (20 Hz) |
-| Q (σ_a²) | 1500 (m/s²)² | Process noise — jet can maneuver at high G |
-| R | 2500 m² | Measurement noise — matches sensor σ=50m |
-| Initial P | Diagonal | High uncertainty at t=0 |
-
-### Why DWNA (Discrete White Noise Acceleration) Model?
-Fighter jets change velocity rapidly (7G maneuvers). DWNA models **unknown acceleration** as noise, making the filter robust to sudden turns without needing maneuver detection.
-
-### Architecture: Independent X + Y Filters
-```
-Radar Ping (meas_x, meas_y)
-      ├─→ AxisKalmanFilter(X): position_x, velocity_x
-      └─→ AxisKalmanFilter(Y): position_y, velocity_y
-         wrapped in Jet2DKalmanFilter
-```
+**Operational Danger:** At Mach 2 (680 m/s), an aircraft travels 34 meters per radar scan. A 70-meter sensor error exceeds the physical displacement per timestep, making missile fire control impossible without kinematic filtering.
 
 ---
 
-## Slide 9: Part B — Tracking Results
+## Slide 8: Part B — Kalman Filter Kinematic Design
 
-### RMSE Reduction After Kalman Filtering (80,000 Telemetry Points)
+### State Vector & Motion Model
+Kinematic state vector for each independent Cartesian axis in `AxisKalmanFilter`:
+$$\mathbf{x} = \begin{bmatrix} p \\ v \end{bmatrix} = \begin{bmatrix} \text{position (m)} \\ \text{velocity (m/s)} \end{bmatrix}$$
 
-| Jet | Profile | Raw Radar | Filtered | Reduction |
+### Complete Prediction & Update Formulation (`common/kalman_core.hpp`)
+1. **Prediction Step (Constant Velocity Extrapolation):**
+   $$p_{\text{pred}} = p + v \cdot \Delta t, \quad v_{\text{pred}} = v$$
+   Continuous White Noise Acceleration (DWNA) covariance projection ($q = 1500.0\text{ m}^2/\text{s}^3$):
+   $$p_{00,\text{pred}} = p_{00} + 2\Delta t \cdot p_{01} + \Delta t^2 \cdot p_{11} + q \frac{\Delta t^3}{3}$$
+   $$p_{01,\text{pred}} = p_{01} + \Delta t \cdot p_{11} + q \frac{\Delta t^2}{2}, \quad p_{11,\text{pred}} = p_{11} + q \cdot \Delta t$$
+
+2. **Measurement Update Step ($r = 2500.0\text{ m}^2$ matching radar $\sigma = 50\text{ m}$):**
+   - Innovation residual: $y = z_{\text{meas}} - p_{\text{pred}}$
+   - Kalman Gains: $k_0 = \frac{p_{00,\text{pred}}}{p_{00,\text{pred}} + r}, \quad k_1 = \frac{p_{01,\text{pred}}}{p_{00,\text{pred}} + r}$
+   - Posterior State: $p = p_{\text{pred}} + k_0 \cdot y, \quad v = v_{\text{pred}} + k_1 \cdot y$
+
+---
+
+## Slide 9: Part B — Tracking Accuracy & Noise Reduction
+
+### Kinematic Error Reduction Across 80,000 Telemetry Points
+
+| Aircraft ID | Flight Profile | Raw Radar Jitter (RMSE) | Filtered Track (RMSE) | Noise Reduction |
 |---|---|---|---|---|
-| Jet 0 | Climbing Right Turn | 70.63 m | 23.14 m | **67.24%** |
-| Jet 1 | Diving Left Turn | 70.81 m | 22.96 m | **67.57%** |
-| Jet 2 | Tactical 7G Turn | 71.13 m | 22.86 m | **67.87%** |
-| Jet 3 | Supersonic Sweep | 71.21 m | 23.39 m | **67.16%** |
-| Jet 4 | Intercept Vector | 70.70 m | 22.77 m | **67.80%** |
-| Jet 5 | High-Speed Dash | 70.15 m | 22.29 m | **68.22%** |
-| Jet 6 | Evasive Weave | 70.95 m | 23.52 m | **66.86%** |
-| Jet 7 | Combat Air Patrol | 70.85 m | 22.68 m | **67.99%** |
-| **Average** | — | **70.81 m** | **22.95 m** | **67.58%** |
+| **Jet 0** | Climbing Right Turn | 70.63 m | 23.14 m | **67.24%** |
+| **Jet 1** | Diving Left Turn | 70.81 m | 22.96 m | **67.57%** |
+| **Jet 2** | Tactical 7G Combat Turn | 71.13 m | 22.86 m | **67.87%** |
+| **Jet 3** | Supersonic Sweep | 71.21 m | 23.39 m | **67.16%** |
+| **Jet 4** | Intercept Vector | 70.70 m | 22.77 m | **67.80%** |
+| **Jet 5** | High-Speed Dash | 70.15 m | 22.29 m | **68.22%** |
+| **Jet 6** | Evasive Weave | 70.95 m | 23.52 m | **66.86%** |
+| **Jet 7** | Combat Air Patrol | 70.85 m | 22.68 m | **67.99%** |
+| **Overall** | **80,000 Telemetry Points** | **70.81 m** | **22.95 m** | **67.58% Error Reduction** |
 
-> **Validation:** Python `verify_part_b.py` confirmed **bit-for-bit numerical parity** across 1, 2, 4, and 8 worker configurations. Max discrepancy = **0.00e+00 m** ✅
+> **Numerical Parity Verification:** Single-process vs 8-worker execution outputs were verified across all 80,000 coordinates. Maximum discrepancy = **`0.00e+00 m`** (Bit-for-bit mathematical equivalence).
 
-*(See `results/charts/trajectory_jet0.png` and `rmse_per_jet.png`)*
+*(Evidence charts: `results/charts/trajectory_jet0.png` and `rmse_per_jet.png`)*
 
 ---
 
-## Slide 10: Part B — Multi-Process Parallelism & CPU Affinity
+## Slide 10: Part B — Multi-Process Parallel Scalability
 
-### Worker Assignment Strategy & OS Optimizations
-```
-8 Jets → assigned by: jet_id % num_workers
+### Empirical Speedup Measurements on HP ZBook (Dual-Scale Evaluation)
 
-1 Worker:  W0 → {0,1,2,3,4,5,6,7} [Core 0]
-2 Workers: W0 → {0,2,4,6} [Core 0]  |  W1 → {1,3,5,7} [Core 1]
-4 Workers: W0 → {0,4} [Core 0]      |  W1 → {1,5} [Core 1] ...
-8 Workers: W0 → {0} [Core 0]        |  W1 → {1} [Core 1]   ...
-```
-
-### Advanced OS Feature: CPU Core Affinity
-- **Windows:** `SetProcessAffinityMask(GetCurrentProcess(), 1ULL << (w % numCores))`
-- **Linux:** `sched_setaffinity(0, sizeof(cpuset), &cpuset)`
-- **Why it matters:** Eliminates OS context switching and cache thrashing across CPU cores!
-
-### Why No Race Conditions?
-- Each `FilteredOutput[jet_id]` slot is written by **exactly one worker**
-- Workers only write to their assigned jet slots (non-overlapping)
-- No mutex/semaphore needed — the assignment strategy is the synchronization
-
-### Parallel Scalability & Amdahl's Law: Measured vs. Theoretical
-
-| Workers | Ideal Linear | Linux (Measured) | Windows (Measured) | Relative Slowdown |
+| Configuration | Ideal Linear | Linux (Measured) | Windows (Measured) | Relative Slowdown |
 |---|---|---|---|---|
-| 1 Worker (Baseline) | 1.00× | **1.00×** (~1.9 ms) | **1.00×** (~1.9 ms) | Baseline (In-Process) |
-| 2 Workers | 2.00× | **0.40×** (~5.2 ms) | **0.08×** (~29.9 ms) | Linux 2.5× / Win 12.8× |
-| 4 Workers | 4.00× | **0.39×** (~5.3 ms) | **0.06×** (~33.8 ms) | Linux 2.6× / Win 15.4× |
-| 8 Workers | 8.00× | **0.25×** (~7.9 ms) | **0.05×** (~43.5 ms) | Linux 4.0× / Win 20.8× |
+| **1 Worker (Baseline)** | 1.00× | **1.00×** (1.93 ms) | **1.00×** (1.95 ms) | Baseline (In-Process CPU) |
+| **2 Workers** | 2.00× | **0.40×** (5.23 ms) | **0.08×** (29.95 ms) | Linux 2.5× / Win 12.8× slower |
+| **4 Workers** | 4.00× | **0.39×** (5.35 ms) | **0.06×** (33.82 ms) | Linux 2.6× / Win 15.4× slower |
+| **8 Workers** | 8.00× | **0.25×** (7.95 ms) | **0.05×** (43.46 ms) | Linux 4.0× / Win 20.8× slower |
 
-### Key OS Takeaway: The Granularity of Parallelism
-- **The math is extremely fast:** C++ Kalman Filter processes 80k pings in only **~1.9 ms**.
-- **OS process creation is heavy:** Spawning Windows processes on-demand takes **~25–40 ms**, while Linux `fork()` takes **~3–5 ms**.
-- **Empirical Proof:** Linux is **5× faster** than Windows under multi-processing (0.25× vs 0.05×) because Copy-on-Write `fork()` is vastly cheaper than Win32 subsystem initialization.
-- **Production Solution:** Pre-spawning workers as long-running daemons or thread pools eliminates creation overhead, restoring linear speedup.
+### Core OS Lesson: Workload Granularity vs Process Lifecycle Overhead
+- **C++ Kalman Math is extremely fast:** Processing 80,000 points takes only **~1.9 ms** of pure CPU arithmetic.
+- **Process spawn overhead dominates:** In an on-demand batch benchmark, creating 8 processes costs **~25–40 ms** on Windows and **~4–6 ms** on Linux.
+- **Empirical Architecture Proof:** Linux multi-processing is **5× faster than Windows** (0.25× vs 0.05× speedup) because `fork()` is vastly cheaper than Win32 subsystem initialization.
+- **CPU Affinity Pinning:** Workers locked to cores (`SetProcessAffinityMask` / `sched_setaffinity`) eliminated core migration and cache thrashing.
 
----
-
-## Slide 11: Lessons Learned — OS Design Choices Matter
-
-### 1. Simplicity vs. Security
-| OS | Philosophy | Consequence |
-|---|---|---|
-| Unix/Linux | Simple 9-bit permissions | chmod = 3.8 µs |
-| Windows | Full ACL/SID security model | SetFileSecurity = 133 µs |
-
-Neither is "wrong" — it's the right tool for the right context.
-
-### 2. Process = Heavyweight on Windows, Lightweight on Linux
-- **Windows threads** are cheap (similar to Linux threads)  
-- **Windows processes** carry full Win32 baggage: 2,113 µs startup
-- **Linux fork()** is as cheap as creating a thread on Windows: 94 µs
-- **Design takeaway:** Linux favors multi-process servers; Windows favors multi-threaded servers
-
-### 3. Shared Memory is the Right IPC for Kalman Filters
-After setup (3–7 µs), data transfer between workers = **direct memory access** with **zero syscalls**. The filter runs at full CPU speed with no kernel transitions during computation.
-
-### 4. The OS Scheduler is Not Your Friend (During Benchmarks)
-- Windows 15 ms scheduler quantum caused PipeRead_64KB max = 3,044 µs
-- Always use **median**, not mean or max, for latency benchmarking
-- Real systems use real-time scheduling (`SCHED_FIFO`) or CPU pinning to avoid this
+*(Evidence chart: `results/charts/speedup_curve.png`)*
 
 ---
 
-## Slide 12: Conclusions & Summary
+## Slide 11: Architectural Lessons Learned
 
-### Part A — What We Measured
+### 1. Security vs Simplicity Tradeoff
+- **Linux (`chmod` = 5.3 µs):** Simple 9-bit permission flags stored directly in inode metadata.
+- **Windows (`SetFileSecurity` = 121.8 µs):** Full Discretionary Access Control Lists (DACLs) evaluated against security tokens (SIDs) and inheritance rules. 23× slower, but provides granular enterprise control.
 
-✅ **28 Windows + 28 Linux syscalls** across 5 categories  
-✅ **Statistically sound** (1,000 iterations, median latency, stddev)  
-✅ **Quantified** the fork vs. CreateProcess gap: **22×**  
-✅ **Explained** Linux write_1MB slowness (kernel writeback dirty-page cost)  
-✅ **Documented** scheduler anomaly (Windows PipeRead_64KB outlier)  
+### 2. Process Weight & Server Architecture Implications
+- **Windows:** Heavy process initialization (1,659 µs) drives Windows server software (IIS, SQL Server) toward **multi-threaded thread pools**.
+- **Linux:** Ultra-lightweight `fork()` (115 µs) enables the classic Unix **multi-process architecture** (PostgreSQL, NGINX worker models).
 
-### Part B — What We Built
+### 3. Shared Memory is the Optimal Zero-Copy IPC
+- Memory-mapped arenas (`mmap` / `CreateFileMapping`) incur only a one-time 3–7 µs setup. During filtering, data transfer occurs at **direct DRAM speed with zero kernel syscalls**.
 
-✅ **Kalman Filter** reduces supersonic jet tracking error by **54.45%**  
-✅ **8 jets tracked in parallel** using OS shared memory + fork/CreateProcess  
-✅ **Bit-for-bit numerical parity** across 1/2/4/8 worker configurations  
-✅ **Scales** according to Amdahl's Law (Linux > Windows for multi-process speedup)  
-
-### The Big Picture
-
-> Operating system design decisions made in the 1970s–1990s continue to have **measurable, quantifiable performance consequences in 2026**.  
-> This project put **real numbers** on those differences.
+### 4. Non-Blocking Partitioning Eliminates Synchronization Costs
+- Partitioning work by `track_id % num_workers` assigned mutually exclusive array indices to each worker, achieving **zero lock contention and zero race conditions without mutexes**.
 
 ---
 
-*End of Presentation — Questions Welcome*
+## Slide 12: Conclusions & Project Verification
+
+### Comprehensive CCA Deliverables Completed
+
+✅ **Part A Micro-benchmarks:** 31 Windows APIs and 32 Linux Syscalls measured natively with sub-microsecond precision.  
+✅ **Empirical Quantifications:** Verified the **14.4× process creation gap** and **22.8× permission evaluation gap** between Linux and Windows.  
+✅ **Part B Real-World Integration:** Built a high-throughput, multi-process radar tracking system attenuating supersonic jet noise by **67.58%**.  
+✅ **Bit-for-Bit Mathematical Parity:** Exact coordinate equivalence ($0.00\text{ m}$ deviation) across single-process, 8-worker, and cross-OS runs.  
+✅ **Operating System Insights:** Successfully explained why batch process lifecycle overhead causes Amdahl's Law slowdown when computational grain size is fine.  
 
 ---
 
-**GitHub:** [github.com/m-noumanfazil/OS_Kalman_Filter_Project](https://github.com/m-noumanfazil/OS_Kalman_Filter_Project)  
-**Branch:** main | **Language:** C++17 + Python 3.12
+### *Thank you — We invite your questions.*
+
+**Repository:** [github.com/m-noumanfazil/OS_Kalman_Filter_Project](https://github.com/m-noumanfazil/OS_Kalman_Filter_Project)  
+**Deliverables:** [Final Report](file:///D:/UNBACKED%20DATA/CCPs%205th%20Sem/OS_CCP/report/Final_report_draft.md) | [Presentation Slides](file:///D:/UNBACKED%20DATA/CCPs%205th%20Sem/OS_CCP/presentation/slides.md) | [Performance Charts](file:///D:/UNBACKED%20DATA/CCPs%205th%20Sem/OS_CCP/results/charts/)
