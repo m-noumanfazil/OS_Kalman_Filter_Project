@@ -615,8 +615,9 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
             }
         };
 
-        double workerBefore = pool.workerCpuUs();
-        metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup);
+        double workerBefore = 0;
+        metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup,
+                                                  nullptr, [&]() { workerBefore = pool.workerCpuUs(); });
         double workerAfter = pool.workerCpuUs();
         double workerCpu = workerBefore >= 0 && workerAfter >= 0 ? workerAfter - workerBefore : -1;
         if (!workersOk) {
@@ -634,12 +635,20 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
 
         {
             const char* samplePath = "results/Windows/persistent_samples.csv";
-            ifstream existing(samplePath, ios::binary | ios::ate);
-            bool headerNeeded = !existing || existing.tellg() == 0;
+            const string expectedHeader = "run_id,platform,compiler,records,workers,iteration,elapsed_us,launch_us,parent_cpu_us,worker_cpu_us";
+            ifstream existing(samplePath);
+            string header;
+            bool headerNeeded = !getline(existing, header) || header.empty();
+            if (!header.empty() && header.back() == '\r') header.pop_back();
+            if (!headerNeeded && header != expectedHeader) {
+                cerr << "Incompatible benchmark sample header; choose a fresh output file.\n";
+                UnmapViewOfFile(view); CloseHandle(hMap);
+                return false;
+            }
             existing.close();
             ofstream samples(samplePath, ios::app);
             if (!samples) { cerr << "Cannot write benchmark samples.\n"; UnmapViewOfFile(view); CloseHandle(hMap); return false; }
-            if (headerNeeded) samples << "run_id,platform,compiler,records,workers,iteration,elapsed_us,launch_us,parent_cpu_us,worker_cpu_us_with_warmup\n";
+            if (headerNeeded) samples << expectedHeader << "\n";
             for (size_t i = 0; i < stats.samplesUs.size(); ++i)
                 samples << runId << ",Windows,\"" << __VERSION__ << "\"," << workload << ","
                         << workers << "," << (i + 1) << "," << setprecision(17) << stats.samplesUs[i] << "," << launchUs << "," << stats.totalCpuUs << "," << workerCpu << "\n";

@@ -253,7 +253,8 @@ inline Stats benchmark(const string& callName,
                        const function<void()>& action,
                        int iterations = 1000,
                        int warmupCount = 50,
-                       const function<void()>& cleanup = nullptr) {
+                       const function<void()>& cleanup = nullptr,
+                       const function<void()>& afterWarmup = nullptr) {
     if (iterations < 1) iterations = 1;
 
     // Warm-up: fills caches and lets Windows do first-time work.
@@ -262,7 +263,8 @@ inline Stats benchmark(const string& callName,
         if (cleanup) cleanup();
     }
 
-    vector<double> timesUs;
+    if (afterWarmup) afterWarmup();
+    std::vector<double> timesUs;
     timesUs.reserve(iterations);
 
     double cpuBeforeUs = processCpuMicroseconds();
