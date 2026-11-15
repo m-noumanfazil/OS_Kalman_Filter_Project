@@ -2,7 +2,9 @@
 
 > **Benchmark version:** The original `linux_results.csv` and `windows_results.csv` are historical results from the per-iteration process-launch design. The current persistent-worker benchmark writes separate, locally ignored sample and summary CSVs; see [persistent benchmark protocol](docs/persistent-benchmark.md). Controlled cross-platform measurements for the new design remain to be collected.
 
-The sequential [3D radar EKF prototype](docs/phase-2-ekf3d.md) has separate build, scenario-generation, and evaluation instructions. It is not yet integrated into the native multi-process applications.
+The sequential [3D radar EKF prototype](docs/phase-2-ekf3d.md) has separate build, scenario-generation, and evaluation instructions and remains the reference for the native applications.
+
+Separate [native 3D EKF applications](docs/phase-3-parallel-ekf3d.md) provide initial Linux and Windows persistent-worker integration; their limitations and verification instructions are documented there.
 
 **Course:** CT-353 Operating Systems — Complex Computing Activity (CCA)
 

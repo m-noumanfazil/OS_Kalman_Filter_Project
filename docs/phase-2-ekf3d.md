@@ -1,6 +1,6 @@
 # Phase 2: Sequential 3D radar EKF
 
-This is a separate sequential prototype. The existing 2D filter and native multi-process applications remain the Phase 1 baseline; the 3D filter is not yet integrated with their system-call or worker infrastructure.
+This is the sequential reference prototype. The existing 2D filter remains the Phase 1 baseline; separate initial 3D native applications are described in [the Phase 3 integration notes](phase-3-parallel-ekf3d.md).
 
 ## Model and scenario
 
