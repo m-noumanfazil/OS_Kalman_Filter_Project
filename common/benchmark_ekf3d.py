@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import tempfile
 import time
@@ -70,7 +71,7 @@ def main():
         'iterations': args.iterations, 'warmups': args.warmups, 'notes': args.notes,
         'workload_order': 'sorted by timestamp then track_id',
         'timing_scope': 'whole parallel process, including startup, input, logging, processing, shutdown and output',
-        'cpu_memory_scope': 'not measured',
+        'cpu_memory_scope': 'whole-process parent and sum of worker CPU times; parent and largest individual worker peak memory (shared pages may overlap)',
     }
     manifest_path = destination/'manifest.json'
     manifest_path.write_text(json.dumps(manifest, indent=2)+'\n', encoding='utf-8')
@@ -98,11 +99,17 @@ def main():
                         if result.returncode:
                             raise RuntimeError(f'worker run failed: {result.stdout}\n{result.stderr}')
                         check_output(expected, output)
+                        resource = re.search(r'^RESOURCE parent_cpu_us=(-?\d+) worker_cpu_us=(-?\d+) parent_peak_kb=(-?\d+) worker_peak_kb=(-?\d+)\s*$', result.stdout, re.MULTILINE)
+                        if not resource:
+                            raise RuntimeError('native run did not report resource measurements')
                         if iteration >= 0:
                             samples.append({'records': count, 'tracks': len({r['track_id'] for r in rows[:count]}),
-                                            'workers': workers, 'iteration': iteration+1, 'elapsed_ms': elapsed_ms})
+                                            'workers': workers, 'iteration': iteration+1, 'elapsed_ms': elapsed_ms,
+                                            **dict(zip(('parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'),
+                                                       (int(v) for v in resource.groups())))})
         with (destination/'samples.csv').open('w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=['records','tracks','workers','iteration','elapsed_ms'])
+            writer = csv.DictWriter(file, fieldnames=['records','tracks','workers','iteration','elapsed_ms',
+                                                       'parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'])
             writer.writeheader()
             writer.writerows(samples)
         manifest['status'] = 'complete'

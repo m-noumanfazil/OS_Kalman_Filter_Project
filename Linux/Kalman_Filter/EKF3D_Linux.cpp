@@ -5,17 +5,24 @@
 #include <cerrno>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
 #include <new>
 #include <poll.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 using namespace ekf3d_pipeline;
 struct Worker { pid_t pid; int command; int done; };
+#ifdef EKF3D_TEST_FAILURES
+constexpr int workerTimeoutMs=500;
+#else
+constexpr int workerTimeoutMs=15000;
+#endif
 
 static bool readFile(const char* path, std::string& content) {
     int fd=open(path,O_RDONLY);
@@ -104,21 +111,31 @@ int main(int argc, char** argv) {
         if(commandResult!=0) { perror("pipe commands"); ok=false; break; }
         int replyResult=pipe(replies); LOG_SYSCALL("pipe",replyResult==0,"3D worker replies");
         if(replyResult!=0) { perror("pipe replies"); close(commands[0]); close(commands[1]); ok=false; break; }
-        pid_t pid=fork();
+        pid_t pid;
+#ifdef EKF3D_TEST_FAILURES
+        if(i==1 && std::getenv("EKF3D_TEST_FAIL_START")) { errno=EAGAIN; pid=-1; }
+        else
+#endif
+        pid=fork();
         if(pid==0) {
             close(commands[1]); close(replies[0]);
             for(const auto& w:workers) { close(w.command); close(w.done); }
             std::unordered_map<int,ekf3d::Filter> filters; char command;
             while(read(commands[0],&command,1)==1 && command=='R') {
+#ifdef EKF3D_TEST_FAILURES
+                if(i==0 && std::getenv("EKF3D_TEST_HANG_WORKER")) for(;;) pause();
+#endif
                 try { process(arena,static_cast<unsigned>(i),static_cast<unsigned>(count),filters); }
                 catch(const std::exception& ex) { std::cerr << "Worker " << i << ": " << ex.what() << '\n'; _exit(3); }
                 char done='D'; if(write(replies[1],&done,1)!=1) _exit(4);
             }
             close(commands[0]); close(replies[1]); _exit(0);
         }
+        int forkError=errno;
         LOG_SYSCALL("fork",pid>=0,"3D persistent worker");
         close(commands[0]); close(replies[1]);
-        if(pid<0) { perror("fork"); close(commands[1]); close(replies[0]); ok=false; break; }
+        if(pid<0) { errno=forkError; perror("fork"); close(commands[1]); close(replies[0]); ok=false; break; }
+        std::cout << "WORKER_PID " << pid << std::endl;
         workers.push_back({pid,commands[1],replies[0]});
     }
     for(unsigned begin=0;ok && begin<arena->count;begin+=batch_size) {
@@ -127,7 +144,7 @@ int main(int argc, char** argv) {
         for(const auto& w:workers) {
             if(!ok) break;
             pollfd wait{w.done,POLLIN,0}; int ready;
-            do { ready=poll(&wait,1,15000); } while(ready<0 && errno==EINTR);
+            do { ready=poll(&wait,1,workerTimeoutMs); } while(ready<0 && errno==EINTR);
             char reply=0;
             if(ready<=0 || !(wait.revents&POLLIN) || read(w.done,&reply,1)!=1 || reply!='D') {
                 if(ready==0) errno=ETIMEDOUT; else if(ready>0) errno=EIO;
@@ -146,6 +163,18 @@ int main(int argc, char** argv) {
     arena->~Arena();
     int unmapped=munmap(mapping,sizeof(Arena)); LOG_SYSCALL("munmap",unmapped==0,"3D shared arena");
     if(unmapped!=0) { perror("munmap"); ok=false; }
-    if(ok) std::cout << "Processed " << records.size() << " observations using " << count << " persistent workers.\n";
+    if(ok) {
+        rusage parent{}, children{};
+        bool parentOk=getrusage(RUSAGE_SELF,&parent)==0;
+        bool childrenOk=getrusage(RUSAGE_CHILDREN,&children)==0;
+        auto cpu=[](const rusage& r) -> long long {
+            return (static_cast<long long>(r.ru_utime.tv_sec)+r.ru_stime.tv_sec)*1000000LL + r.ru_utime.tv_usec+r.ru_stime.tv_usec;
+        };
+        std::cout << "RESOURCE parent_cpu_us=" << (parentOk ? cpu(parent) : -1)
+                  << " worker_cpu_us=" << (childrenOk ? cpu(children) : -1)
+                  << " parent_peak_kb=" << (parentOk ? parent.ru_maxrss : -1)
+                  << " worker_peak_kb=" << (childrenOk ? children.ru_maxrss : -1) << '\n';
+        std::cout << "Processed " << records.size() << " observations using " << count << " persistent workers.\n";
+    }
     return ok ? 0 : 1;
 }

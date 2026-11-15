@@ -2,13 +2,20 @@
 #include "../../common/ekf3d_pipeline.hpp"
 #include "../../common/logger.hpp"
 #include <windows.h>
+#include <psapi.h>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <new>
 
 using namespace ekf3d_pipeline;
 struct Worker { HANDLE process; HANDLE command; HANDLE done; };
+#ifdef EKF3D_TEST_FAILURES
+constexpr DWORD workerTimeoutMs=500;
+#else
+constexpr DWORD workerTimeoutMs=15000;
+#endif
 
 static bool readFile(const char* path, std::string& content) {
     HANDLE h=CreateFileA(path,GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
@@ -59,6 +66,9 @@ static int child(const std::string& name, int id, int count) {
             DWORD result=WaitForMultipleObjects(2,waits,FALSE,INFINITE);
             if(result==WAIT_OBJECT_0) break;
             if(result!=WAIT_OBJECT_0+1) { exitCode=6; break; }
+#ifdef EKF3D_TEST_FAILURES
+            if(id==0 && std::getenv("EKF3D_TEST_HANG_WORKER")) Sleep(INFINITE);
+#endif
             try { process(static_cast<Arena*>(view),static_cast<unsigned>(id),static_cast<unsigned>(count),filters); }
             catch(const std::exception& ex) { std::cerr << "Worker " << id << ": " << ex.what() << '\n'; exitCode=7; break; }
             if(!SetEvent(done)) { exitCode=8; break; }
@@ -114,12 +124,19 @@ int main(int argc, char** argv) {
         std::string command="\""+std::string(exe)+"\" --worker "+name+" "+suffix+" "+std::to_string(count);
         std::vector<char> buffer(command.begin(),command.end()); buffer.push_back('\0');
         STARTUPINFOA si{}; si.cb=sizeof(si); PROCESS_INFORMATION pi{};
-        BOOL started=CreateProcessA(nullptr,buffer.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&si,&pi);
+        BOOL started;
+#ifdef EKF3D_TEST_FAILURES
+        if(i==1 && std::getenv("EKF3D_TEST_FAIL_START")) { SetLastError(ERROR_NOT_ENOUGH_MEMORY); started=FALSE; }
+        else
+#endif
+        started=CreateProcessA(nullptr,buffer.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&si,&pi);
         LOG_SYSCALL("CreateProcessA",started!=0,"3D persistent worker");
         if(!started) {
             std::cerr << "CreateProcess: " << GetLastError() << '\n'; CloseHandle(go); CloseHandle(done); ok=false; break;
         }
-        CloseHandle(pi.hThread); workers.push_back({pi.hProcess,go,done});
+        CloseHandle(pi.hThread);
+        std::cout << "WORKER_PID " << pi.dwProcessId << std::endl;
+        workers.push_back({pi.hProcess,go,done});
     }
     for(unsigned begin=0;ok && begin<arena->count;begin+=batch_size) {
         arena->begin=begin; arena->end=std::min(begin+batch_size,arena->count);
@@ -127,16 +144,28 @@ int main(int argc, char** argv) {
         for(const auto& w:workers) {
             if(!ok) break;
             HANDLE waits[]={w.process,w.done};
-            DWORD result=WaitForMultipleObjects(2,waits,FALSE,15000);
+            DWORD result=WaitForMultipleObjects(2,waits,FALSE,workerTimeoutMs);
             if(result!=WAIT_OBJECT_0+1) { if(result!=WAIT_FAILED) SetLastError(result==WAIT_TIMEOUT ? ERROR_TIMEOUT : ERROR_PROCESS_ABORTED); LOG_SYSCALL("WaitForMultipleObjects",false,"3D worker response"); std::cerr << "Worker failed or timed out\n"; ok=false; }
         }
     }
     if(ok) LOG_SYSCALL("SetEvent/WaitForMultipleObjects",true,"3D batch dispatch and completion");
     if(stop && !SetEvent(stop)) ok=false;
+    long long workerCpuUs=0, workerPeakKb=0;
+    bool workerCpuOk=true, workerMemoryOk=true;
     for(const auto& w:workers) {
         if(!ok) TerminateProcess(w.process,1);
         if(WaitForSingleObject(w.process,5000)!=WAIT_OBJECT_0) { TerminateProcess(w.process,1); WaitForSingleObject(w.process,INFINITE); ok=false; }
         DWORD code=0; if(!GetExitCodeProcess(w.process,&code) || code!=0) ok=false;
+        FILETIME creation{}, exitTime{}, kernel{}, user{};
+        if(GetProcessTimes(w.process,&creation,&exitTime,&kernel,&user)) {
+            ULARGE_INTEGER k{}, u{}; k.LowPart=kernel.dwLowDateTime; k.HighPart=kernel.dwHighDateTime;
+            u.LowPart=user.dwLowDateTime; u.HighPart=user.dwHighDateTime;
+            workerCpuUs+=static_cast<long long>((k.QuadPart+u.QuadPart)/10);
+        } else workerCpuOk=false;
+        PROCESS_MEMORY_COUNTERS memory{}; memory.cb=sizeof(memory);
+        if(GetProcessMemoryInfo(w.process,&memory,sizeof(memory)))
+            workerPeakKb=std::max(workerPeakKb,static_cast<long long>(memory.PeakWorkingSetSize/1024));
+        else workerMemoryOk=false;
         if(!CloseHandle(w.process)) ok=false;
         if(!CloseHandle(w.command)) ok=false;
         if(!CloseHandle(w.done)) ok=false;
@@ -148,6 +177,18 @@ int main(int argc, char** argv) {
     if(!unmapped) ok=false;
     BOOL closed=CloseHandle(mapping); LOG_SYSCALL("CloseHandle",closed!=0,"3D shared mapping");
     if(!closed) ok=false;
-    if(ok) std::cout << "Processed " << records.size() << " observations using " << count << " persistent workers.\n";
+    if(ok) {
+        FILETIME creation{}, exitTime{}, kernel{}, user{};
+        bool cpuOk=GetProcessTimes(GetCurrentProcess(),&creation,&exitTime,&kernel,&user)!=0;
+        ULARGE_INTEGER k{}, u{}; k.LowPart=kernel.dwLowDateTime; k.HighPart=kernel.dwHighDateTime;
+        u.LowPart=user.dwLowDateTime; u.HighPart=user.dwHighDateTime;
+        PROCESS_MEMORY_COUNTERS memory{}; memory.cb=sizeof(memory);
+        bool memoryOk=GetProcessMemoryInfo(GetCurrentProcess(),&memory,sizeof(memory))!=0;
+        std::cout << "RESOURCE parent_cpu_us=" << (cpuOk ? static_cast<long long>((k.QuadPart+u.QuadPart)/10) : -1)
+                  << " worker_cpu_us=" << (workerCpuOk ? workerCpuUs : -1)
+                  << " parent_peak_kb=" << (memoryOk ? static_cast<long long>(memory.PeakWorkingSetSize/1024) : -1)
+                  << " worker_peak_kb=" << (workerMemoryOk ? workerPeakKb : -1) << '\n';
+        std::cout << "Processed " << records.size() << " observations using " << count << " persistent workers.\n";
+    }
     return ok ? 0 : 1;
 }
