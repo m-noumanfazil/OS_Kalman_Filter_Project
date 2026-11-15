@@ -44,3 +44,23 @@ with tempfile.TemporaryDirectory() as temporary:
     if result.returncode == 0 or rejected.exists():
         raise AssertionError('worker computation failure must not create output')
     print('Worker error propagation passed.')
+    # Interleave tracks in time to exercise simultaneous worker activity and
+    # state continuity over many batch boundaries, instead of only grouped input.
+    with source.open(newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        fields = reader.fieldnames
+        rows = sorted(reader, key=lambda row: (float(row['timestamp']), int(row['track_id'])))
+    interleaved = root/'interleaved.csv'
+    with interleaved.open('w', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    interleaved_reference = root/'interleaved-reference.csv'
+    interleaved_output = root/'interleaved-parallel.csv'
+    subprocess.run([str(sequential), str(interleaved), str(interleaved_reference)], check=True, timeout=90)
+    subprocess.run([str(parallel), str(interleaved), str(interleaved_output), '4'], check=True, timeout=90)
+    with interleaved_reference.open(newline='', encoding='utf-8') as left, \
+         interleaved_output.open(newline='', encoding='utf-8') as right:
+        if list(csv.DictReader(left)) != list(csv.DictReader(right)):
+            raise AssertionError('interleaved parallel output differs from sequential output')
+    print('Interleaved tracks match across batch boundaries.')

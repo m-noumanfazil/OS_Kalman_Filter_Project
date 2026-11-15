@@ -16,7 +16,7 @@ g++ -std=c++17 -O2 Linux/Kalman_Filter/EKF3D_Linux.cpp -o build/EKF3D_Linux
 python tests/check_ekf3d_parallel.py build/run_ekf3d build/EKF3D_Linux
 ```
 
-On Windows, build `Windows/Kalman_Filter/EKF3D_Windows.cpp` with MinGW-w64 and pass its executable as the second argument. For example, the local Windows checks used `g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ Windows/Kalman_Filter/EKF3D_Windows.cpp -o build/EKF3D_Windows.exe`. The test generates its inputs in a temporary directory, compares all exported state and covariance fields against the sequential driver for 1/2/4/8 workers, checks existing-output protection, and exercises a worker computation failure.
+On Windows, build `Windows/Kalman_Filter/EKF3D_Windows.cpp` with MinGW-w64 and pass its executable as the second argument. For example, the local Windows checks used `g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ Windows/Kalman_Filter/EKF3D_Windows.cpp -o build/EKF3D_Windows.exe`. The test generates its inputs in a temporary directory, compares all exported state and covariance fields against the sequential driver for 1/2/4/8 workers, checks interleaved tracks across batch boundaries and existing-output protection, and exercises a worker computation failure.
 
 To run on a generated scenario directly, invoke the native executable with `<measurements.csv> <new-output.csv> <workers>`. Evaluate the output using `python common/evaluate_3d_scenario.py <scenario-directory> <new-output.csv>`; ground truth is used only by the evaluator.
 
