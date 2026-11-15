@@ -70,6 +70,12 @@ with tempfile.TemporaryDirectory() as temporary:
     if result.returncode == 0 or rejected.exists():
         raise AssertionError('worker computation failure must not create output')
     print('Worker error propagation passed.')
+    for invalid_batch in ('0', '-1', '100001', 'bad'):
+        result = subprocess.run([str(parallel), str(source), str(root/f'invalid-batch-{invalid_batch}.csv'), '2', invalid_batch],
+                                timeout=30, capture_output=True)
+        if result.returncode == 0:
+            raise AssertionError(f'invalid batch size {invalid_batch} was accepted')
+    print('Invalid batch sizes rejected.')
     # Interleave tracks in time to exercise simultaneous worker activity and
     # state continuity over many batch boundaries, instead of only grouped input.
     with source.open(newline='', encoding='utf-8') as file:

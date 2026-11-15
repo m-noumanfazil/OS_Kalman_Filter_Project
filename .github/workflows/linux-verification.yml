@@ -47,6 +47,8 @@ jobs:
           python3 -B tests/check_ekf3d_faults.py "$RUNNER_TEMP/kalman-build/EKF3D_Linux_faults"
           python3 -B common/benchmark_ekf3d.py --sequential "$RUNNER_TEMP/kalman-build/run_ekf3d" --parallel "$RUNNER_TEMP/kalman-build/EKF3D_Linux" --input "$RUNNER_TEMP/ekf3d-scenario/measurements.csv" --output-dir "$RUNNER_TEMP/ekf3d-benchmark" --build-command "g++ -std=c++17 -O2" --iterations 1 --warmups 0 --notes "CI smoke test; not controlled performance evidence"
           python3 -B tests/check_ekf3d_benchmark.py "$RUNNER_TEMP/ekf3d-benchmark"
+          python3 -B common/benchmark_ekf3d.py --sequential "$RUNNER_TEMP/kalman-build/run_ekf3d" --parallel "$RUNNER_TEMP/kalman-build/EKF3D_Linux" --input "$RUNNER_TEMP/ekf3d-scenario/measurements.csv" --output-dir "$RUNNER_TEMP/ekf3d-matrix" --build-command "g++ -std=c++17 -O2" --iterations 1 --warmups 0 --track-counts 1 3 --batch-sizes 32 512 --notes "CI matrix smoke test; not controlled performance evidence"
+          python3 -c "import csv,os; p=os.environ['RUNNER_TEMP']+'/ekf3d-matrix/samples.csv'; r=list(csv.DictReader(open(p))); assert len(r)==48 and {int(x['batch_size']) for x in r}=={32,512} and {int(x['requested_tracks']) for x in r}=={1,3}"
       - name: Test filter failure paths
         run: |
           g++ -std=c++17 -O2 -DKALMAN_TEST_FAILURES Linux/Kalman_Filter/Kalman_Filter_Linux.cpp -o "$RUNNER_TEMP/kalman-build/Kalman_Filter_faults"
@@ -83,5 +85,6 @@ jobs:
           path: |
             ${{ runner.temp }}/ekf3d-benchmark/manifest.json
             ${{ runner.temp }}/ekf3d-benchmark/samples.csv
+            ${{ runner.temp }}/ekf3d-benchmark/summary.csv
           if-no-files-found: error
           retention-days: 14

@@ -107,10 +107,14 @@ static bool shutdownWorkers(std::vector<Worker>& workers, bool abort) {
 }
 
 int main(int argc, char** argv) {
-    if(argc!=4) { std::cerr << "Usage: EKF3D_Linux <input.csv> <new-output.csv> <workers 1..8>\n"; return 2; }
-    int count=0;
-    try { std::size_t n=0; count=std::stoi(argv[3],&n); if(n!=std::strlen(argv[3]) || count<1 || count>8) throw std::invalid_argument("workers"); }
-    catch(const std::exception&) { std::cerr << "Invalid worker count\n"; return 2; }
+    if(argc!=4 && argc!=5) { std::cerr << "Usage: EKF3D_Linux <input.csv> <new-output.csv> <workers 1..8> [batch size 1..100000]\n"; return 2; }
+    int count=0; unsigned batchSize=batch_size;
+    try {
+        std::size_t n=0; count=std::stoi(argv[3],&n);
+        if(n!=std::strlen(argv[3]) || count<1 || count>8) throw std::invalid_argument("workers");
+        if(argc==5) { n=0; int value=std::stoi(argv[4],&n); if(n!=std::strlen(argv[4]) || value<1 || value>static_cast<int>(capacity)) throw std::invalid_argument("batch"); batchSize=static_cast<unsigned>(value); }
+    }
+    catch(const std::exception&) { std::cerr << "Invalid worker count or batch size\n"; return 2; }
     logger::init(std::string(argv[2])+".log");
     std::string contents;
     if(!readFile(argv[1],contents)) return 1;
@@ -125,6 +129,7 @@ int main(int argc, char** argv) {
     std::copy(records.begin(),records.end(),arena->records);
     std::vector<Worker> workers; bool ok=true;
     std::signal(SIGPIPE,SIG_IGN);
+    auto launchStart=std::chrono::steady_clock::now();
     for(int i=0;ok && i<count;++i) {
         int commands[2], replies[2];
         int commandResult=pipe(commands); LOG_SYSCALL("pipe",commandResult==0,"3D worker commands");
@@ -175,8 +180,11 @@ int main(int argc, char** argv) {
         std::cout << "WORKER_PID " << pid << std::endl;
         workers.push_back({pid,commands[1],replies[0]});
     }
-    for(unsigned begin=0;ok && begin<arena->count;begin+=batch_size) {
-        arena->begin=begin; arena->end=std::min(begin+batch_size,arena->count);
+    auto launchEnd=std::chrono::steady_clock::now();
+    double firstBatchUs=0, remainingBatchesUs=0; unsigned batches=0;
+    for(unsigned begin=0;ok && begin<arena->count;begin+=batchSize) {
+        auto batchStart=std::chrono::steady_clock::now();
+        arena->begin=begin; arena->end=std::min(begin+batchSize,arena->count);
         for(const auto& w:workers) { char command='R'; ssize_t sent=write(w.command,&command,1); LOG_SYSCALL("write",sent==1,"dispatch worker batch"); if(sent!=1) { perror("send work"); ok=false; break; } }
         for(const auto& w:workers) {
             if(!ok) break;
@@ -191,11 +199,20 @@ int main(int argc, char** argv) {
                 std::cerr << "Worker failed or timed out\n"; ok=false;
             }
         }
+        double elapsed=std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-batchStart).count();
+        if(batches++==0) firstBatchUs=elapsed; else remainingBatchesUs+=elapsed;
     }
     if(ok) LOG_SYSCALL("pipe write/read",true,"3D batch dispatch and completion");
+    auto shutdownStart=std::chrono::steady_clock::now();
     bool workersOk=shutdownWorkers(workers,!ok);
+    auto shutdownEnd=std::chrono::steady_clock::now();
     if(!workersOk) { std::cerr << "Worker cleanup failed\n"; ok=false; }
     if(ok) {
+        std::cout << "TIMING batch_size=" << batchSize
+                  << " launch_us=" << std::chrono::duration<double,std::micro>(launchEnd-launchStart).count()
+                  << " first_batch_us=" << firstBatchUs << " remaining_batches_us=" << remainingBatchesUs
+                  << " remaining_batches=" << (batches ? batches-1 : 0)
+                  << " shutdown_us=" << std::chrono::duration<double,std::micro>(shutdownEnd-shutdownStart).count() << '\n';
         try { ok=writeFile(argv[2],format(arena)); }
         catch(const std::exception& ex) { std::cerr << "Output error: " << ex.what() << '\n'; ok=false; }
     }

@@ -19,7 +19,7 @@ def main():
         measurements = csv.writer(mf)
         truth = csv.writer(tf)
         measurements.writerow(['timestamp', 'track_id', 'range_m', 'azimuth_rad', 'elevation_rad', 'available'])
-        truth.writerow(['timestamp', 'track_id', 'x_m', 'y_m', 'z_m', 'vx_mps', 'vy_mps', 'vz_mps'])
+        truth.writerow(['timestamp', 'track_id', 'x_m', 'y_m', 'z_m', 'vx_mps', 'vy_mps', 'vz_mps', 'ax_mps2', 'ay_mps2', 'az_mps2'])
         for track in range(3):
             position = [6000.0 + 1800*track, -3000.0 + 2000*track, 1200.0 + 400*track]
             velocity = [180.0 + 20*track, 80.0 - 30*track, 10.0 - 5*track]
@@ -39,7 +39,7 @@ def main():
                 distance = math.hypot(horizontal, z)
                 azimuth, elevation = math.atan2(y, x), math.atan2(z, horizontal)
                 available = step == 0 or step % 29 not in (0, 1)
-                truth.writerow([f'{time:.6f}', track, *[f'{v:.9f}' for v in position + velocity]])
+                truth.writerow([f'{time:.6f}', track, *[f'{v:.9f}' for v in position + velocity + acceleration]])
                 if available:
                     measurements.writerow([f'{time:.6f}', track, f'{distance+rng.gauss(0,50):.9f}',
                                            f'{azimuth+rng.gauss(0,0.001):.12f}',

@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <psapi.h>
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
@@ -153,10 +154,14 @@ int main(int argc, char** argv) {
             return child(argv[2],id,count,argv[5]);
         } catch(const std::exception&) { return 2; }
     }
-    if(argc!=4) { std::cerr << "Usage: EKF3D_Windows <input.csv> <new-output.csv> <workers 1..8>\n"; return 2; }
-    int count=0;
-    try { size_t n=0; count=std::stoi(argv[3],&n); if(n!=std::strlen(argv[3]) || count<1 || count>8) throw std::invalid_argument("workers"); }
-    catch(const std::exception&) { std::cerr << "Invalid worker count\n"; return 2; }
+    if(argc!=4 && argc!=5) { std::cerr << "Usage: EKF3D_Windows <input.csv> <new-output.csv> <workers 1..8> [batch size 1..100000]\n"; return 2; }
+    int count=0; unsigned batchSize=batch_size;
+    try {
+        size_t n=0; count=std::stoi(argv[3],&n);
+        if(n!=std::strlen(argv[3]) || count<1 || count>8) throw std::invalid_argument("workers");
+        if(argc==5) { n=0; int value=std::stoi(argv[4],&n); if(n!=std::strlen(argv[4]) || value<1 || value>static_cast<int>(capacity)) throw std::invalid_argument("batch"); batchSize=static_cast<unsigned>(value); }
+    }
+    catch(const std::exception&) { std::cerr << "Invalid worker count or batch size\n"; return 2; }
     logger::init(std::string(argv[2])+".log");
     std::string content;
     if(!readFile(argv[1],content)) return 1;
@@ -183,6 +188,7 @@ int main(int argc, char** argv) {
     std::vector<Worker> workers;
     char exe[MAX_PATH]; DWORD length=GetModuleFileNameA(nullptr,exe,MAX_PATH);
     if(!length || length>=MAX_PATH) ok=false;
+    auto launchStart=std::chrono::steady_clock::now();
     for(int i=0;ok && i<count;++i) {
         std::string suffix=std::to_string(i);
         HANDLE go=CreateEventA(nullptr,FALSE,FALSE,(name+"_go_"+suffix).c_str());
@@ -221,8 +227,11 @@ int main(int argc, char** argv) {
         workers.push_back({pi.hProcess,go,done});
     }
     debugHandles("workers_started");
-    for(unsigned begin=0;ok && begin<arena->count;begin+=batch_size) {
-        arena->begin=begin; arena->end=std::min(begin+batch_size,arena->count);
+    auto launchEnd=std::chrono::steady_clock::now();
+    double firstBatchUs=0, remainingBatchesUs=0; unsigned batches=0;
+    for(unsigned begin=0;ok && begin<arena->count;begin+=batchSize) {
+        auto batchStart=std::chrono::steady_clock::now();
+        arena->begin=begin; arena->end=std::min(begin+batchSize,arena->count);
         for(const auto& w:workers) { BOOL signaled=SetEvent(w.command); LOG_SYSCALL("SetEvent",signaled!=0,"dispatch worker batch"); if(!signaled) { ok=false; break; } }
         for(const auto& w:workers) {
             if(!ok) break;
@@ -231,9 +240,12 @@ int main(int argc, char** argv) {
             if(result!=WAIT_OBJECT_0+1) { if(result!=WAIT_FAILED) SetLastError(result==WAIT_TIMEOUT ? ERROR_TIMEOUT : ERROR_PROCESS_ABORTED); LOG_SYSCALL("WaitForMultipleObjects",false,"3D worker response"); std::cerr << "Worker failed or timed out\n"; ok=false; }
             else LOG_SYSCALL("WaitForMultipleObjects",true,"3D worker response");
         }
+        double elapsed=std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-batchStart).count();
+        if(batches++==0) firstBatchUs=elapsed; else remainingBatchesUs+=elapsed;
     }
     if(ok) LOG_SYSCALL("SetEvent/WaitForMultipleObjects",true,"3D batch dispatch and completion");
     debugHandles("processing_done");
+    auto shutdownStart=std::chrono::steady_clock::now();
     if(stop) { BOOL signaled=SetEvent(stop); LOG_SYSCALL("SetEvent",signaled!=0,"stop workers"); if(!signaled) ok=false; }
     long long workerCpuUs=0, workerPeakKb=0;
     bool workerCpuOk=true, workerMemoryOk=true;
@@ -270,6 +282,7 @@ int main(int argc, char** argv) {
         debugHandles("worker_handles_closed");
     }
     if(stop) { BOOL closed=CloseHandle(stop); LOG_SYSCALL("CloseHandle",closed!=0,"3D stop event"); if(!closed) ok=false; }
+    auto shutdownEnd=std::chrono::steady_clock::now();
     debugHandles("workers_closed");
     if(ok) { try { ok=writeFile(argv[2],format(arena)); } catch(const std::exception& ex) { std::cerr << ex.what() << '\n'; ok=false; } }
     debugHandles("output_closed");
@@ -283,6 +296,11 @@ int main(int argc, char** argv) {
     std::cout << "RESOURCE_COUNTS before=" << (countBeforeOk ? static_cast<long long>(handlesBefore) : -1)
               << " after=" << (countAfterOk ? static_cast<long long>(handlesAfter) : -1) << '\n';
     if(ok) {
+        std::cout << "TIMING batch_size=" << batchSize
+                  << " launch_us=" << std::chrono::duration<double,std::micro>(launchEnd-launchStart).count()
+                  << " first_batch_us=" << firstBatchUs << " remaining_batches_us=" << remainingBatchesUs
+                  << " remaining_batches=" << (batches ? batches-1 : 0)
+                  << " shutdown_us=" << std::chrono::duration<double,std::micro>(shutdownEnd-shutdownStart).count() << '\n';
         FILETIME creation{}, exitTime{}, kernel{}, user{};
         bool cpuOk=GetProcessTimes(GetCurrentProcess(),&creation,&exitTime,&kernel,&user)!=0;
         ULARGE_INTEGER k{}, u{}; k.LowPart=kernel.dwLowDateTime; k.HighPart=kernel.dwHighDateTime;

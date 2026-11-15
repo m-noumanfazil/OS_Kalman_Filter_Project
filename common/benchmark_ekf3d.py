@@ -3,12 +3,14 @@
 import argparse
 import csv
 import hashlib
+from itertools import product
 import json
 import math
 import os
 from pathlib import Path
 import platform
 import re
+import statistics
 import subprocess
 import tempfile
 import time
@@ -46,10 +48,14 @@ def main():
     parser.add_argument('--notes', default='', help='hardware, VM, power and environment details')
     parser.add_argument('--iterations', type=int, default=5)
     parser.add_argument('--warmups', type=int, default=1)
+    parser.add_argument('--batch-sizes', nargs='+', type=int, default=[128], help='batch sizes to compare')
+    parser.add_argument('--track-counts', nargs='+', type=int, help='numbers of tracks to compare; default uses all')
     args = parser.parse_args()
     sequential, parallel, source, destination = (p.resolve() for p in (args.sequential, args.parallel, args.input, args.output_dir))
     if args.iterations < 1 or args.warmups < 0 or args.iterations > 1000 or args.warmups > 1000:
         parser.error('iterations must be 1–1000 and warmups 0–1000')
+    if not args.batch_sizes or len(set(args.batch_sizes)) != len(args.batch_sizes) or any(x < 1 or x > 100000 for x in args.batch_sizes):
+        parser.error('batch sizes must be unique integers in 1–100000')
     if not all(p.is_file() for p in (sequential, parallel, source)):
         parser.error('both executables and the input must exist')
     with source.open(newline='', encoding='utf-8') as file:
@@ -61,7 +67,16 @@ def main():
     # Interleaving preserves chronological order within each track and allows
     # multiple workers to process each batch when tracks overlap in time.
     rows.sort(key=lambda row: (float(row['timestamp']), int(row['track_id'])))
-    counts = sorted({max(1, len(rows)//4), max(1, len(rows)//2), len(rows)})
+    track_ids = sorted({int(row['track_id']) for row in rows})
+    track_counts = args.track_counts or [len(track_ids)]
+    if len(set(track_counts)) != len(track_counts) or any(n < 1 or n > len(track_ids) for n in track_counts):
+        parser.error(f'track counts must be unique integers in 1–{len(track_ids)}')
+    workloads = []
+    for track_count in track_counts:
+        selected_ids = set(track_ids[:track_count])
+        selected = [row for row in rows if int(row['track_id']) in selected_ids]
+        counts = sorted({max(1, len(selected)//4), max(1, len(selected)//2), len(selected)})
+        workloads.extend((track_count, selected[:count]) for count in counts)
     destination.mkdir(parents=True, exist_ok=False)
     manifest = {
         'status': 'in_progress', 'platform': platform.platform(), 'processor': platform.processor(),
@@ -69,6 +84,8 @@ def main():
         'input_sha256': digest(source), 'sequential_sha256': digest(sequential),
         'parallel_sha256': digest(parallel), 'build_command': args.build_command,
         'iterations': args.iterations, 'warmups': args.warmups, 'notes': args.notes,
+        'batch_sizes': args.batch_sizes, 'track_counts': track_counts,
+        'workloads': [],
         'workload_order': 'sorted by timestamp then track_id',
         'timing_scope': 'whole parallel process, including startup, input, logging, processing, shutdown and output',
         'cpu_memory_scope': 'whole-process parent and sum of worker CPU times; parent and largest individual worker peak memory (shared pages may overlap)',
@@ -79,21 +96,24 @@ def main():
     try:
         with tempfile.TemporaryDirectory() as temporary:
             tmp = Path(temporary)
-            for count in counts:
-                workload = tmp/f'input-{count}.csv'
+            for requested_tracks, workload_rows in workloads:
+                count = len(workload_rows)
+                workload = tmp/f'input-{requested_tracks}-{count}.csv'
                 with workload.open('w', newline='', encoding='utf-8') as file:
                     writer = csv.DictWriter(file, fieldnames=fields)
                     writer.writeheader()
-                    writer.writerows(rows[:count])
-                reference = tmp/f'reference-{count}.csv'
+                    writer.writerows(workload_rows)
+                manifest['workloads'].append({'requested_tracks': requested_tracks, 'track_ids': track_ids[:requested_tracks],
+                                              'records': count, 'sha256': digest(workload)})
+                reference = tmp/f'reference-{requested_tracks}-{count}.csv'
                 subprocess.run([str(sequential), str(workload), str(reference)], check=True, capture_output=True, timeout=120)
                 with reference.open(newline='', encoding='utf-8') as file:
                     expected = list(csv.DictReader(file))
-                for workers in (1, 2, 4, 8):
+                for workers, batch_size in product((1, 2, 4, 8), args.batch_sizes):
                     for iteration in range(-args.warmups, args.iterations):
-                        output = tmp/f'output-{count}-{workers}-{iteration}.csv'
+                        output = tmp/f'output-{requested_tracks}-{count}-{workers}-{batch_size}-{iteration}.csv'
                         start = time.perf_counter_ns()
-                        result = subprocess.run([str(parallel), str(workload), str(output), str(workers)],
+                        result = subprocess.run([str(parallel), str(workload), str(output), str(workers), str(batch_size)],
                                                 capture_output=True, text=True, timeout=120)
                         elapsed_ms = (time.perf_counter_ns()-start)/1e6
                         if result.returncode:
@@ -102,16 +122,46 @@ def main():
                         resource = re.search(r'^RESOURCE parent_cpu_us=(-?\d+) worker_cpu_us=(-?\d+) parent_peak_kb=(-?\d+) worker_peak_kb=(-?\d+)\s*$', result.stdout, re.MULTILINE)
                         if not resource:
                             raise RuntimeError('native run did not report resource measurements')
+                        timing = re.search(r'^TIMING batch_size=(\d+) launch_us=([0-9.eE+-]+) first_batch_us=([0-9.eE+-]+) remaining_batches_us=([0-9.eE+-]+) remaining_batches=(\d+) shutdown_us=([0-9.eE+-]+)\s*$', result.stdout, re.MULTILINE)
+                        if not timing or int(timing[1]) != batch_size:
+                            raise RuntimeError('native run did not report requested batch timing')
                         if iteration >= 0:
-                            samples.append({'records': count, 'tracks': len({r['track_id'] for r in rows[:count]}),
-                                            'workers': workers, 'iteration': iteration+1, 'elapsed_ms': elapsed_ms,
+                            samples.append({'records': count, 'requested_tracks': requested_tracks, 'tracks': len({r['track_id'] for r in workload_rows}),
+                                            'workers': workers, 'batch_size': batch_size, 'iteration': iteration+1, 'elapsed_ms': elapsed_ms,
+                                            'launch_us': float(timing[2]), 'first_batch_us': float(timing[3]),
+                                            'remaining_batches_us': float(timing[4]), 'remaining_batches': int(timing[5]),
+                                            'shutdown_us': float(timing[6]),
                                             **dict(zip(('parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'),
                                                        (int(v) for v in resource.groups())))})
         with (destination/'samples.csv').open('w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=['records','tracks','workers','iteration','elapsed_ms',
+            writer = csv.DictWriter(file, fieldnames=['records','requested_tracks','tracks','workers','batch_size','iteration','elapsed_ms',
+                                                       'launch_us','first_batch_us','remaining_batches_us','remaining_batches','shutdown_us',
                                                        'parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'])
             writer.writeheader()
             writer.writerows(samples)
+        groups = {}
+        for sample in samples:
+            key = (sample['records'], sample['requested_tracks'], sample['tracks'], sample['batch_size'], sample['workers'])
+            groups.setdefault(key, []).append(sample)
+        with (destination/'summary.csv').open('w', newline='', encoding='utf-8') as file:
+            summary_fields = ['records','requested_tracks','tracks','batch_size','workers','iterations','median_ms','mean_ms',
+                              'stdev_ms','min_ms','max_ms','speedup_vs_one_worker',
+                              'mean_launch_us','mean_first_batch_us','mean_later_batch_us','mean_shutdown_us']
+            writer = csv.DictWriter(file, fieldnames=summary_fields)
+            writer.writeheader()
+            for (records, requested_tracks, tracks, batch_size, workers), group in sorted(groups.items()):
+                times = [r['elapsed_ms'] for r in group]
+                baseline = groups[(records, requested_tracks, tracks, batch_size, 1)]
+                later = [r['remaining_batches_us']/r['remaining_batches'] for r in group if r['remaining_batches']]
+                writer.writerow({'records': records, 'requested_tracks': requested_tracks, 'tracks': tracks, 'batch_size': batch_size,
+                                 'workers': workers, 'iterations': len(times), 'median_ms': statistics.median(times),
+                                 'mean_ms': statistics.mean(times), 'stdev_ms': statistics.stdev(times) if len(times)>1 else 0,
+                                 'min_ms': min(times), 'max_ms': max(times),
+                                 'speedup_vs_one_worker': statistics.median([r['elapsed_ms'] for r in baseline])/statistics.median(times),
+                                 'mean_launch_us': statistics.mean(r['launch_us'] for r in group),
+                                 'mean_first_batch_us': statistics.mean(r['first_batch_us'] for r in group),
+                                 'mean_later_batch_us': statistics.mean(later) if later else '',
+                                 'mean_shutdown_us': statistics.mean(r['shutdown_us'] for r in group)})
         manifest['status'] = 'complete'
         manifest['sample_count'] = len(samples)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:

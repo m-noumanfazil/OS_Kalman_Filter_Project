@@ -10,7 +10,7 @@ The motion transition assumes constant acceleration over each observed interval.
 
 The update uses the analytic radar Jacobian, a Cholesky solve for the innovation covariance, and the Joseph covariance formula. Invalid measurements, non-finite values, invalid time intervals, and singular radar geometry are rejected. The covariance is symmetrized after each step.
 
-The generator creates three tracks with straight, acceleration/climb, and turning-like acceleration segments, irregular time intervals, Gaussian radar noise, and deterministic missing observations. It writes `measurements.csv` and `ground_truth.csv` separately into a **new** directory. Ground truth is only consumed by the evaluator, not the EKF driver.
+The generator creates three tracks with straight, acceleration/climb, and turning-like acceleration segments, irregular time intervals, Gaussian radar noise, and deterministic missing observations. It writes `measurements.csv` and `ground_truth.csv` separately into a **new** directory. Ground truth includes position, velocity, and the acceleration applied at each time step; it is only consumed by the evaluator, not the EKF driver.
 
 ## Build and run
 
@@ -29,7 +29,7 @@ Create the `build` directory first if needed. On Windows use the corresponding `
 
 ## Comparison and limitations
 
-The evaluator converts the same available noisy range/angle measurements into Cartesian X/Y, then feeds the existing 2D filter; it compares raw XY, 2D baseline XY, and EKF XY on those same rows. It separately reports EKF XYZ error for motion segments and missing-observation rows. Missing observations are prediction-only for the EKF but are excluded from the baseline accuracy comparison; the 2D filter is updated only on available measurements and uses elapsed time between them. The baseline's constant Cartesian noise model is not identical to the range-dependent covariance of converted radar measurements, so this is an illustrative same-observation comparison, not a claim of an optimally tuned baseline.
+The evaluator converts the same available noisy range/angle measurements into Cartesian X/Y, then feeds the existing 2D filter; it compares raw XY, 2D baseline XY, and EKF XY on those same rows. It reports 3D position, velocity, and acceleration vector RMSE for all rows, maneuver segments, and missing-observation rows. Missing observations are prediction-only for the EKF but are excluded from the baseline accuracy comparison; the 2D filter is updated only on available measurements and uses elapsed time between them. The baseline's constant Cartesian noise model is not identical to the range-dependent covariance of converted radar measurements, so this is an illustrative same-observation comparison, not a claim of an optimally tuned baseline.
 
 The driver also outputs the upper triangle of the 3 × 3 position covariance. The evaluator computes position NEES, `errorᵀ P⁻¹ error`, using a Cholesky solve, and reports the fraction inside the chi-square 3-degree-of-freedom 95% ellipsoid (threshold 7.8147), separately for available and missing observations. For a perfectly calibrated Gaussian position estimate, the reference mean NEES is 3 and the nominal coverage is 95%. These time-series observations are correlated, and the simulated trajectories do not exactly follow the stochastic process model; the percentages are descriptive diagnostics, not independent-sample confidence tests or proof of calibration.
 

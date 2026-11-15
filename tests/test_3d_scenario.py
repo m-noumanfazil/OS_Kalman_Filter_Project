@@ -24,7 +24,12 @@ class ScenarioTests(unittest.TestCase):
             self.assertTrue(any(row['available'] == '0' for row in rows))
             self.assertNotIn('x_m', rows[0])
             with (root/'first'/'ground_truth.csv').open(newline='', encoding='utf-8') as file:
-                self.assertEqual(sum(1 for _ in csv.DictReader(file)), len(rows))
+                truth = list(csv.DictReader(file))
+            self.assertEqual(len(truth), len(rows))
+            self.assertEqual(float(truth[0]['ax_mps2']), 0.0)
+            self.assertEqual(float(truth[150]['ax_mps2']), 1.5)
+            self.assertEqual(float(truth[300]['ay_mps2']), 2.0)
+            self.assertEqual(float(truth[450]['az_mps2']), 0.0)
 
 
 if __name__ == '__main__':

@@ -36,9 +36,12 @@ def main():
     args = parser.parse_args()
     sums = [0.0, 0.0, 0.0, 0.0]
     count = 0
+    state_sums = [0.0, 0.0, 0.0]
+    state_count = 0
     filters = {}
     track_steps = {}
     segments = {name: [0.0, 0] for name in ('straight', 'acceleration', 'turn', 'post-turn', 'missing')}
+    state_groups = {name: [0.0, 0.0, 0.0, 0] for name in ('straight', 'acceleration', 'turn', 'post-turn', 'missing')}
     calibration = {'available': [0.0, 0, 0], 'missing': [0.0, 0, 0]}
     with (args.scenario/'measurements.csv').open(newline='', encoding='utf-8') as mf, \
          (args.scenario/'ground_truth.csv').open(newline='', encoding='utf-8') as tf, \
@@ -58,6 +61,21 @@ def main():
             ex,ey,ez = (float(e[k]) for k in ('x','y','z'))
             if not all(math.isfinite(v) for v in (x,y,z,ex,ey,ez)):
                 raise ValueError(f'non-finite state at line {line}')
+            velocity = [float(t[k]) for k in ('vx_mps', 'vy_mps', 'vz_mps')]
+            acceleration = [float(t[k]) for k in ('ax_mps2', 'ay_mps2', 'az_mps2')]
+            estimate_velocity = [float(e[k]) for k in ('vx', 'vy', 'vz')]
+            estimate_acceleration = [float(e[k]) for k in ('ax', 'ay', 'az')]
+            if not all(math.isfinite(v) for v in velocity + acceleration + estimate_velocity + estimate_acceleration):
+                raise ValueError(f'non-finite velocity or acceleration at line {line}')
+            errors = [(ex-x)**2 + (ey-y)**2 + (ez-z)**2,
+                      sum((a-b)**2 for a,b in zip(estimate_velocity, velocity)),
+                      sum((a-b)**2 for a,b in zip(estimate_acceleration, acceleration))]
+            state_sums = [a+b for a,b in zip(state_sums, errors)]
+            segment = 'straight' if step < 150 else 'acceleration' if step < 300 else 'turn' if step < 450 else 'post-turn'
+            for name in ([segment, 'missing'] if m['available'] == '0' else [segment]):
+                for i in range(3): state_groups[name][i] += errors[i]
+                state_groups[name][3] += 1
+            state_count += 1
             if m['available'] not in ('0', '1'):
                 raise ValueError(f'invalid availability at line {line}')
             xx, xy, xz, yy, yz, zz = (float(e[k]) for k in ('p_xx','p_xy','p_xz','p_yy','p_yz','p_zz'))
@@ -82,11 +100,14 @@ def main():
             sums[1] += (bx-x)**2+(by-y)**2
             sums[2] += (ex-x)**2+(ey-y)**2
             sums[3] += (ex-x)**2+(ey-y)**2+(ez-z)**2
-            segment = 'straight' if step < 150 else 'acceleration' if step < 300 else 'turn' if step < 450 else 'post-turn'
             segments[segment][0] += (ex-x)**2+(ey-y)**2+(ez-z)**2
             segments[segment][1] += 1
             count += 1
     if not count: raise ValueError('no available observations')
+    for label, total in zip(('Position (m)', 'Velocity (m/s)', 'Acceleration (m/s^2)'), state_sums):
+        print(f'All-row {label} vector RMSE: {math.sqrt(total/state_count):.3f}')
+    for label, (p, v, a, n) in state_groups.items():
+        if n: print(f'{label} state vector RMSE: position {math.sqrt(p/n):.3f} m, velocity {math.sqrt(v/n):.3f} m/s, acceleration {math.sqrt(a/n):.3f} m/s^2 (n={n})')
     for label, total in zip(('Raw XY', '2D baseline XY', '3D EKF XY', '3D EKF XYZ'), sums):
         print(f'{label} RMSE: {math.sqrt(total/count):.3f} m')
     for label, (total, n) in segments.items():
