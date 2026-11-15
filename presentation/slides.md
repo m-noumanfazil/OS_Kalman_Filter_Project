@@ -97,16 +97,17 @@ OS_Kalman_Filter_Project/
 | Benchmark Operation | Windows Median Latency | Linux Median Latency | Measured Margin | Windows CPU Time | Linux CPU Time | Windows Memory Delta | Linux Memory Delta |
 |---|---|---|---|---|---|---|---|
 | **Process Creation** | 1,659.0 µs | **115.4 µs** | 🐧 **Linux 14.4× faster** | 1,328.1 µs | **263.8 µs** | +208 KB | **0 KB (COW)** |
-| **Spawn + Exec + Wait** | 10,670.0 µs | **2,248.9 µs** | 🐧 **Linux 4.7× faster** | 1,171.9 µs | 2,389.6 µs | +416 KB | +812 KB |
+| **Complete Spawn + Wait** | 10,670.0 µs | **2,248.9 µs** | 🐧 **Linux 4.7× faster** | 1,171.9 µs | 2,389.6 µs | 0 KB | 0 KB |
 | **File Permissions** | 121.8 µs | **5.3 µs** | 🐧 **Linux 22.8× faster** | 234.4 µs | **12.1 µs** | 0 KB | 0 KB |
-| **File Creation (Open)** | 19.7 µs | **1.9 µs** | 🐧 **Linux 10.6× faster** | 15.6 µs | **2.1 µs** | 0 KB | 0 KB |
-| **Large Write (1 MB)** | **62.0 µs** | 200.4 µs | 🪟 **Windows 3.2× faster** | **93.8 µs** | 213.9 µs | +64 KB | 0 KB |
-| **Demand Page Alloc** | 2.1 µs | 2.5 µs | 🤝 **Parity (~1.0×)** | 46.9 µs | 53.3 µs | **+64,000 KB** | **+64,000 KB** |
+| **File Open / Create** | 29.7 µs | **2.8 µs** | 🐧 **Linux 10.6× faster** | 46.9 µs | **5.4 µs** | +4 KB | +4 KB |
+| **Large Write (1 MB)** | **62.0 µs** | 200.4 µs | 🪟 **Windows 3.2× faster** | **93.8 µs** | 213.9 µs | 0 KB | +4 KB |
+| **Virtual Memory Alloc (64 KB)** | 2.9 µs | **1.8 µs** | 🤝 **Parity (~1.6×)** | 15.6 µs | 7.1 µs | **0 KB (Lazy)** | **0 KB (Lazy)** |
+| **First-Touch Physical Paging** | **39.7 µs** | 46.6 µs | 🪟 **Windows 1.2× faster** | 46.9 µs | 53.3 µs | **+64,000 KB** | **+64,000 KB** |
 
 ### Key Empirical Findings
 - **Linux dominates process lifecycle:** `fork()` is 14.4× faster because it clones page table entries without allocating physical memory.
 - **Windows dominates buffered writes:** The NT Cache Manager's asynchronous write-behind buffer acknowledged 1 MB writes in 62.0 µs vs Linux 200.4 µs.
-- **Demand paging parity verified:** Both kernels allocate 0 physical frames at reservation, triggering exactly 16,000 page faults upon first memory touch (+64 MB).
+- **Demand paging parity verified:** Both kernels allocate 0 physical frames at reservation (`VirtualAlloc`/`mmap`), triggering exactly 16,000 page faults upon first memory touch (+64 MB).
 
 ---
 
