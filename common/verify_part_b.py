@@ -106,7 +106,12 @@ def verify(input_path, output_path, tolerance):
             if not math.isfinite(timestamp) or not math.isfinite(output_timestamp) or abs(output_timestamp - timestamp) > tolerance:
                 raise ValueError(f'timestamp mismatch at line {number}')
             filt = filters.setdefault(track, Jet2DKalmanFilter())
-            expected = filt.process(timestamp, float(source['meas_x']), float(source['meas_y']))
+            if timestamp < 0 or (filt.last_timestamp >= 0 and timestamp <= filt.last_timestamp):
+                raise ValueError(f'invalid timestamp ordering at line {number}')
+            measured_x, measured_y = float(source['meas_x']), float(source['meas_y'])
+            if not math.isfinite(measured_x) or not math.isfinite(measured_y):
+                raise ValueError(f'non-finite measurement at line {number}')
+            expected = filt.process(timestamp, measured_x, measured_y)
             actual = tuple(float(result[name]) for name in ('est_x', 'est_y', 'est_vx', 'est_vy'))
             if not all(math.isfinite(value) for value in (*expected, *actual)):
                 raise ValueError(f'non-finite state at line {number}')

@@ -27,6 +27,8 @@ jobs:
           for category in File_IO Process Memory IPC Permissions Kalman_Filter; do
             g++ -std=c++17 -O2 "Linux/$category/${category}_Linux.cpp" -o "$RUNNER_TEMP/kalman-build/$category"
           done
+      - name: Test output verification
+        run: python3 -B -m unittest discover -s tests -v
       - name: Run and verify integrated filter
         run: |
           set -euo pipefail

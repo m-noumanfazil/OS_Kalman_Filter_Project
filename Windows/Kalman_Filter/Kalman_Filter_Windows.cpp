@@ -421,16 +421,17 @@ bool runDemonstration(const string& exePath, const vector<kalman::RadarMeasureme
     bool filterEffective = (metrics.filtered_rmse < metrics.raw_rmse && metrics.noise_reduction_pct > 50.0);
     LOG_SYSCALL("VerifyFilterAccuracy", filterEffective, "Noise reduction > 50%");
 
-    // 3. Run Multi-Process Parallel Filtering (4 Workers)
-    cout << "\n[2] Running Multi-Process Parallel Filtering (4 Workers via CreateProcess)...\n";
-    memset(arena->outputs, 0, sizeof(arena->outputs)); // clear outputs
-
-    bool parallelOk = spawnAndJoinWorkers(exePath, shmName, 4);
-    LOG_SYSCALL("CreateProcess_Workers_4", parallelOk, "Spawn 4 child workers");
+    bool parallelOk = true;
+    bool parityExact = true;
+    for (int workers : {2, 4, 8}) {
+    cout << "\nVerifying " << workers << " workers...\n";
+    memset(arena->outputs, 0, sizeof(arena->outputs));
+    bool workerResult = spawnAndJoinWorkers(exePath, shmName, workers);
+    LOG_SYSCALL("Workers", workerResult, "parallel worker run");
+    parallelOk = parallelOk && workerResult;
 
     // 4. Numerical Parity Verification: Single vs. Parallel output bit-level equality
-    cout << "\n[3] Verifying Numerical Parity (Single-Process vs 4-Process Parallel)...\n";
-    bool parityExact = true;
+    cout << "Verifying numerical parity against single-process output...\n";
     double maxDiff = 0.0;
     for (uint32_t i = 0; i < arena->recordCount; ++i) {
         const auto& actual = arena->outputs[i];
@@ -447,8 +448,9 @@ bool runDemonstration(const string& exePath, const vector<kalman::RadarMeasureme
             break;
         }
     }
-    cout << "  Max Difference Across 8,000 Coordinates: " << scientific << maxDiff << defaultfloat << " m\n";
+    cout << "  Maximum state difference: " << scientific << maxDiff << defaultfloat << "\n";
     LOG_SYSCALL("VerifyParallelParity", parityExact, "Single vs Multi parity < 1e-9");
+    }
 
     // 5. Intentional failure demonstration: OpenFileMapping on non-existent mapping
     cout << "\n[4] Deliberate Failure Handling (OpenFileMapping on non-existent object):\n";
@@ -547,6 +549,10 @@ int main(int argc, char* argv[]) {
     ofstream transcript(kTranscriptFile, ios::out | ios::trunc);
     streambuf* originalBuffer = cout.rdbuf();
     TeeBuffer tee(originalBuffer, transcript.rdbuf());
+    struct RestoreCout {
+        streambuf* original;
+        ~RestoreCout() { cout.rdbuf(original); }
+    } restoreCout{originalBuffer};
 
     bool teeActive = false;
     if (transcript.is_open()) {
