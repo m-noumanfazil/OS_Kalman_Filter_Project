@@ -1,0 +1,99 @@
+Console output is also being saved to Linux/Kalman_Filter/Kalman_Filter_Linux.txt
+=== Linux Kalman Filter: Supersonic Fighter Jet Radar Tracker ===
+
+[07:53:44.129] open("common/sensor_data.csv") -> OK
+[07:53:44.137] read("common/sensor_data.csv") -> OK
+Ingested 80000 radar pings for 8 supersonic fighter jets.
+
+---------- PART 1: DEMO & VALIDATION (logged, not timed) ----------
+[07:53:44.312] mmap("2 MB shared arena (MAP_SHARED|MAP_ANONYMOUS)") -> OK
+
+[1] Running Single-Process Baseline (1 Worker)...
+  Raw Radar Sensor RMSE    : 70.81 m
+  Kalman Filtered RMSE     : 22.95 m
+  Tracking Error Reduction : 67.58%
+[07:53:44.324] VerifyFilterAccuracy("Noise reduction > 50%") -> OK
+
+[2] Running Multi-Process Parallel Filtering (4 Workers via fork)...
+[07:53:44.334] fork_Workers_4("Spawn 4 child workers") -> OK
+
+[3] Verifying Numerical Parity (Single-Process vs 4-Process Parallel)...
+  Max Difference Across 8,000 Coordinates: 0.00e+00 m
+[07:53:44.335] VerifyParallelParity("Single vs Multi parity < 1e-9") -> OK
+
+[4] Deliberate Failure Handling (open on non-existent file):
+[07:53:44.335] open_MissingFile("common/sensor_data_missing_file.tmp") -> FAILED, error 2: No such file or directory
+
+---------- PART 2: BENCHMARKS & SCALABILITY (timed, zero logging) ----------
+==== KalmanFilter_1Worker ====
+Iterations    : 50
+Min           : 1601.084 us
+Median        : 1925.985 us
+Mean          : 2131.355 us
+Max           : 3498.629 us
+Std dev       : 513.412 us
+CPU (total)   : 106708.167 us (nanosecond clock on Linux)
+CPU per call  : 2134.163 us
+CPU cycles    : 276586372
+Cycles/call   : 5531727.440
+Memory delta  : 0.000 KB
+Page faults   : 0
+
+  [Baseline] 1 Worker Execution Time: 2131.36 us
+
+==== KalmanFilter_2Workers ====
+Iterations    : 50
+Min           : 4489.860 us
+Median        : 5225.232 us
+Mean          : 5313.664 us
+Max           : 7174.611 us
+Std dev       : 605.133 us
+CPU (total)   : 30506.628 us (nanosecond clock on Linux)
+CPU per call  : 610.133 us
+CPU cycles    : 688813496
+Cycles/call   : 13776269.920
+Memory delta  : 0.000 KB
+Page faults   : 408
+
+  Parallel Speedup    : 0.40x (Amdahl scaling)
+  Parallel Efficiency : 20.06%
+
+==== KalmanFilter_4Workers ====
+Iterations    : 50
+Min           : 5106.541 us
+Median        : 5353.943 us
+Mean          : 5494.792 us
+Max           : 7112.323 us
+Std dev       : 470.906 us
+CPU (total)   : 63293.602 us (nanosecond clock on Linux)
+CPU per call  : 1265.872 us
+CPU cycles    : 712477216
+Cycles/call   : 14249544.320
+Memory delta  : 0.000 KB
+Page faults   : 605
+
+  Parallel Speedup    : 0.39x (Amdahl scaling)
+  Parallel Efficiency : 9.70%
+
+==== KalmanFilter_8Workers ====
+Iterations    : 50
+Min           : 7519.620 us
+Median        : 7951.375 us
+Mean          : 8502.792 us
+Max           : 14361.558 us
+Std dev       : 1277.613 us
+CPU (total)   : 129477.507 us (nanosecond clock on Linux)
+CPU per call  : 2589.550 us
+CPU cycles    : 1102123214
+Cycles/call   : 22042464.280
+Memory delta  : 0.000 KB
+Page faults   : 1021
+
+  Parallel Speedup    : 0.25x (Amdahl scaling)
+  Parallel Efficiency : 3.13%
+
+Exporting final filtered supersonic trajectory to results/Linux/filtered_sensor_data.csv...
+[07:53:45.562] open("results/Linux/filtered_sensor_data.csv") -> OK
+[07:53:45.840] write("results/Linux/filtered_sensor_data.csv") -> OK
+
+Part B Linux execution fully verified, logged, and appended to results.

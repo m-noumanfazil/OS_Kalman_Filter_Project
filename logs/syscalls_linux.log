@@ -1,242 +1,157 @@
-[12:21:41.074] open("test_input.txt") -> OK
-[12:21:41.075] close("test_input.txt") -> OK
-[12:21:41.075] open("does_not_exist.txt") -> FAILED, error 2: No such file or directory
-[12:21:41.096] unlink("test_input.txt") -> OK
-[12:57:35.438] open("file_io_demo.txt") -> OK
-[12:57:35.438] write("file_io_demo.txt") -> OK
-[12:57:35.438] close("file_io_demo.txt") -> OK
-[12:57:35.438] open("file_io_demo.txt") -> OK
-[12:57:35.438] read("file_io_demo.txt") -> OK
-[12:57:35.439] close("file_io_demo.txt") -> OK
-[12:57:35.439] VerifyContent("file_io_demo.txt") -> OK
-[12:57:35.439] open("file_io_does_not_exist.txt") -> FAILED, error 2: No such file or directory
-[12:57:35.439] unlink("file_io_demo.txt") -> OK
-[12:57:35.439] opendir("before Part 2") -> OK
-[12:57:35.462] open_setup("file_io_bench_read.tmp") -> OK
-[12:57:35.465] write_setup("file_io_bench_read.tmp") -> OK
-[12:57:35.465] close_setup("file_io_bench_read.tmp") -> OK
-[12:57:35.486] open_setup("file_io_bench_write.tmp") -> OK
-[12:57:35.504] close_teardown("file_io_bench_write.tmp") -> OK
-[12:57:35.525] open_setup("file_io_bench_write.tmp") -> OK
-[12:57:36.125] close_teardown("file_io_bench_write.tmp") -> OK
-[12:57:36.125] open_setup("file_io_bench_read.tmp") -> OK
-[12:57:36.137] close_teardown("file_io_bench_read.tmp") -> OK
-[12:57:36.138] open_setup("file_io_bench_read.tmp") -> OK
-[12:57:36.391] close_teardown("file_io_bench_read.tmp") -> OK
-[12:57:36.391] getrlimit("RLIMIT_NOFILE") -> OK
-[12:57:36.402] open_setup("file_io_bench_read.tmp x1050") -> OK
-[12:57:36.412] unlink("file_io_bench_read.tmp") -> OK
-[12:57:36.413] unlink("file_io_bench_write.tmp") -> OK
-[12:57:36.413] opendir("after Part 2") -> OK
-[13:10:20.540] sysconf("_SC_PAGESIZE") -> OK
-[13:10:20.540] mmap("1 MB, PROT_NONE") -> OK
-[13:10:20.540] mprotect("1 MB, PROT_READ | PROT_WRITE") -> OK
-[13:10:20.557] VerifyContent("1 MB block") -> OK
-[13:10:20.557] munmap("base+1, expected to fail") -> FAILED, error 22: Invalid argument
-[13:10:20.557] munmap("unmap the 1 MB block") -> OK
-[13:10:20.557] mmap("64 KB in one call") -> OK
-[13:10:20.558] VerifyContent("64 KB block") -> OK
-[13:10:20.559] munmap("unmap the 64 KB block") -> OK
-[13:10:20.585] mmap_setup("64 KB x 1050") -> OK
-[13:10:20.653] munmap_teardown("1050 block(s)") -> OK
-[13:10:20.656] mmap_setup("4 KB x 1050") -> OK
-[13:10:20.660] munmap_teardown("0 block(s)") -> OK
-[13:10:20.663] mmap_setup("64 KB x 1050") -> OK
-[13:10:20.667] munmap_teardown("0 block(s)") -> OK
-[13:10:20.670] mmap_setup("64 KB x 1050") -> OK
-[13:10:20.734] munmap_teardown("0 block(s)") -> OK
-[13:32:06.367] readlink("/proc/self/exe") -> OK
-[13:32:06.368] fork("fork, child exits 42") -> OK
-[13:32:06.368] wait("fork, child exits 42") -> OK
-[13:32:06.368] VerifyExitCode("fork, child exits 42") -> OK
-[13:32:06.368] fork("fork + execv --child 7") -> OK
-[13:32:06.370] wait("fork + execv --child 7") -> OK
-[13:32:06.371] execv("verified: the new program started and exited with 7") -> OK
-[13:32:06.371] VerifyExitCode("fork + execv --child 7") -> OK
-[13:32:06.371] fork("fork + execv of a missing program") -> OK
-[13:32:06.373] execv("/this_program_does_not_exist, expected to fail") -> FAILED, error 2: No such file or directory
-[13:32:06.373] wait("fork + execv of a missing program") -> OK
-[13:32:06.373] VerifyExitCode("fork + execv of a missing program") -> OK
-[13:32:06.373] VerifyNoChildrenLeft("after the demo") -> OK
-[13:32:06.373] opendir("before Part 2") -> OK
-[13:32:06.444] fork_setup("exit(0) x210") -> OK
-[13:32:06.445] waitid_setup("exit(0) x210") -> OK
-[13:32:07.206] VerifyNoChildrenLeft("after Part 2") -> OK
-[13:32:07.206] opendir("after Part 2") -> OK
-[20:39:54.906] readlink("/proc/self/exe") -> OK
-[20:39:54.908] pipe("default 64 KB buffer") -> OK
-[20:39:54.908] write("4096 bytes into the pipe") -> OK
-[20:39:54.908] close("pipe write end") -> OK
-[20:39:54.908] fork("--child-pipe (4096 bytes)") -> OK
-[20:39:54.911] waitpid("--child-pipe (4096 bytes)") -> OK
-[20:39:54.911] close("pipe read end") -> OK
-[20:39:54.911] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
-[20:39:54.911] shmget("1 MB, IPC_PRIVATE") -> OK
-[20:39:54.911] shmat("whole 1 MB segment") -> OK
-[20:39:54.917] fork("--child-shm 1015871") -> OK
-[20:39:54.930] waitpid("--child-shm 1015871") -> OK
-[20:39:54.934] VerifySharedMemory("--child-shm 1015871") -> OK
-[20:39:54.934] shmdt("whole 1 MB attachment") -> OK
-[20:39:54.935] shmctl("IPC_RMID, remove the 1 MB segment") -> OK
-[20:39:54.935] shmget("key 0x4F534B4D, expected to fail") -> FAILED, error 2: No such file or directory
-[20:39:54.935] VerifyNoChildrenLeft("after the demo") -> OK
-[20:39:54.935] opendir("before Part 2") -> OK
-[20:39:54.946] pipe_setup("benchmark pipe") -> OK
-[20:39:54.946] fcntl("F_SETPIPE_SZ 1 MB") -> OK
-[20:39:54.952] close_teardown("pipe read end") -> OK
-[20:39:54.952] close_teardown("pipe write end") -> OK
-[20:39:54.953] pipe_setup("benchmark pipe") -> OK
-[20:39:54.953] fcntl("F_SETPIPE_SZ 1 MB") -> OK
-[20:39:54.977] close_teardown("pipe read end") -> OK
-[20:39:54.978] close_teardown("pipe write end") -> OK
-[20:39:54.978] pipe_setup("benchmark pipe") -> OK
-[20:39:54.978] fcntl("F_SETPIPE_SZ 1 MB") -> OK
-[20:39:54.978] write_setup("fill the pipe once") -> OK
-[20:39:54.982] close_teardown("pipe read end") -> OK
-[20:39:54.982] close_teardown("pipe write end") -> OK
-[20:39:54.983] pipe_setup("benchmark pipe") -> OK
-[20:39:54.984] fcntl("F_SETPIPE_SZ 1 MB") -> OK
-[20:39:54.984] write_setup("fill the pipe once") -> OK
-[20:39:55.006] close_teardown("pipe read end") -> OK
-[20:39:55.006] close_teardown("pipe write end") -> OK
-[20:39:55.018] shmget_setup("1 MB, IPC_PRIVATE") -> OK
-[20:39:55.027] shmctl_teardown("IPC_RMID, remove the 1 MB segment") -> OK
-[20:39:55.028] shmget_setup("64 KB, IPC_PRIVATE") -> OK
-[20:39:55.035] shmat_setup("64 KB x 1050") -> OK
-[20:39:55.040] shmctl_teardown("IPC_RMID, remove the 64 KB segment") -> OK
-[20:39:55.040] opendir("after Part 2") -> OK
-[21:03:41.493] open("create permissions test file") -> OK
-[21:03:41.493] write("create permissions test file") -> OK
-[21:03:41.493] close("create permissions test file") -> OK
-[21:03:41.493] stat("save original file ownership and permissions") -> OK
-[21:03:41.493] getgroups("read supplementary groups") -> OK
-[21:03:41.493] chmod("set permissions to 0400") -> OK
-[21:03:41.494] stat("verify changed permissions") -> OK
-[21:03:41.494] open("write blocked, expected to fail") -> OK
-[21:03:41.494] VerifyWriteBlocked("chmod removed write access") -> OK
-[21:03:41.494] close("read verification handle") -> OK
-[21:03:41.494] open("read remains allowed") -> OK
-[21:03:41.494] VerifyReadAllowed("read access remains allowed") -> OK
-[21:03:41.494] chmod("restore original permissions") -> OK
-[21:03:41.494] stat("verify restored permissions") -> OK
-[21:03:41.494] VerifyChmodRestore("original permissions restored") -> OK
-[21:03:41.494] chown("change file group") -> OK
-[21:03:41.494] stat("verify changed ownership") -> OK
-[21:03:41.494] VerifyChown("owner unchanged and group verified") -> OK
-[21:03:41.494] chown("restore original ownership") -> OK
-[21:03:41.494] umask("set demonstration umask to 0027") -> OK
-[21:03:41.494] umask("restore original umask") -> OK
-[21:03:41.494] open("create file with requested mode 0666") -> OK
-[21:03:41.494] fstat("check new file permissions") -> OK
-[21:03:41.494] close("close umask test file") -> OK
-[21:03:41.494] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
-[21:03:41.494] unlink("remove umask test file") -> OK
-[21:03:41.495] chmod("missing file, expected ENOENT") -> OK
-[21:03:41.495] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
-[21:03:41.495] chmod("cleanup: restore original permissions") -> OK
-[21:03:41.495] chown("cleanup: restore original ownership") -> OK
-[21:03:41.495] unlink("delete permissions test file") -> OK
-[21:03:41.495] open("benchmark test file setup") -> OK
-[21:03:41.495] write("benchmark test file setup") -> OK
-[21:03:41.495] close("benchmark test file setup") -> OK
-[21:03:41.495] stat("save benchmark file metadata") -> OK
-[21:03:41.495] opendir("before Part 2") -> OK
-[21:03:41.495] closedir("before Part 2") -> OK
-[21:03:41.495] open("benchmark test file already exists") -> FAILED, error 17: File exists
-[21:03:41.512] chown("final benchmark ownership restoration") -> OK
-[21:03:41.516] umask("final benchmark umask restoration") -> FAILED, error 17: File exists
-[21:03:41.516] chmod("final cleanup: restore original permissions") -> OK
-[21:03:41.516] chown("final cleanup: restore original ownership") -> OK
-[21:03:41.516] unlink("delete benchmark test file") -> OK
-[21:03:41.516] opendir("after Part 2") -> OK
-[21:03:41.516] closedir("after Part 2") -> OK
-[21:11:38.523] open("create permissions test file") -> OK
-[21:11:38.524] write("create permissions test file") -> OK
-[21:11:38.524] close("create permissions test file") -> OK
-[21:11:38.524] stat("save original file ownership and permissions") -> OK
-[21:11:38.524] getgroups("read supplementary groups") -> OK
-[21:11:38.524] chmod("set permissions to 0400") -> OK
-[21:11:38.524] stat("verify changed permissions") -> OK
-[21:11:38.524] open("write blocked, expected to fail") -> OK
-[21:11:38.524] VerifyWriteBlocked("chmod removed write access") -> OK
-[21:11:38.524] close("read verification handle") -> OK
-[21:11:38.524] open("read remains allowed") -> OK
-[21:11:38.524] VerifyReadAllowed("read access remains allowed") -> OK
-[21:11:38.524] chmod("restore original permissions") -> OK
-[21:11:38.524] stat("verify restored permissions") -> OK
-[21:11:38.524] VerifyChmodRestore("original permissions restored") -> OK
-[21:11:38.524] chown("change file group") -> OK
-[21:11:38.524] stat("verify changed ownership") -> OK
-[21:11:38.524] VerifyChown("owner unchanged and group verified") -> OK
-[21:11:38.524] chown("restore original ownership") -> OK
-[21:11:38.524] umask("set demonstration umask to 0027") -> OK
-[21:11:38.524] umask("restore original umask") -> OK
-[21:11:38.524] open("create file with requested mode 0666") -> OK
-[21:11:38.524] fstat("check new file permissions") -> OK
-[21:11:38.524] close("close umask test file") -> OK
-[21:11:38.525] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
-[21:11:38.525] unlink("remove umask test file") -> OK
-[21:11:38.525] chmod("missing file, expected ENOENT") -> OK
-[21:11:38.525] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
-[21:11:38.525] chmod("cleanup: restore original permissions") -> OK
-[21:11:38.525] chown("cleanup: restore original ownership") -> OK
-[21:11:38.525] unlink("delete permissions test file") -> OK
-[21:11:38.525] open("benchmark test file setup") -> OK
-[21:11:38.525] write("benchmark test file setup") -> OK
-[21:11:38.525] close("benchmark test file setup") -> OK
-[21:11:38.525] stat("save benchmark file metadata") -> OK
-[21:11:38.525] opendir("before Part 2") -> OK
-[21:11:38.525] closedir("before Part 2") -> OK
-[21:11:38.536] chmod("final benchmark permission restoration") -> OK
-[21:11:38.548] chown("final benchmark ownership restoration") -> OK
-[21:11:38.553] umask("final benchmark umask restoration") -> OK
-[21:11:38.553] chmod("final cleanup: restore original permissions") -> OK
-[21:11:38.553] chown("final cleanup: restore original ownership") -> OK
-[21:11:38.553] unlink("delete benchmark test file") -> OK
-[21:11:38.553] opendir("after Part 2") -> OK
-[21:11:38.553] closedir("after Part 2") -> OK
-[21:16:56.176] open("create permissions test file") -> OK
-[21:16:56.176] write("create permissions test file") -> OK
-[21:16:56.176] close("create permissions test file") -> OK
-[21:16:56.176] stat("save original file ownership and permissions") -> OK
-[21:16:56.176] getgroups("read supplementary groups") -> OK
-[21:16:56.177] chmod("set permissions to 0400") -> OK
-[21:16:56.177] stat("verify changed permissions") -> OK
-[21:16:56.177] open("write blocked, expected to fail") -> OK
-[21:16:56.177] VerifyWriteBlocked("chmod removed write access") -> OK
-[21:16:56.177] close("read verification handle") -> OK
-[21:16:56.177] open("read remains allowed") -> OK
-[21:16:56.177] VerifyReadAllowed("read access remains allowed") -> OK
-[21:16:56.177] chmod("restore original permissions") -> OK
-[21:16:56.177] stat("verify restored permissions") -> OK
-[21:16:56.177] VerifyChmodRestore("original permissions restored") -> OK
-[21:16:56.177] chown("change file group") -> OK
-[21:16:56.177] stat("verify changed ownership") -> OK
-[21:16:56.177] VerifyChown("owner unchanged and group verified") -> OK
-[21:16:56.177] chown("restore original ownership") -> OK
-[21:16:56.177] umask("set demonstration umask to 0027") -> OK
-[21:16:56.177] umask("restore original umask") -> OK
-[21:16:56.177] open("create file with requested mode 0666") -> OK
-[21:16:56.177] fstat("check new file permissions") -> OK
-[21:16:56.177] close("close umask test file") -> OK
-[21:16:56.177] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
-[21:16:56.177] unlink("remove umask test file") -> OK
-[21:16:56.177] chmod("missing file, expected ENOENT") -> OK
-[21:16:56.177] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
-[21:16:56.177] chmod("cleanup: restore original permissions") -> OK
-[21:16:56.178] chown("cleanup: restore original ownership") -> OK
-[21:16:56.178] unlink("delete permissions test file") -> OK
-[21:16:56.178] open("benchmark test file setup") -> OK
-[21:16:56.178] write("benchmark test file setup") -> OK
-[21:16:56.178] close("benchmark test file setup") -> OK
-[21:16:56.178] stat("save benchmark file metadata") -> OK
-[21:16:56.178] opendir("before Part 2") -> OK
-[21:16:56.178] closedir("before Part 2") -> OK
-[21:16:56.188] chmod("final benchmark permission restoration") -> OK
-[21:16:56.204] chown("final benchmark ownership restoration") -> OK
-[21:16:56.208] umask("final benchmark umask restoration") -> OK
-[21:16:56.209] chmod("final cleanup: restore original permissions") -> OK
-[21:16:56.209] chown("final cleanup: restore original ownership") -> OK
-[21:16:56.209] unlink("delete benchmark test file") -> OK
-[21:16:56.209] opendir("after Part 2") -> OK
-[21:16:56.209] closedir("after Part 2") -> OK
+[07:53:44.129] open("common/sensor_data.csv") -> OK
+[07:53:44.137] read("common/sensor_data.csv") -> OK
+[07:53:44.312] mmap("2 MB shared arena (MAP_SHARED|MAP_ANONYMOUS)") -> OK
+[07:53:44.324] VerifyFilterAccuracy("Noise reduction > 50%") -> OK
+[07:53:44.334] fork_Workers_4("Spawn 4 child workers") -> OK
+[07:53:44.335] VerifyParallelParity("Single vs Multi parity < 1e-9") -> OK
+[07:53:44.335] open_MissingFile("common/sensor_data_missing_file.tmp") -> FAILED, error 2: No such file or directory
+[07:53:45.562] open("results/Linux/filtered_sensor_data.csv") -> OK
+[07:53:45.840] write("results/Linux/filtered_sensor_data.csv") -> OK
+[07:56:06.943] open("file_io_demo.txt") -> OK
+[07:56:06.943] write("file_io_demo.txt") -> OK
+[07:56:06.943] close("file_io_demo.txt") -> OK
+[07:56:06.943] open("file_io_demo.txt") -> OK
+[07:56:06.943] read("file_io_demo.txt") -> OK
+[07:56:06.943] close("file_io_demo.txt") -> OK
+[07:56:06.943] VerifyContent("file_io_demo.txt") -> OK
+[07:56:06.943] open("file_io_does_not_exist.txt") -> FAILED, error 2: No such file or directory
+[07:56:06.943] unlink("file_io_demo.txt") -> OK
+[07:56:06.943] opendir("before Part 2") -> OK
+[07:56:06.946] open_setup("file_io_bench_read.tmp") -> OK
+[07:56:06.947] write_setup("file_io_bench_read.tmp") -> OK
+[07:56:06.947] close_setup("file_io_bench_read.tmp") -> OK
+[07:56:06.954] open_setup("file_io_bench_write.tmp") -> OK
+[07:56:06.960] close_teardown("file_io_bench_write.tmp") -> OK
+[07:56:06.962] open_setup("file_io_bench_write.tmp") -> OK
+[07:56:07.191] close_teardown("file_io_bench_write.tmp") -> OK
+[07:56:07.191] open_setup("file_io_bench_read.tmp") -> OK
+[07:56:07.194] close_teardown("file_io_bench_read.tmp") -> OK
+[07:56:07.194] open_setup("file_io_bench_read.tmp") -> OK
+[07:56:07.268] close_teardown("file_io_bench_read.tmp") -> OK
+[07:56:07.269] getrlimit("RLIMIT_NOFILE") -> OK
+[07:56:07.272] open_setup("file_io_bench_read.tmp x1050") -> OK
+[07:56:07.275] unlink("file_io_bench_read.tmp") -> OK
+[07:56:07.275] unlink("file_io_bench_write.tmp") -> OK
+[07:56:07.275] opendir("after Part 2") -> OK
+[07:57:01.828] readlink("/proc/self/exe") -> OK
+[07:57:01.828] pipe("default 64 KB buffer") -> OK
+[07:57:01.828] write("4096 bytes into the pipe") -> OK
+[07:57:01.828] close("pipe write end") -> OK
+[07:57:01.829] fork("--child-pipe (4096 bytes)") -> OK
+[07:57:01.831] waitpid("--child-pipe (4096 bytes)") -> OK
+[07:57:01.831] close("pipe read end") -> OK
+[07:57:01.831] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
+[07:57:01.831] shmget("1 MB, IPC_PRIVATE") -> OK
+[07:57:01.832] shmat("whole 1 MB segment") -> OK
+[07:57:01.834] fork("--child-shm 98328") -> OK
+[07:57:01.840] waitpid("--child-shm 98328") -> OK
+[07:57:01.841] VerifySharedMemory("--child-shm 98328") -> OK
+[07:57:01.841] shmdt("whole 1 MB attachment") -> OK
+[07:57:01.842] shmctl("IPC_RMID, remove the 1 MB segment") -> OK
+[07:57:01.842] shmget("key 0x4F534B4D, expected to fail") -> FAILED, error 2: No such file or directory
+[07:57:01.842] VerifyNoChildrenLeft("after the demo") -> OK
+[07:57:01.842] opendir("before Part 2") -> OK
+[07:57:01.852] pipe_setup("benchmark pipe") -> OK
+[07:57:01.853] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.858] close_teardown("pipe read end") -> OK
+[07:57:01.858] close_teardown("pipe write end") -> OK
+[07:57:01.858] pipe_setup("benchmark pipe") -> OK
+[07:57:01.858] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.891] close_teardown("pipe read end") -> OK
+[07:57:01.891] close_teardown("pipe write end") -> OK
+[07:57:01.891] pipe_setup("benchmark pipe") -> OK
+[07:57:01.891] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.891] write_setup("fill the pipe once") -> OK
+[07:57:01.895] close_teardown("pipe read end") -> OK
+[07:57:01.896] close_teardown("pipe write end") -> OK
+[07:57:01.896] pipe_setup("benchmark pipe") -> OK
+[07:57:01.896] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.896] write_setup("fill the pipe once") -> OK
+[07:57:01.921] close_teardown("pipe read end") -> OK
+[07:57:01.921] close_teardown("pipe write end") -> OK
+[07:57:01.929] shmget_setup("1 MB, IPC_PRIVATE") -> OK
+[07:57:01.940] shmctl_teardown("IPC_RMID, remove the 1 MB segment") -> OK
+[07:57:01.940] shmget_setup("64 KB, IPC_PRIVATE") -> OK
+[07:57:01.945] shmat_setup("64 KB x 1050") -> OK
+[07:57:01.952] shmctl_teardown("IPC_RMID, remove the 64 KB segment") -> OK
+[07:57:01.952] opendir("after Part 2") -> OK
+[07:57:47.217] sysconf("_SC_PAGESIZE") -> OK
+[07:57:47.218] mmap("1 MB, PROT_NONE") -> OK
+[07:57:47.218] mprotect("1 MB, PROT_READ | PROT_WRITE") -> OK
+[07:57:47.222] VerifyContent("1 MB block") -> OK
+[07:57:47.223] munmap("base+1, expected to fail") -> FAILED, error 22: Invalid argument
+[07:57:47.223] munmap("unmap the 1 MB block") -> OK
+[07:57:47.223] mmap("64 KB in one call") -> OK
+[07:57:47.223] VerifyContent("64 KB block") -> OK
+[07:57:47.224] munmap("unmap the 64 KB block") -> OK
+[07:57:47.251] mmap_setup("64 KB x 1050") -> OK
+[07:57:47.326] munmap_teardown("1050 block(s)") -> OK
+[07:57:47.329] mmap_setup("4 KB x 1050") -> OK
+[07:57:47.333] munmap_teardown("0 block(s)") -> OK
+[07:57:47.336] mmap_setup("64 KB x 1050") -> OK
+[07:57:47.340] munmap_teardown("0 block(s)") -> OK
+[07:57:47.343] mmap_setup("64 KB x 1050") -> OK
+[07:57:47.410] munmap_teardown("0 block(s)") -> OK
+[07:58:24.828] open("create permissions test file") -> OK
+[07:58:24.828] write("create permissions test file") -> OK
+[07:58:24.828] close("create permissions test file") -> OK
+[07:58:24.828] stat("save original file ownership and permissions") -> OK
+[07:58:24.828] getgroups("read supplementary groups") -> OK
+[07:58:24.828] chmod("set permissions to 0400") -> OK
+[07:58:24.828] stat("verify changed permissions") -> OK
+[07:58:24.829] open("write blocked, expected to fail") -> OK
+[07:58:24.829] VerifyWriteBlocked("chmod removed write access") -> OK
+[07:58:24.829] close("read verification handle") -> OK
+[07:58:24.829] open("read remains allowed") -> OK
+[07:58:24.829] VerifyReadAllowed("read access remains allowed") -> OK
+[07:58:24.829] chmod("restore original permissions") -> OK
+[07:58:24.829] stat("verify restored permissions") -> OK
+[07:58:24.829] VerifyChmodRestore("original permissions restored") -> OK
+[07:58:24.829] chown("change file group") -> OK
+[07:58:24.829] stat("verify changed ownership") -> OK
+[07:58:24.829] VerifyChown("owner unchanged and group verified") -> OK
+[07:58:24.829] chown("restore original ownership") -> OK
+[07:58:24.829] umask("set demonstration umask to 0027") -> OK
+[07:58:24.829] umask("restore original umask") -> OK
+[07:58:24.829] open("create file with requested mode 0666") -> OK
+[07:58:24.829] fstat("check new file permissions") -> OK
+[07:58:24.829] close("close umask test file") -> OK
+[07:58:24.829] VerifyUmask("0666 masked by 0027 produced 0640") -> OK
+[07:58:24.829] unlink("remove umask test file") -> OK
+[07:58:24.829] chmod("missing file, expected ENOENT") -> OK
+[07:58:24.829] VerifyExpectedFailure("chmod failed with ENOENT as expected") -> OK
+[07:58:24.829] chmod("cleanup: restore original permissions") -> OK
+[07:58:24.829] chown("cleanup: restore original ownership") -> OK
+[07:58:24.829] unlink("delete permissions test file") -> OK
+[07:58:24.829] open("benchmark test file setup") -> OK
+[07:58:24.829] write("benchmark test file setup") -> OK
+[07:58:24.829] close("benchmark test file setup") -> OK
+[07:58:24.829] stat("save benchmark file metadata") -> OK
+[07:58:24.830] opendir("before Part 2") -> OK
+[07:58:24.830] closedir("before Part 2") -> OK
+[07:58:24.843] chmod("final benchmark permission restoration") -> OK
+[07:58:24.860] chown("final benchmark ownership restoration") -> OK
+[07:58:24.863] umask("final benchmark umask restoration") -> OK
+[07:58:24.863] chmod("final cleanup: restore original permissions") -> OK
+[07:58:24.864] chown("final cleanup: restore original ownership") -> OK
+[07:58:24.864] unlink("delete benchmark test file") -> OK
+[07:58:24.864] opendir("after Part 2") -> OK
+[07:58:24.864] closedir("after Part 2") -> OK
+[07:59:10.016] readlink("/proc/self/exe") -> OK
+[07:59:10.017] fork("fork, child exits 42") -> OK
+[07:59:10.017] wait("fork, child exits 42") -> OK
+[07:59:10.017] VerifyExitCode("fork, child exits 42") -> OK
+[07:59:10.018] fork("fork + execv --child 7") -> OK
+[07:59:10.020] wait("fork + execv --child 7") -> OK
+[07:59:10.020] execv("verified: the new program started and exited with 7") -> OK
+[07:59:10.020] VerifyExitCode("fork + execv --child 7") -> OK
+[07:59:10.021] fork("fork + execv of a missing program") -> OK
+[07:59:10.021] execv("/this_program_does_not_exist, expected to fail") -> FAILED, error 2: No such file or directory
+[07:59:10.021] wait("fork + execv of a missing program") -> OK
+[07:59:10.021] VerifyExitCode("fork + execv of a missing program") -> OK
+[07:59:10.021] VerifyNoChildrenLeft("after the demo") -> OK
+[07:59:10.022] opendir("before Part 2") -> OK
+[07:59:10.108] fork_setup("exit(0) x210") -> OK
+[07:59:10.109] waitid_setup("exit(0) x210") -> OK
+[07:59:11.115] VerifyNoChildrenLeft("after Part 2") -> OK
+[07:59:11.115] opendir("after Part 2") -> OK

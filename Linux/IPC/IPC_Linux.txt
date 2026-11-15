@@ -1,191 +1,191 @@
 Console output is also being saved to Linux/IPC/IPC_Linux.txt
 === Linux IPC: demo + benchmarks ===
 
-[20:39:54.906] readlink("/proc/self/exe") -> OK
-Shared memory segments before Part 1: 9
+[07:57:01.828] readlink("/proc/self/exe") -> OK
+Shared memory segments before Part 1: 7
 ---------- PART 1: DEMO (logged, not timed) ----------
-Parent process id: 138633
+Parent process id: 18843
 
 -- A. Pipe: parent writes, child reads --
-[20:39:54.908] pipe("default 64 KB buffer") -> OK
+[07:57:01.828] pipe("default 64 KB buffer") -> OK
 Message starts with: ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMN
-[20:39:54.908] write("4096 bytes into the pipe") -> OK
-[20:39:54.908] close("pipe write end") -> OK
+[07:57:01.828] write("4096 bytes into the pipe") -> OK
+[07:57:01.828] close("pipe write end") -> OK
 Command line: /home/nightwing/Desktop/OS_Kalman_Filter_Project/Linux/IPC/ipc_linux --child-pipe 4 4096
-Child process id: 138634
-[20:39:54.908] fork("--child-pipe (4096 bytes)") -> OK
-[20:39:54.911] waitpid("--child-pipe (4096 bytes)") -> OK
-[20:39:54.911] close("pipe read end") -> OK
+Child process id: 18844
+[07:57:01.829] fork("--child-pipe (4096 bytes)") -> OK
+[07:57:01.831] waitpid("--child-pipe (4096 bytes)") -> OK
+[07:57:01.831] close("pipe read end") -> OK
 Verification PASSED: the child received all 4096 bytes correctly and then saw end-of-data (exit code 0).
-[20:39:54.911] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
+[07:57:01.831] VerifyPipeTransfer("--child-pipe (4096 bytes)") -> OK
 
 -- B. Shared memory (System V): parent <-> child --
-[20:39:54.911] shmget("1 MB, IPC_PRIVATE") -> OK
-Segment id: 1015871
-(If a run is ever killed half-way, remove the segment with: ipcrm -m 1015871)
-[20:39:54.911] shmat("whole 1 MB segment") -> OK
-Command line: /home/nightwing/Desktop/OS_Kalman_Filter_Project/Linux/IPC/ipc_linux --child-shm 1015871
-Child process id: 138635
-[20:39:54.917] fork("--child-shm 1015871") -> OK
-[20:39:54.930] waitpid("--child-shm 1015871") -> OK
+[07:57:01.831] shmget("1 MB, IPC_PRIVATE") -> OK
+Segment id: 98328
+(If a run is ever killed half-way, remove the segment with: ipcrm -m 98328)
+[07:57:01.832] shmat("whole 1 MB segment") -> OK
+Command line: /home/nightwing/Desktop/OS_Kalman_Filter_Project/Linux/IPC/ipc_linux --child-shm 98328
+Child process id: 18845
+[07:57:01.834] fork("--child-shm 98328") -> OK
+[07:57:01.840] waitpid("--child-shm 98328") -> OK
 Verification PASSED: data travelled parent -> child (first half, 'A' pattern checked by the child) and child -> parent (second half, 'a' pattern checked here).
-[20:39:54.934] VerifySharedMemory("--child-shm 1015871") -> OK
-[20:39:54.934] shmdt("whole 1 MB attachment") -> OK
-[20:39:54.935] shmctl("IPC_RMID, remove the 1 MB segment") -> OK
+[07:57:01.841] VerifySharedMemory("--child-shm 98328") -> OK
+[07:57:01.841] shmdt("whole 1 MB attachment") -> OK
+[07:57:01.842] shmctl("IPC_RMID, remove the 1 MB segment") -> OK
 
 -- C. Opening a shared memory segment that does not exist --
 shmget without IPC_CREAT on a missing key (this FAILURE is expected, error 2):
-[20:39:54.935] shmget("key 0x4F534B4D, expected to fail") -> FAILED, error 2: No such file or directory
+[07:57:01.842] shmget("key 0x4F534B4D, expected to fail") -> FAILED, error 2: No such file or directory
 No child processes left (after the demo).
-[20:39:54.935] VerifyNoChildrenLeft("after the demo") -> OK
+[07:57:01.842] VerifyNoChildrenLeft("after the demo") -> OK
 
 ---------- PART 2: BENCHMARKS (timed, no logging inside) ----------
 Pointer size: 8 bytes (64-bit build)
-[20:39:54.935] opendir("before Part 2") -> OK
-Open descriptors before Part 2: 10
+[07:57:01.842] opendir("before Part 2") -> OK
+Open descriptors before Part 2: 13
 ==== pipe ====
 Iterations    : 1000
-Min           : 2.499 us
-Median        : 3.214 us
-Mean          : 3.994 us
-Max           : 53.049 us
-Std dev       : 3.416 us
-CPU (total)   : 9302.936 us (nanosecond clock on Linux)
-CPU per call  : 9.303 us
-CPU cycles    : 24842538
-Cycles/call   : 24842.538
+Min           : 2.336 us
+Median        : 3.101 us
+Mean          : 4.260 us
+Max           : 158.853 us
+Std dev       : 8.131 us
+CPU (total)   : 8617.362 us (nanosecond clock on Linux)
+CPU per call  : 8.617 us
+CPU cycles    : 24771576
+Cycles/call   : 24771.576
 Memory delta  : 0.000 KB
 Page faults   : 1
 
-[20:39:54.946] pipe_setup("benchmark pipe") -> OK
-[20:39:54.946] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.852] pipe_setup("benchmark pipe") -> OK
+[07:57:01.853] fcntl("F_SETPIPE_SZ 1 MB") -> OK
 Pipe buffer size: 1048576 bytes
-[20:39:54.952] close_teardown("pipe read end") -> OK
-[20:39:54.952] close_teardown("pipe write end") -> OK
+[07:57:01.858] close_teardown("pipe read end") -> OK
+[07:57:01.858] close_teardown("pipe write end") -> OK
 ==== pipe_write_4KB ====
 Iterations    : 1000
-Min           : 1.265 us
-Median        : 1.519 us
-Mean          : 1.865 us
-Max           : 23.554 us
-Std dev       : 1.825 us
-CPU (total)   : 4004.317 us (nanosecond clock on Linux)
-CPU per call  : 4.004 us
-CPU cycles    : 11146230
-Cycles/call   : 11146.230
+Min           : 1.575 us
+Median        : 1.650 us
+Mean          : 2.236 us
+Max           : 142.839 us
+Std dev       : 5.343 us
+CPU (total)   : 4249.773 us (nanosecond clock on Linux)
+CPU per call  : 4.250 us
+CPU cycles    : 12056582
+Cycles/call   : 12056.582
 Memory delta  : 0.000 KB
 Page faults   : 0
 
-[20:39:54.953] pipe_setup("benchmark pipe") -> OK
-[20:39:54.953] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.858] pipe_setup("benchmark pipe") -> OK
+[07:57:01.858] fcntl("F_SETPIPE_SZ 1 MB") -> OK
 Pipe buffer size: 1048576 bytes
-[20:39:54.977] close_teardown("pipe read end") -> OK
-[20:39:54.978] close_teardown("pipe write end") -> OK
+[07:57:01.891] close_teardown("pipe read end") -> OK
+[07:57:01.891] close_teardown("pipe write end") -> OK
 ==== pipe_write_64KB ====
 Iterations    : 1000
-Min           : 6.347 us
-Median        : 8.646 us
-Mean          : 10.690 us
-Max           : 102.304 us
-Std dev       : 7.102 us
-CPU (total)   : 22596.970 us (nanosecond clock on Linux)
-CPU per call  : 22.597 us
-CPU cycles    : 59054572
-Cycles/call   : 59054.572
-Memory delta  : 0.000 KB
+Min           : 6.660 us
+Median        : 12.433 us
+Mean          : 14.762 us
+Max           : 187.626 us
+Std dev       : 13.890 us
+CPU (total)   : 27884.585 us (nanosecond clock on Linux)
+CPU per call  : 27.885 us
+CPU cycles    : 79470048
+Cycles/call   : 79470.048
+Memory delta  : 4.000 KB
 Page faults   : 1
 
-[20:39:54.978] pipe_setup("benchmark pipe") -> OK
-[20:39:54.978] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.891] pipe_setup("benchmark pipe") -> OK
+[07:57:01.891] fcntl("F_SETPIPE_SZ 1 MB") -> OK
 Pipe buffer size: 1048576 bytes
-[20:39:54.978] write_setup("fill the pipe once") -> OK
-[20:39:54.982] close_teardown("pipe read end") -> OK
-[20:39:54.982] close_teardown("pipe write end") -> OK
+[07:57:01.891] write_setup("fill the pipe once") -> OK
+[07:57:01.895] close_teardown("pipe read end") -> OK
+[07:57:01.896] close_teardown("pipe write end") -> OK
 ==== pipe_read_4KB ====
 Iterations    : 1000
-Min           : 1.285 us
-Median        : 1.305 us
-Mean          : 1.691 us
-Max           : 57.200 us
-Std dev       : 2.422 us
-CPU (total)   : 3496.308 us (nanosecond clock on Linux)
-CPU per call  : 3.496 us
-CPU cycles    : 9061258
-Cycles/call   : 9061.258
+Min           : 1.301 us
+Median        : 1.439 us
+Mean          : 1.945 us
+Max           : 181.509 us
+Std dev       : 6.266 us
+CPU (total)   : 3458.895 us (nanosecond clock on Linux)
+CPU per call  : 3.459 us
+CPU cycles    : 9846802
+Cycles/call   : 9846.802
 Memory delta  : 0.000 KB
 Page faults   : 0
 
-[20:39:54.983] pipe_setup("benchmark pipe") -> OK
-[20:39:54.984] fcntl("F_SETPIPE_SZ 1 MB") -> OK
+[07:57:01.896] pipe_setup("benchmark pipe") -> OK
+[07:57:01.896] fcntl("F_SETPIPE_SZ 1 MB") -> OK
 Pipe buffer size: 1048576 bytes
-[20:39:54.984] write_setup("fill the pipe once") -> OK
-[20:39:55.006] close_teardown("pipe read end") -> OK
-[20:39:55.006] close_teardown("pipe write end") -> OK
+[07:57:01.896] write_setup("fill the pipe once") -> OK
+[07:57:01.921] close_teardown("pipe read end") -> OK
+[07:57:01.921] close_teardown("pipe write end") -> OK
 ==== pipe_read_64KB ====
 Iterations    : 1000
-Min           : 7.338 us
-Median        : 7.756 us
-Mean          : 10.622 us
-Max           : 90.214 us
-Std dev       : 7.121 us
-CPU (total)   : 20393.268 us (nanosecond clock on Linux)
-CPU per call  : 20.393 us
-CPU cycles    : 53170354
-Cycles/call   : 53170.354
-Memory delta  : 0.000 KB
+Min           : 7.455 us
+Median        : 9.660 us
+Mean          : 12.388 us
+Max           : 247.452 us
+Std dev       : 12.570 us
+CPU (total)   : 22312.506 us (nanosecond clock on Linux)
+CPU per call  : 22.313 us
+CPU cycles    : 62281032
+Cycles/call   : 62281.032
+Memory delta  : 4.000 KB
 Page faults   : 1
 
 ==== shmget_1MB ====
 Iterations    : 1000
-Min           : 2.508 us
-Median        : 3.780 us
-Mean          : 5.137 us
-Max           : 104.757 us
-Std dev       : 5.873 us
-CPU (total)   : 9683.252 us (nanosecond clock on Linux)
-CPU per call  : 9.683 us
-CPU cycles    : 25100634
-Cycles/call   : 25100.634
+Min           : 2.436 us
+Median        : 2.854 us
+Mean          : 3.795 us
+Max           : 43.314 us
+Std dev       : 3.365 us
+CPU (total)   : 7146.113 us (nanosecond clock on Linux)
+CPU per call  : 7.146 us
+CPU cycles    : 18524448
+Cycles/call   : 18524.448
 Memory delta  : 0.000 KB
 Page faults   : 0
 
-[20:39:55.018] shmget_setup("1 MB, IPC_PRIVATE") -> OK
-[20:39:55.027] shmctl_teardown("IPC_RMID, remove the 1 MB segment") -> OK
+[07:57:01.929] shmget_setup("1 MB, IPC_PRIVATE") -> OK
+[07:57:01.940] shmctl_teardown("IPC_RMID, remove the 1 MB segment") -> OK
 ==== shmat_1MB ====
 Iterations    : 1000
-Min           : 2.717 us
-Median        : 3.588 us
-Mean          : 4.493 us
-Max           : 31.223 us
-Std dev       : 3.471 us
-CPU (total)   : 8396.063 us (nanosecond clock on Linux)
-CPU per call  : 8.396 us
-CPU cycles    : 21802076
-Cycles/call   : 21802.076
+Min           : 2.701 us
+Median        : 3.137 us
+Mean          : 4.603 us
+Max           : 205.315 us
+Std dev       : 8.383 us
+CPU (total)   : 8574.023 us (nanosecond clock on Linux)
+CPU per call  : 8.574 us
+CPU cycles    : 24360282
+Cycles/call   : 24360.282
 Memory delta  : 0.000 KB
 Page faults   : 0
 
-[20:39:55.028] shmget_setup("64 KB, IPC_PRIVATE") -> OK
-[20:39:55.035] shmat_setup("64 KB x 1050") -> OK
-[20:39:55.040] shmctl_teardown("IPC_RMID, remove the 64 KB segment") -> OK
+[07:57:01.940] shmget_setup("64 KB, IPC_PRIVATE") -> OK
+[07:57:01.945] shmat_setup("64 KB x 1050") -> OK
+[07:57:01.952] shmctl_teardown("IPC_RMID, remove the 64 KB segment") -> OK
 ==== shmdt_64KB ====
 Iterations    : 1000
-Min           : 2.308 us
-Median        : 2.686 us
-Mean          : 3.556 us
-Max           : 45.116 us
-Std dev       : 3.139 us
-CPU (total)   : 3665.338 us (nanosecond clock on Linux)
-CPU per call  : 3.665 us
-CPU cycles    : 9844338
-Cycles/call   : 9844.338
+Min           : 2.303 us
+Median        : 3.389 us
+Mean          : 5.927 us
+Max           : 589.269 us
+Std dev       : 26.817 us
+CPU (total)   : 4914.381 us (nanosecond clock on Linux)
+CPU per call  : 4.914 us
+CPU cycles    : 15534478
+Cycles/call   : 15534.478
 Memory delta  : 0.000 KB
 Page faults   : 0
 
-[20:39:55.040] opendir("after Part 2") -> OK
-Open descriptors after Part 2 : 10
+[07:57:01.952] opendir("after Part 2") -> OK
+Open descriptors after Part 2 : 13
 Descriptor leak check PASSED.
-Shared memory segments after Part 2: 9
+Shared memory segments after Part 2: 7
 Segment leak check PASSED.
 
 All done. Results appended to results/Linux/linux_results.csv
