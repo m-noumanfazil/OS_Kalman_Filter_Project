@@ -31,3 +31,7 @@ __pycache__/
 # Old charts
 /old_charts_files/
 /old_charts/
+
+# Local persistent-worker benchmark runs
+/results/Linux/persistent_*.csv
+/results/Windows/persistent_*.csv

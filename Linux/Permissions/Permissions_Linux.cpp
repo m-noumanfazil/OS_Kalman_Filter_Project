@@ -364,7 +364,8 @@ bool demoChmod(const struct stat& originalInfo) {
         close(writeFd);
     }
 
-    LOG_SYSCALL("open", writeBlocked,
+    errno = writeError;
+    LOG_SYSCALL("open", writeFd >= 0,
                 "write blocked, expected to fail");
 
     if (writeBlocked) {

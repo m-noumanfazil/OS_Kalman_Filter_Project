@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """
 verify_part_b.py
-Verification script for Part B: Supersonic Fighter Jet Radar Tracking.
-
-Executes the exact 2D Kalman Filter state estimation algorithm defined in
-common/kalman_core.hpp against common/sensor_data.csv.
-
-Verifies:
-1. Significant tracking error reduction (Noise RMSE reduction > 50%).
-2. Exact numerical parity between single-process and multi-process partitioning.
-3. Exports results to results/Windows/filtered_sensor_data.csv and results/Linux/filtered_sensor_data.csv.
+Compare saved native output with an independent Python reference. This script
+does not execute native programs or write to their output files.
 """
 
 import csv
 import math
 import os
 import sys
+import argparse
+from pathlib import Path
+from itertools import zip_longest
 
 class AxisKalmanFilter:
     def __init__(self, process_noise_q=1500.0, meas_noise_r=2500.0):
@@ -90,146 +86,66 @@ class Jet2DKalmanFilter:
         py, vy = self.ky.step(my, dt)
         return px, py, vx, vy
 
+
+def verify(input_path, output_path, tolerance):
+    filters = {}
+    count = 0
+    max_error = 0.0
+    with input_path.open(newline='', encoding='utf-8') as input_file, \
+            output_path.open(newline='', encoding='utf-8') as output_file:
+        inputs = csv.DictReader(input_file)
+        outputs = csv.DictReader(output_file)
+        for number, (source, result) in enumerate(zip_longest(inputs, outputs), 2):
+            if source is None or result is None:
+                raise ValueError(f'row count mismatch at line {number}')
+            track = int(source['track_id'])
+            timestamp = float(source['timestamp'])
+            if track < 0 or track >= 8 or int(result['track_id']) != track:
+                raise ValueError(f'invalid or mismatched track at line {number}')
+            output_timestamp = float(result['timestamp'])
+            if not math.isfinite(timestamp) or not math.isfinite(output_timestamp) or abs(output_timestamp - timestamp) > tolerance:
+                raise ValueError(f'timestamp mismatch at line {number}')
+            filt = filters.setdefault(track, Jet2DKalmanFilter())
+            if timestamp < 0 or (filt.last_timestamp >= 0 and timestamp <= filt.last_timestamp):
+                raise ValueError(f'invalid timestamp ordering at line {number}')
+            measured_x, measured_y = float(source['meas_x']), float(source['meas_y'])
+            if not math.isfinite(measured_x) or not math.isfinite(measured_y):
+                raise ValueError(f'non-finite measurement at line {number}')
+            expected = filt.process(timestamp, measured_x, measured_y)
+            actual = tuple(float(result[name]) for name in ('est_x', 'est_y', 'est_vx', 'est_vy'))
+            if not all(math.isfinite(value) for value in (*expected, *actual)):
+                raise ValueError(f'non-finite state at line {number}')
+            error = max(abs(a - b) for a, b in zip(expected, actual))
+            max_error = max(max_error, error)
+            if error > tolerance:
+                raise ValueError(f'state mismatch at line {number}: {error:.9g} > {tolerance}')
+            count += 1
+    if count == 0:
+        raise ValueError('empty input or output')
+    print(f'{output_path}: {count} rows matched; max state error {max_error:.9g}')
+
+
 def main():
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    input_csv = os.path.join(base_dir, 'common', 'sensor_data.csv')
-    win_out_csv = os.path.join(base_dir, 'results', 'Windows', 'filtered_sensor_data.csv')
-    lin_out_csv = os.path.join(base_dir, 'results', 'Linux', 'filtered_sensor_data.csv')
+    root = Path(__file__).resolve().parent.parent
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--input', type=Path, default=root / 'common/sensor_data.csv')
+    parser.add_argument('--output', type=Path, action='append', help='native CSV (repeat for multiple outputs)')
+    parser.add_argument('--tolerance', type=float, default=0.00051,
+                        help='absolute tolerance (default accounts for 3-decimal native export)')
+    args = parser.parse_args()
+    if not math.isfinite(args.tolerance) or args.tolerance < 0:
+        parser.error('tolerance must be finite and nonnegative')
+    outputs = args.output or [root / 'results/Linux/filtered_sensor_data.csv',
+                              root / 'results/Windows/filtered_sensor_data.csv']
+    try:
+        for output in outputs:
+            verify(args.input, output, args.tolerance)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f'Verification failed: {exc}', file=sys.stderr)
+        return 1
+    print('Saved outputs agree with the reference; native execution provenance is not verified.')
+    return 0
 
-    if not os.path.exists(input_csv):
-        print(f"Error: {input_csv} does not exist. Run generate_sensor_data.py first.")
-        sys.exit(1)
-
-    print("=" * 75)
-    print("  SUPERSONIC FIGHTER JET RADAR TRACKING: PART B VALIDATION")
-    print("=" * 75)
-
-    telemetry = []
-    with open(input_csv, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            telemetry.append({
-                't': float(row['timestamp']),
-                'track': int(row['track_id']),
-                'tx': float(row['true_x']),
-                'ty': float(row['true_y']),
-                'mx': float(row['meas_x']),
-                'my': float(row['meas_y']),
-                'tvx': float(row['true_vx']),
-                'tvy': float(row['true_vy'])
-            })
-
-    print(f"\n[1] Ingested {len(telemetry)} radar telemetry points across 8 fighter jets.")
-
-    # 1. Single Process Execution (1 Worker)
-    single_filters = {i: Jet2DKalmanFilter() for i in range(8)}
-    single_outputs = []
-
-    for item in telemetry:
-        trk = item['track']
-        t = item['t']
-        px, py, vx, vy = single_filters[trk].process(t, item['mx'], item['my'])
-        single_outputs.append({
-            'timestamp': t,
-            'track_id': trk,
-            'est_x': round(px, 3),
-            'est_y': round(py, 3),
-            'est_vx': round(vx, 3),
-            'est_vy': round(vy, 3)
-        })
-
-    # 2. Multi-Process Simulation (Workers 2, 4, 8)
-    # Verifying that partitioning tracks across workers produces bit-identical outputs
-    parity_passed = True
-    max_discrepancy = 0.0
-
-    for num_workers in [2, 4, 8]:
-        worker_filters = [
-            {i: Jet2DKalmanFilter() for i in range(8)}
-            for _ in range(num_workers)
-        ]
-
-        worker_outputs = {}
-        for item in telemetry:
-            trk = item['track']
-            w_id = trk % num_workers
-            t = item['t']
-            px, py, vx, vy = worker_filters[w_id][trk].process(t, item['mx'], item['my'])
-            worker_outputs[(t, trk)] = (round(px, 3), round(py, 3), round(vx, 3), round(vy, 3))
-
-        for idx, item in enumerate(telemetry):
-            single_val = (
-                single_outputs[idx]['est_x'],
-                single_outputs[idx]['est_y'],
-                single_outputs[idx]['est_vx'],
-                single_outputs[idx]['est_vy']
-            )
-            multi_val = worker_outputs[(item['t'], item['track'])]
-            for dim in range(4):
-                diff = abs(single_val[dim] - multi_val[dim])
-                if diff > max_discrepancy:
-                    max_discrepancy = diff
-                if diff > 1e-9:
-                    parity_passed = False
-
-    print(f"\n[2] Numerical Parity Check Across 1, 2, 4, 8 Workers:")
-    print(f"    Max Coordinate Discrepancy : {max_discrepancy:.2e} m")
-    print(f"    Status                     : {'PASSED (Bit-for-bit exact equivalence)' if parity_passed else 'FAILED'}")
-
-    # 3. Accuracy Analysis (RMSE & Noise Reduction)
-    raw_sq_sum = sum((d['mx'] - d['tx'])**2 + (d['my'] - d['ty'])**2 for d in telemetry)
-    raw_rmse = math.sqrt(raw_sq_sum / len(telemetry))
-
-    filt_sq_sum = sum(
-        (single_outputs[i]['est_x'] - telemetry[i]['tx'])**2 +
-        (single_outputs[i]['est_y'] - telemetry[i]['ty'])**2
-        for i in range(len(telemetry))
-    )
-    filt_rmse = math.sqrt(filt_sq_sum / len(telemetry))
-    reduction_pct = ((raw_rmse - filt_rmse) / raw_rmse) * 100.0
-
-    print(f"\n[3] Radar Tracking Error Reduction (Kalman Filter Performance):")
-    print(f"    Raw Radar Jitter (RMSE)    : {raw_rmse:.2f} meters")
-    print(f"    Filtered Flight Path (RMSE): {filt_rmse:.2f} meters")
-    print(f"    Total Noise Reduction      : {reduction_pct:.2f}%")
-
-    print(f"\n[4] Per-Fighter Jet Trajectory Breakdown:")
-    print("    Jet ID | Tactical Profile       | Raw Radar Err | Filtered Err | Noise Reduction")
-    print("    -------+------------------------+---------------+--------------+----------------")
-    jet_names = [
-        "Climbing Right Turn", "Diving Left Turn", "Tactical 7G Turn", "Supersonic Sweep",
-        "Intercept Vector", "High-Speed Dash", "Evasive Weave", "Combat Air Patrol"
-    ]
-    for jet_id in range(8):
-        jet_items = [d for d in telemetry if d['track'] == jet_id]
-        jet_outs = [o for o in single_outputs if o['track_id'] == jet_id]
-
-        r_sq = sum((d['mx'] - d['tx'])**2 + (d['my'] - d['ty'])**2 for d in jet_items)
-        f_sq = sum((o['est_x'] - d['tx'])**2 + (o['est_y'] - d['ty'])**2 for d, o in zip(jet_items, jet_outs))
-        r_err = math.sqrt(r_sq / len(jet_items))
-        f_err = math.sqrt(f_sq / len(jet_items))
-        red = ((r_err - f_err) / r_err) * 100.0
-        print(f"     Jet {jet_id} | {jet_names[jet_id]:<22} | {r_err:>10.2f} m  | {f_err:>9.2f} m | {red:>13.2f}%")
-
-    # 4. Export Filtered Datasets to Results Folders
-    os.makedirs(os.path.dirname(win_out_csv), exist_ok=True)
-    os.makedirs(os.path.dirname(lin_out_csv), exist_ok=True)
-
-    fieldnames = ['timestamp', 'track_id', 'est_x', 'est_y', 'est_vx', 'est_vy']
-    with open(win_out_csv, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(single_outputs)
-
-    with open(lin_out_csv, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(single_outputs)
-
-    print(f"\n[5] Filtered supersonic flight paths exported to:")
-    print(f"    - {win_out_csv}")
-    print(f"    - {lin_out_csv}")
-    print("\n" + "=" * 75)
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

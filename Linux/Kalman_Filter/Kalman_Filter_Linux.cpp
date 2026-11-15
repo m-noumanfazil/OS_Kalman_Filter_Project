@@ -44,6 +44,7 @@
 #include "../../common/kalman_core.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -60,6 +61,8 @@
 
 #include <fcntl.h>
 #include <sched.h>
+#include <poll.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -84,6 +87,7 @@ const int   kBenchWarmup              = 5;
 struct SharedRadarArena {
     uint32_t recordCount;
     uint32_t trackCount;
+    double workerCpuUs[8];
     kalman::RadarMeasurement inputs[kMaxRecords];
     kalman::FilteredOutput   outputs[kMaxRecords];
 };
@@ -162,9 +166,10 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
 
     bool readSuccess = (totalRead == totalBytes);
     LOG_SYSCALL("read", readSuccess, filePath);
-    close(fd);
+    bool closeOk = close(fd) == 0;
+    LOG_SYSCALL("close", closeOk, filePath);
 
-    if (!readSuccess) return false;
+    if (!readSuccess || !closeOk) return false;
 
     // Fast CSV parsing
     stringstream ss(buffer.data());
@@ -172,6 +177,8 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
     // Skip header line
     if (!getline(ss, line)) return false;
 
+    double lastTimestamp[kTotalTracks] = {};
+    bool seenTrack[kTotalTracks] = {};
     while (getline(ss, line)) {
         if (line.empty()) continue;
         stringstream lineStream(line);
@@ -179,17 +186,24 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
         kalman::RadarMeasurement m{};
 
         // Columns: timestamp,track_id,true_x,true_y,meas_x,meas_y,true_vx,true_vy
-        if (!getline(lineStream, cell, ',')) continue; m.timestamp = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.track_id = stoi(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.meas_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.meas_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_vx = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_vy = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.timestamp = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.track_id = stoi(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_x = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_y = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_x = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_y = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vx = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vy = stod(cell);
+
+        if (m.track_id < 0 || m.track_id >= kTotalTracks ||
+            !isfinite(m.timestamp) || m.timestamp < 0 || !isfinite(m.true_x) || !isfinite(m.true_y) ||
+            !isfinite(m.meas_x) || !isfinite(m.meas_y) || !isfinite(m.true_vx) || !isfinite(m.true_vy) ||
+            (seenTrack[m.track_id] && m.timestamp <= lastTimestamp[m.track_id]) ||
+            outData.size() >= kMaxRecords) return false;
+        seenTrack[m.track_id] = true;
+        lastTimestamp[m.track_id] = m.timestamp;
 
         outData.push_back(m);
-        if (outData.size() >= kMaxRecords) break;
     }
 
     return !outData.empty();
@@ -229,8 +243,9 @@ bool exportFilteredResultsPOSIX(const char* filePath, const SharedRadarArena* ar
 
     bool writeGood = (totalWritten == content.size());
     LOG_SYSCALL("write", writeGood, filePath);
-    close(fd);
-    return writeGood;
+    bool closeOk = close(fd) == 0;
+    LOG_SYSCALL("close", closeOk, filePath);
+    return writeGood && closeOk;
 }
 
 // ----------------------------- Worker Core Logic -----------------------------
@@ -309,6 +324,68 @@ bool spawnAndJoinWorkers(SharedRadarArena* arena, int numWorkers) {
     return allSuccess;
 }
 
+// Each command executes one independent full-dataset trial. Workers remain
+// alive across warm-up and timed trials; filter state is reset each trial.
+class PersistentWorkers {
+    struct Worker { pid_t pid; int command; int done; };
+    vector<Worker> workers_;
+    SharedRadarArena* arena_;
+    bool healthy_ = true;
+public:
+    PersistentWorkers(SharedRadarArena* arena, int count) : arena_(arena) {
+        for (int w = 0; w < count; ++w) {
+            int command[2], done[2];
+            if (pipe(command) != 0) { healthy_ = false; break; }
+            if (pipe(done) != 0) { close(command[0]); close(command[1]); healthy_ = false; break; }
+            pid_t pid = fork();
+            if (pid == 0) {
+                close(command[1]); close(done[0]);
+                for (const auto& old : workers_) { close(old.command); close(old.done); }
+                char cmd;
+                while (read(command[0], &cmd, 1) == 1 && cmd == 'R') {
+                    executeWorkerFiltering(arena, w, count);
+                    arena->workerCpuUs[w] = metrics::processCpuMicroseconds();
+                    char reply = 'D';
+                    if (write(done[1], &reply, 1) != 1) _exit(2);
+                }
+                close(command[0]); close(done[1]); _exit(0);
+            }
+            close(command[0]); close(done[1]);
+            if (pid < 0) { close(command[1]); close(done[0]); healthy_ = false; break; }
+            workers_.push_back({pid, command[1], done[0]});
+        }
+    }
+    bool ready() const { return healthy_; }
+    double workerCpuUs() const {
+        double total = 0;
+        for (size_t i = 0; i < workers_.size(); ++i) total += arena_->workerCpuUs[i];
+        return total;
+    }
+    bool run() {
+        if (!healthy_) return false;
+        for (const auto& worker : workers_) {
+            char cmd = 'R';
+            if (write(worker.command, &cmd, 1) != 1) return healthy_ = false;
+        }
+        for (const auto& worker : workers_) {
+            pollfd pfd{worker.done, POLLIN, 0};
+            int result;
+            do { result = poll(&pfd, 1, 15000); } while (result < 0 && errno == EINTR);
+            char reply = 0;
+            if (result <= 0 || !(pfd.revents & POLLIN) || read(worker.done, &reply, 1) != 1 || reply != 'D')
+                return healthy_ = false;
+        }
+        return true;
+    }
+    ~PersistentWorkers() {
+        for (const auto& worker : workers_) { close(worker.command); close(worker.done); }
+        for (const auto& worker : workers_) {
+            if (!healthy_) kill(worker.pid, SIGKILL);
+            while (waitpid(worker.pid, nullptr, 0) < 0 && errno == EINTR) {}
+        }
+    }
+};
+
 // ----------------------------- PART 1: DEMONSTRATION & VALIDATION ------------
 
 bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
@@ -340,28 +417,36 @@ bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
     bool filterEffective = (metrics.filtered_rmse < metrics.raw_rmse && metrics.noise_reduction_pct > 50.0);
     LOG_SYSCALL("VerifyFilterAccuracy", filterEffective, "Noise reduction > 50%");
 
-    // 3. Run Multi-Process Parallel Filtering (4 Workers via fork)
-    cout << "\n[2] Running Multi-Process Parallel Filtering (4 Workers via fork)...\n";
+    bool parallelOk = true;
+    bool parityExact = true;
+    for (int workers : {2, 4, 8}) {
+    cout << "\nVerifying " << workers << " workers...\n";
     memset(arena->outputs, 0, sizeof(arena->outputs));
-
-    bool parallelOk = spawnAndJoinWorkers(arena, 4);
-    LOG_SYSCALL("fork_Workers_4", parallelOk, "Spawn 4 child workers");
+    bool workerResult = spawnAndJoinWorkers(arena, workers);
+    LOG_SYSCALL("Workers", workerResult, "parallel worker run");
+    parallelOk = parallelOk && workerResult;
 
     // 4. Numerical Parity Verification: Single vs. Parallel output bit-level equality
-    cout << "\n[3] Verifying Numerical Parity (Single-Process vs 4-Process Parallel)...\n";
-    bool parityExact = true;
+    cout << "Verifying numerical parity against single-process output...\n";
     double maxDiff = 0.0;
     for (uint32_t i = 0; i < arena->recordCount; ++i) {
-        double dx = abs(arena->outputs[i].est_x - singleProcessOutputs[i].est_x);
-        double dy = abs(arena->outputs[i].est_y - singleProcessOutputs[i].est_y);
-        maxDiff = max(maxDiff, max(dx, dy));
-        if (dx > 1e-9 || dy > 1e-9) {
+        const auto& actual = arena->outputs[i];
+        const auto& expected = singleProcessOutputs[i];
+        double differences[] = {abs(actual.est_x - expected.est_x), abs(actual.est_y - expected.est_y),
+                                abs(actual.est_vx - expected.est_vx), abs(actual.est_vy - expected.est_vy)};
+        bool valid = actual.track_id == expected.track_id && actual.timestamp == expected.timestamp;
+        for (double difference : differences) {
+            if (!isfinite(difference) || difference > 1e-9) valid = false;
+            else maxDiff = max(maxDiff, difference);
+        }
+        if (!valid) {
             parityExact = false;
             break;
         }
     }
-    cout << "  Max Difference Across 8,000 Coordinates: " << scientific << maxDiff << defaultfloat << " m\n";
+    cout << "  Maximum state difference: " << scientific << maxDiff << defaultfloat << "\n";
     LOG_SYSCALL("VerifyParallelParity", parityExact, "Single vs Multi parity < 1e-9");
+    }
 
     // 5. Intentional failure demonstration: open() on non-existent file
     cout << "\n[4] Deliberate Failure Handling (open on non-existent file):\n";
@@ -372,7 +457,7 @@ bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
 
     // Cleanup Demo Mapping
     munmap(mmapPtr, kArenaSize);
-    return filterEffective && parityExact;
+    return filterEffective && parallelOk && parityExact;
 }
 
 // ----------------------------- PART 2: BENCHMARKING & SCALABILITY ------------
@@ -390,22 +475,89 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
     memcpy(arena->inputs, data.data(), data.size() * sizeof(kalman::RadarMeasurement));
 
     int workerConfigs[] = {1, 2, 4, 8};
+    const auto runId = chrono::duration_cast<chrono::nanoseconds>(
+        chrono::system_clock::now().time_since_epoch()).count();
+    vector<size_t> workloads = {max<size_t>(1, data.size() / 4), max<size_t>(1, data.size() / 2), data.size()};
+    workloads.erase(unique(workloads.begin(), workloads.end()), workloads.end());
+    for (size_t workload : workloads) {
+    arena->recordCount = static_cast<uint32_t>(workload);
     double baselineMeanUs = 0.0;
+    executeWorkerFiltering(arena, 0, 1);
+    vector<kalman::FilteredOutput> reference(arena->outputs, arena->outputs + arena->recordCount);
 
     for (int workers : workerConfigs) {
-        string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers");
+        string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers") + "_" + to_string(workload) + "Records";
 
+        // Ignore SIGPIPE so a dead child becomes a reported write failure.
+        signal(SIGPIPE, SIG_IGN);
+        auto startupBegin = chrono::steady_clock::now();
+        PersistentWorkers pool(arena, workers == 1 ? 0 : workers);
+        auto startupEnd = chrono::steady_clock::now();
+        double launchUs = chrono::duration<double, micro>(startupEnd - startupBegin).count();
+        cout << "  Worker launch (us; excludes readiness): " << launchUs << "\n";
+        bool workersOk = pool.ready();
+        if (workers > 1 && workersOk) {
+            memset(arena->outputs, 0, sizeof(arena->outputs));
+            workersOk = pool.run();
+            for (uint32_t i = 0; workersOk && i < arena->recordCount; ++i) {
+                const auto& a = arena->outputs[i];
+                const auto& b = reference[i];
+                double diffs[] = {abs(a.est_x - b.est_x), abs(a.est_y - b.est_y),
+                                  abs(a.est_vx - b.est_vx), abs(a.est_vy - b.est_vy)};
+                workersOk = a.track_id == b.track_id && a.timestamp == b.timestamp;
+                for (double d : diffs) if (!isfinite(d) || d > 1e-9) workersOk = false;
+            }
+        }
+        if (!workersOk) {
+            cerr << "Persistent worker startup or parity failed.\n";
+            munmap(mmapPtr, kArenaSize);
+            return false;
+        }
         auto action = [&]() {
             if (workers == 1) {
                 executeWorkerFiltering(arena, 0, 1);
             } else {
-                spawnAndJoinWorkers(arena, workers);
+                workersOk = pool.run() && workersOk;
             }
         };
 
-        metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup);
+        double workerBefore = 0;
+        metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup,
+                                                  nullptr, [&]() { workerBefore = pool.workerCpuUs(); });
+        double workerCpu = pool.workerCpuUs() - workerBefore;
+        if (!workersOk) {
+            cerr << "Worker failure; benchmark results discarded.\n";
+            munmap(mmapPtr, kArenaSize);
+            return false;
+        }
         metrics::printStats(stats);
-        metrics::appendStatsToCsv(stats, "results/Linux/linux_results.csv");
+        if (!metrics::appendStatsToCsv(stats, "results/Linux/persistent_summary.csv")) {
+            munmap(mmapPtr, kArenaSize);
+            return false;
+        }
+
+        {
+            const char* samplePath = "results/Linux/persistent_samples.csv";
+            const string expectedHeader = "run_id,platform,compiler,records,workers,iteration,elapsed_us,launch_us,parent_cpu_us,worker_cpu_us";
+            ifstream existing(samplePath);
+            string header;
+            bool headerNeeded = !getline(existing, header) || header.empty();
+            if (!header.empty() && header.back() == '\r') header.pop_back();
+            if (!headerNeeded && header != expectedHeader) {
+                cerr << "Incompatible benchmark sample header; choose a fresh output file.\n";
+                munmap(mmapPtr, kArenaSize);
+                return false;
+            }
+            existing.close();
+            ofstream samples(samplePath, ios::app);
+            if (!samples) { cerr << "Cannot write benchmark samples.\n"; munmap(mmapPtr, kArenaSize); return false; }
+            if (headerNeeded) samples << expectedHeader << "\n";
+            for (size_t i = 0; i < stats.samplesUs.size(); ++i)
+                samples << runId << ",Linux,\"" << __VERSION__ << "\"," << workload << ","
+                        << workers << "," << (i + 1) << "," << setprecision(17) << stats.samplesUs[i] << "," << launchUs << "," << stats.totalCpuUs << "," << workerCpu << "\n";
+            samples.flush();
+            if (!samples) { cerr << "Failed writing benchmark samples.\n"; munmap(mmapPtr, kArenaSize); return false; }
+        }
 
         if (workers == 1) {
             baselineMeanUs = stats.meanUs;
@@ -419,11 +571,12 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
         }
     }
 
+    }
     cout << "Exporting final filtered supersonic trajectory to " << kOutputCsvPath << "...\n";
-    exportFilteredResultsPOSIX(kOutputCsvPath, arena);
-
-    munmap(mmapPtr, kArenaSize);
-    return true;
+    bool exported = exportFilteredResultsPOSIX(kOutputCsvPath, arena);
+    bool unmapped = munmap(mmapPtr, kArenaSize) == 0;
+    LOG_SYSCALL("munmap", unmapped, "benchmark arena");
+    return exported && unmapped;
 }
 
 // ----------------------------- MAIN DISPATCH ---------------------------------
@@ -433,6 +586,10 @@ int main(int argc, char* argv[]) {
     ofstream transcript(kTranscriptFile, ios::out | ios::trunc);
     streambuf* originalBuffer = cout.rdbuf();
     TeeBuffer tee(originalBuffer, transcript.rdbuf());
+    struct RestoreCout {
+        streambuf* original;
+        ~RestoreCout() { cout.rdbuf(original); }
+    } restoreCout{originalBuffer};
 
     bool teeActive = false;
     if (transcript.is_open()) {

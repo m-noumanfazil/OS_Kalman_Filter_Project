@@ -1,0 +1,13 @@
+# Persistent-worker benchmark data
+
+The filter benchmarks one quarter, one half, and all input records with 1, 2, 4, and 8 workers. Each independent trial resets filter state; the same input prefix is used for each worker count within a workload. Parallel trials use processes created once per configuration. The sequential baseline executes in the parent process.
+
+Each platform writes `persistent_samples.csv` and `persistent_summary.csv` under its `results/<platform>/` directory. These generated files are locally ignored and do not replace the original system-call benchmark CSVs. Each filter run appends 50 samples per configuration after five warm-ups. The sample file records a run timestamp ID, platform, compiler version, input record count, worker count, sample number, elapsed microseconds, process launch duration, parent CPU time, and worker CPU time.
+
+- Elapsed time covers dispatch, filtering, and completion synchronization, not worker creation. Launch duration measures process creation calls and does **not** establish when all workers were ready; first-use initialization is excluded from steady-state samples by parity and warm-up runs.
+- Parent CPU is accumulated over the 50 measured iterations and includes timing and harness overhead. Worker CPU is the sum of worker process CPU deltas over the measured loop, after warm-up. Their sum estimates process-group CPU time for the measured loop, with small sampling-boundary differences. Windows CPU resolution may be coarse; `-1` indicates an unavailable worker measurement.
+- Summary memory delta and page faults refer to the parent process only. They do not represent total worker memory. Shared pages should not be added across process working sets as though they were unique physical memory.
+- The sample's CPU and launch columns repeat group-level values on each row; they are not per-iteration measurements. Individual latency samples support recomputing mean, median, and variability.
+- Record the machine, OS version, compiler command and flags, input file hash, power settings, and run ID separately for any reportable experiment. The compiler version and input size in the sample file alone do not establish this provenance. GitHub-hosted runner measurements are functional test evidence, not controlled cross-platform performance results.
+
+Validate a fresh run with `python tests/check_benchmark_samples.py results/Linux` (or `results/Windows`). This check expects the default 80,000-record input and a single fresh output file; it verifies sample count and agreement with the summary. Use separate output directories or preserve copies for independent experiments, since benchmark files append and the summary format does not contain a run ID.
