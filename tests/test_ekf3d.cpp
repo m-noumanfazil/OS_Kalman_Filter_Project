@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <limits>
 
 int main() {
     using namespace ekf3d;
@@ -58,5 +59,17 @@ int main() {
     failed=false;
     try { filter.step(1.0, nullptr); } catch(const std::invalid_argument&) { failed=true; }
     assert(failed && filter.state() == saved);
+    auto savedCovariance = filter.covariance();
+    Measurement invalid{1000, std::numeric_limits<double>::quiet_NaN(), 0};
+    failed=false;
+    try { filter.step(150.0, &invalid); } catch(const std::invalid_argument&) { failed=true; }
+    assert(failed && filter.state() == saved && filter.covariance() == savedCovariance);
+    failed=false;
+    try { filter.step(1e308, nullptr); } catch(const std::domain_error&) { failed=true; }
+    assert(failed && filter.state() == saved && filter.covariance() == savedCovariance);
+    Filter zeroJerk(0.0);
+    zeroJerk.step(0, &first);
+    zeroJerk.step(1, nullptr);
+    assert(std::isfinite(zeroJerk.covariance()[0][0]));
     std::cout << "3D EKF Jacobian, wrapping, prediction, covariance and timestamp checks passed.\n";
 }
