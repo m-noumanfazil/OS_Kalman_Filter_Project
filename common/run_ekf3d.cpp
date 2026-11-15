@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     if (ec || exists) { std::cerr << "Output exists or cannot be inspected; choose a new path\n"; return 1; }
     std::ofstream output(argv[2]);
     if (!output) { std::cerr << "Cannot create output\n"; return 1; }
-    output << "timestamp,track_id,x,y,z,vx,vy,vz,ax,ay,az\n" << std::setprecision(17);
+    output << "timestamp,track_id,x,y,z,vx,vy,vz,ax,ay,az,p_xx,p_xy,p_xz,p_yy,p_yz,p_zz\n" << std::setprecision(17);
     std::unordered_map<int, ekf3d::Filter> filters;
     size_t count=0;
     try {
@@ -57,6 +57,8 @@ int main(int argc, char** argv) {
             }
             output << timestamp << ',' << id;
             for(double value : filter.state()) output << ',' << value;
+            const auto& covariance = filter.covariance();
+            for (int i=0;i<3;++i) for (int j=i;j<3;++j) output << ',' << covariance[i][j];
             output << '\n'; ++count;
         }
     } catch(const std::exception& error) {
