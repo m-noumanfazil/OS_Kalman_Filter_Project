@@ -94,7 +94,7 @@ OS_Kalman_Filter_CCP/
 │       └── speedup_curve.png
 │
 ├── report/
-│   └── report.md
+│   └── Final_report_draft.md
 │
 ├── presentation/
 │   └── slides.md
@@ -386,8 +386,8 @@ The charts present measured results. In particular, speed-up values below 1 indi
 
 ### Final Documentation and Submission
 
-- [ ] Final project report
-- [ ] Final presentation (10–12 slides)
+- [x] Final project report (`report/Final_report_draft.md`)
+- [x] Final presentation (`presentation/slides.md`)
 - [x] Performance and verification charts
 - [x] Native Linux execution
 - [x] Native Windows execution
