@@ -1,5 +1,6 @@
 // 3D EKF: native file I/O, mapped arena, persistent processes and events.
 #include "../../common/ekf3d_pipeline.hpp"
+#include "../../common/logger.hpp"
 #include <windows.h>
 #include <algorithm>
 #include <cstring>
@@ -11,28 +12,34 @@ struct Worker { HANDLE process; HANDLE command; HANDLE done; };
 
 static bool readFile(const char* path, std::string& content) {
     HANDLE h=CreateFileA(path,GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+    LOG_SYSCALL("CreateFileA",h!=INVALID_HANDLE_VALUE,"3D sensor input");
     if(h==INVALID_HANDLE_VALUE) { std::cerr << "CreateFile input: " << GetLastError() << '\n'; return false; }
     char buffer[16384]; bool ok=true;
     for(;;) {
         DWORD n=0;
-        if(!ReadFile(h,buffer,sizeof(buffer),&n,nullptr)) { std::cerr << "ReadFile: " << GetLastError() << '\n'; ok=false; break; }
+        if(!ReadFile(h,buffer,sizeof(buffer),&n,nullptr)) { LOG_SYSCALL("ReadFile",false,"3D sensor input"); std::cerr << "ReadFile: " << GetLastError() << '\n'; ok=false; break; }
         if(!n) break;
         content.append(buffer,n);
         if(content.size()>64*1024*1024) { std::cerr << "Input exceeds 64 MiB\n"; ok=false; break; }
     }
-    if(!CloseHandle(h)) { std::cerr << "CloseHandle input: " << GetLastError() << '\n'; ok=false; }
+    if(ok) LOG_SYSCALL("ReadFile",true,"3D sensor input");
+    BOOL closed=CloseHandle(h); LOG_SYSCALL("CloseHandle",closed!=0,"3D sensor input");
+    if(!closed) { std::cerr << "CloseHandle input: " << GetLastError() << '\n'; ok=false; }
     return ok;
 }
 static bool writeFile(const char* path, const std::string& content) {
     HANDLE h=CreateFileA(path,GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+    LOG_SYSCALL("CreateFileA",h!=INVALID_HANDLE_VALUE,"3D output, exclusive creation");
     if(h==INVALID_HANDLE_VALUE) { std::cerr << "CreateFile output: " << GetLastError() << '\n'; return false; }
     bool ok=true; size_t offset=0;
     while(offset<content.size()) {
         DWORD n=0, size=static_cast<DWORD>(std::min<size_t>(content.size()-offset,65536));
-        if(!WriteFile(h,content.data()+offset,size,&n,nullptr) || !n) { std::cerr << "WriteFile: " << GetLastError() << '\n'; ok=false; break; }
+        if(!WriteFile(h,content.data()+offset,size,&n,nullptr) || !n) { LOG_SYSCALL("WriteFile",false,"3D output"); std::cerr << "WriteFile: " << GetLastError() << '\n'; ok=false; break; }
         offset+=n;
     }
-    if(!CloseHandle(h)) { std::cerr << "CloseHandle output: " << GetLastError() << '\n'; ok=false; }
+    if(ok) LOG_SYSCALL("WriteFile",true,"3D output");
+    BOOL closed=CloseHandle(h); LOG_SYSCALL("CloseHandle",closed!=0,"3D output");
+    if(!closed) { std::cerr << "CloseHandle output: " << GetLastError() << '\n'; ok=false; }
     return ok;
 }
 static int child(const std::string& name, int id, int count) {
@@ -76,15 +83,18 @@ int main(int argc, char** argv) {
     int count=0;
     try { size_t n=0; count=std::stoi(argv[3],&n); if(n!=std::strlen(argv[3]) || count<1 || count>8) throw std::invalid_argument("workers"); }
     catch(const std::exception&) { std::cerr << "Invalid worker count\n"; return 2; }
+    logger::init(std::string(argv[2])+".log");
     std::string content;
     if(!readFile(argv[1],content)) return 1;
     std::vector<Record> records;
     try { records=parse(content); } catch(const std::exception& ex) { std::cerr << "Invalid input: " << ex.what() << '\n'; return 1; }
     std::string name="Local\\EKF3D_"+std::to_string(GetCurrentProcessId());
     HANDLE mapping=CreateFileMappingA(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,static_cast<DWORD>(sizeof(Arena)),name.c_str());
+    LOG_SYSCALL("CreateFileMappingA",mapping!=nullptr,"3D shared arena");
     if(!mapping) { std::cerr << "CreateFileMapping: " << GetLastError() << '\n'; return 1; }
     if(GetLastError()==ERROR_ALREADY_EXISTS) { CloseHandle(mapping); std::cerr << "Mapping exists\n"; return 1; }
     void* view=MapViewOfFile(mapping,FILE_MAP_ALL_ACCESS,0,0,sizeof(Arena));
+    LOG_SYSCALL("MapViewOfFile",view!=nullptr,"3D shared arena");
     if(!view) { std::cerr << "MapViewOfFile: " << GetLastError() << '\n'; CloseHandle(mapping); return 1; }
     auto* arena=new(view) Arena{}; arena->count=static_cast<unsigned>(records.size());
     std::copy(records.begin(),records.end(),arena->records);
@@ -104,7 +114,9 @@ int main(int argc, char** argv) {
         std::string command="\""+std::string(exe)+"\" --worker "+name+" "+suffix+" "+std::to_string(count);
         std::vector<char> buffer(command.begin(),command.end()); buffer.push_back('\0');
         STARTUPINFOA si{}; si.cb=sizeof(si); PROCESS_INFORMATION pi{};
-        if(!CreateProcessA(nullptr,buffer.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&si,&pi)) {
+        BOOL started=CreateProcessA(nullptr,buffer.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&si,&pi);
+        LOG_SYSCALL("CreateProcessA",started!=0,"3D persistent worker");
+        if(!started) {
             std::cerr << "CreateProcess: " << GetLastError() << '\n'; CloseHandle(go); CloseHandle(done); ok=false; break;
         }
         CloseHandle(pi.hThread); workers.push_back({pi.hProcess,go,done});
@@ -115,9 +127,11 @@ int main(int argc, char** argv) {
         for(const auto& w:workers) {
             if(!ok) break;
             HANDLE waits[]={w.process,w.done};
-            if(WaitForMultipleObjects(2,waits,FALSE,15000)!=WAIT_OBJECT_0+1) { std::cerr << "Worker failed or timed out\n"; ok=false; }
+            DWORD result=WaitForMultipleObjects(2,waits,FALSE,15000);
+            if(result!=WAIT_OBJECT_0+1) { if(result!=WAIT_FAILED) SetLastError(result==WAIT_TIMEOUT ? ERROR_TIMEOUT : ERROR_PROCESS_ABORTED); LOG_SYSCALL("WaitForMultipleObjects",false,"3D worker response"); std::cerr << "Worker failed or timed out\n"; ok=false; }
         }
     }
+    if(ok) LOG_SYSCALL("SetEvent/WaitForMultipleObjects",true,"3D batch dispatch and completion");
     if(stop && !SetEvent(stop)) ok=false;
     for(const auto& w:workers) {
         if(!ok) TerminateProcess(w.process,1);
@@ -130,8 +144,10 @@ int main(int argc, char** argv) {
     if(stop && !CloseHandle(stop)) ok=false;
     if(ok) { try { ok=writeFile(argv[2],format(arena)); } catch(const std::exception& ex) { std::cerr << ex.what() << '\n'; ok=false; } }
     arena->~Arena();
-    if(!UnmapViewOfFile(view)) ok=false;
-    if(!CloseHandle(mapping)) ok=false;
+    BOOL unmapped=UnmapViewOfFile(view); LOG_SYSCALL("UnmapViewOfFile",unmapped!=0,"3D shared arena");
+    if(!unmapped) ok=false;
+    BOOL closed=CloseHandle(mapping); LOG_SYSCALL("CloseHandle",closed!=0,"3D shared mapping");
+    if(!closed) ok=false;
     if(ok) std::cout << "Processed " << records.size() << " observations using " << count << " persistent workers.\n";
     return ok ? 0 : 1;
 }
