@@ -11,6 +11,58 @@
 
 using namespace ekf3d_pipeline;
 struct Worker { HANDLE process; HANDLE command; HANDLE done; };
+#ifdef EKF3D_HANDLE_DIAGNOSTICS
+struct DebugHandleEntry {
+    HANDLE value;
+    ULONG_PTR handleCount, pointerCount;
+    ULONG grantedAccess, objectTypeIndex, attributes, reserved;
+};
+struct DebugHandleSnapshot {
+    ULONG_PTR count, reserved;
+    DebugHandleEntry entries[1];
+};
+struct DebugUnicodeString { USHORT length, maximumLength; PWSTR buffer; };
+using DebugQueryProcess = LONG (WINAPI*)(HANDLE,ULONG,PVOID,ULONG,PULONG);
+using DebugQueryObject = LONG (WINAPI*)(HANDLE,ULONG,PVOID,ULONG,PULONG);
+static std::vector<HANDLE> debugSnapshot() {
+    auto query=reinterpret_cast<DebugQueryProcess>(GetProcAddress(GetModuleHandleA("ntdll.dll"),"NtQueryInformationProcess"));
+    if(!query) return {};
+    ULONG size=65536, required=0;
+    for(int attempt=0;attempt<4;++attempt) {
+        std::vector<unsigned char> bytes(size);
+        LONG status=query(GetCurrentProcess(),51,bytes.data(),size,&required);
+        if(status>=0) {
+            auto* snapshot=reinterpret_cast<DebugHandleSnapshot*>(bytes.data());
+            std::vector<HANDLE> handles;
+            for(ULONG_PTR i=0;i<snapshot->count;++i) handles.push_back(snapshot->entries[i].value);
+            return handles;
+        }
+        size=std::max(size*2,required+1024);
+    }
+    return {};
+}
+static void debugAddedHandles(const std::vector<HANDLE>& before) {
+    auto query=reinterpret_cast<DebugQueryObject>(GetProcAddress(GetModuleHandleA("ntdll.dll"),"NtQueryObject"));
+    if(!query || before.empty()) return;
+    for(HANDLE handle:debugSnapshot()) {
+        if(std::find(before.begin(),before.end(),handle)!=before.end()) continue;
+        std::vector<unsigned char> bytes(8192); ULONG required=0;
+        LONG status=query(handle,2,bytes.data(),static_cast<ULONG>(bytes.size()),&required);
+        std::wstring type=L"unavailable";
+        if(status>=0) {
+            auto* value=reinterpret_cast<DebugUnicodeString*>(bytes.data());
+            if(value->buffer) type.assign(value->buffer,value->length/sizeof(wchar_t));
+        }
+        std::wcerr << L"HANDLE_ADDED " << handle << L" " << type << L'\n';
+    }
+}
+static void debugHandles(const char* stage) {
+    DWORD count=0;
+    if(GetProcessHandleCount(GetCurrentProcess(),&count)) std::cerr << "HANDLE_STAGE " << stage << ' ' << count << '\n';
+}
+#else
+static void debugHandles(const char*) {}
+#endif
 #ifdef EKF3D_TEST_FAILURES
 constexpr DWORD workerTimeoutMs=500;
 #else
@@ -112,6 +164,7 @@ int main(int argc, char** argv) {
     try { records=parse(content); } catch(const std::exception& ex) { std::cerr << "Invalid input: " << ex.what() << '\n'; return 1; }
     DWORD handlesBefore=0, handlesAfter=0;
     bool countBeforeOk=GetProcessHandleCount(GetCurrentProcess(),&handlesBefore)!=0;
+    debugHandles("baseline");
     std::string name="Local\\EKF3D_"+std::to_string(GetCurrentProcessId());
     HANDLE mapping=CreateFileMappingA(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,static_cast<DWORD>(sizeof(Arena)),name.c_str());
     LOG_SYSCALL("CreateFileMappingA",mapping!=nullptr,"3D shared arena");
@@ -120,6 +173,7 @@ int main(int argc, char** argv) {
     void* view=MapViewOfFile(mapping,FILE_MAP_ALL_ACCESS,0,0,sizeof(Arena));
     LOG_SYSCALL("MapViewOfFile",view!=nullptr,"3D shared arena");
     if(!view) { std::cerr << "MapViewOfFile: " << GetLastError() << '\n'; CloseHandle(mapping); return 1; }
+    debugHandles("mapped");
     auto* arena=new(view) Arena{}; arena->count=static_cast<unsigned>(records.size());
     std::copy(records.begin(),records.end(),arena->records);
     HANDLE stop=CreateEventA(nullptr,TRUE,FALSE,(name+"_stop").c_str());
@@ -142,6 +196,10 @@ int main(int argc, char** argv) {
         std::string command="\""+std::string(exe)+"\" --worker "+name+" "+suffix+" "+std::to_string(count)+" \""+workerLog+"\"";
         std::vector<char> buffer(command.begin(),command.end()); buffer.push_back('\0');
         STARTUPINFOA si{}; si.cb=sizeof(si); PROCESS_INFORMATION pi{};
+        debugHandles("before_create_process");
+#ifdef EKF3D_HANDLE_DIAGNOSTICS
+        auto handlesBeforeCreate=debugSnapshot();
+#endif
         BOOL started;
 #ifdef EKF3D_TEST_FAILURES
         if(i==1 && std::getenv("EKF3D_TEST_FAIL_START")) { SetLastError(ERROR_NOT_ENOUGH_MEMORY); started=FALSE; }
@@ -149,14 +207,20 @@ int main(int argc, char** argv) {
 #endif
         started=CreateProcessA(nullptr,buffer.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&si,&pi);
         LOG_SYSCALL("CreateProcessA",started!=0,"3D persistent worker");
+        debugHandles("after_create_process");
+#ifdef EKF3D_HANDLE_DIAGNOSTICS
+        if(i==0) debugAddedHandles(handlesBeforeCreate);
+#endif
         if(!started) {
             std::cerr << "CreateProcess: " << GetLastError() << '\n'; CloseHandle(go); CloseHandle(done); ok=false; break;
         }
         BOOL threadClosed=CloseHandle(pi.hThread); LOG_SYSCALL("CloseHandle",threadClosed!=0,"worker primary thread");
+        debugHandles("thread_closed");
         if(!threadClosed) ok=false;
         std::cout << "WORKER_PID " << pi.dwProcessId << std::endl;
         workers.push_back({pi.hProcess,go,done});
     }
+    debugHandles("workers_started");
     for(unsigned begin=0;ok && begin<arena->count;begin+=batch_size) {
         arena->begin=begin; arena->end=std::min(begin+batch_size,arena->count);
         for(const auto& w:workers) { BOOL signaled=SetEvent(w.command); LOG_SYSCALL("SetEvent",signaled!=0,"dispatch worker batch"); if(!signaled) { ok=false; break; } }
@@ -169,12 +233,14 @@ int main(int argc, char** argv) {
         }
     }
     if(ok) LOG_SYSCALL("SetEvent/WaitForMultipleObjects",true,"3D batch dispatch and completion");
+    debugHandles("processing_done");
     if(stop) { BOOL signaled=SetEvent(stop); LOG_SYSCALL("SetEvent",signaled!=0,"stop workers"); if(!signaled) ok=false; }
     long long workerCpuUs=0, workerPeakKb=0;
     bool workerCpuOk=true, workerMemoryOk=true;
     for(const auto& w:workers) {
         if(!ok) { BOOL terminated=TerminateProcess(w.process,1); LOG_SYSCALL("TerminateProcess",terminated!=0,"abort 3D worker"); }
         DWORD waited=WaitForSingleObject(w.process,5000);
+        debugHandles("worker_waited");
         if(waited!=WAIT_OBJECT_0 && waited!=WAIT_FAILED) SetLastError(waited==WAIT_TIMEOUT ? ERROR_TIMEOUT : ERROR_INVALID_DATA);
         LOG_SYSCALL("WaitForSingleObject",waited==WAIT_OBJECT_0,"3D worker shutdown");
         if(waited!=WAIT_OBJECT_0) {
@@ -193,6 +259,7 @@ int main(int argc, char** argv) {
         } else workerCpuOk=false;
         PROCESS_MEMORY_COUNTERS memory{}; memory.cb=sizeof(memory);
         BOOL memoryOk=GetProcessMemoryInfo(w.process,&memory,sizeof(memory));
+        debugHandles("worker_memory_read");
         LOG_SYSCALL("GetProcessMemoryInfo",memoryOk!=0,"3D worker peak memory");
         if(memoryOk)
             workerPeakKb=std::max(workerPeakKb,static_cast<long long>(memory.PeakWorkingSetSize/1024));
@@ -200,14 +267,18 @@ int main(int argc, char** argv) {
         BOOL closed=CloseHandle(w.process); LOG_SYSCALL("CloseHandle",closed!=0,"3D worker process"); if(!closed) ok=false;
         closed=CloseHandle(w.command); LOG_SYSCALL("CloseHandle",closed!=0,"3D worker command event"); if(!closed) ok=false;
         closed=CloseHandle(w.done); LOG_SYSCALL("CloseHandle",closed!=0,"3D worker completion event"); if(!closed) ok=false;
+        debugHandles("worker_handles_closed");
     }
     if(stop) { BOOL closed=CloseHandle(stop); LOG_SYSCALL("CloseHandle",closed!=0,"3D stop event"); if(!closed) ok=false; }
+    debugHandles("workers_closed");
     if(ok) { try { ok=writeFile(argv[2],format(arena)); } catch(const std::exception& ex) { std::cerr << ex.what() << '\n'; ok=false; } }
+    debugHandles("output_closed");
     arena->~Arena();
     BOOL unmapped=UnmapViewOfFile(view); LOG_SYSCALL("UnmapViewOfFile",unmapped!=0,"3D shared arena");
     if(!unmapped) ok=false;
     BOOL closed=CloseHandle(mapping); LOG_SYSCALL("CloseHandle",closed!=0,"3D shared mapping");
     if(!closed) ok=false;
+    debugHandles("mapping_closed");
     bool countAfterOk=GetProcessHandleCount(GetCurrentProcess(),&handlesAfter)!=0;
     std::cout << "RESOURCE_COUNTS before=" << (countBeforeOk ? static_cast<long long>(handlesBefore) : -1)
               << " after=" << (countAfterOk ? static_cast<long long>(handlesAfter) : -1) << '\n';

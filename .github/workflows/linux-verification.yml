@@ -76,3 +76,12 @@ jobs:
             ${{ runner.temp }}/kalman-experiment/results/Linux/persistent_summary.csv
           if-no-files-found: error
           retention-days: 14
+      - name: Preserve 3D benchmark smoke evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-3d-smoke-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ekf3d-benchmark/manifest.json
+            ${{ runner.temp }}/ekf3d-benchmark/samples.csv
+          if-no-files-found: error
+          retention-days: 14
