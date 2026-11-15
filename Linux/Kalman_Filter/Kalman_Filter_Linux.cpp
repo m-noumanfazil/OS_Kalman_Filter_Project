@@ -179,6 +179,18 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
 
     double lastTimestamp[kTotalTracks] = {};
     bool seenTrack[kTotalTracks] = {};
+    auto parseDouble = [](const string& value) {
+        size_t used = 0;
+        double number = stod(value, &used);
+        if (value.find_first_not_of(" \t\r", used) != string::npos) throw invalid_argument("invalid numeric field");
+        return number;
+    };
+    auto parseInt = [](const string& value) {
+        size_t used = 0;
+        int number = stoi(value, &used);
+        if (value.find_first_not_of(" \t\r", used) != string::npos) throw invalid_argument("invalid integer field");
+        return number;
+    };
     while (getline(ss, line)) {
         if (line.empty()) continue;
         stringstream lineStream(line);
@@ -186,14 +198,15 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
         kalman::RadarMeasurement m{};
 
         // Columns: timestamp,track_id,true_x,true_y,meas_x,meas_y,true_vx,true_vy
-        if (!getline(lineStream, cell, ',')) return false; m.timestamp = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.track_id = stoi(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.meas_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.meas_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_vx = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_vy = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.timestamp = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.track_id = parseInt(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_x = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_y = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_x = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_y = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vx = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vy = parseDouble(cell);
+        if (getline(lineStream, cell, ',')) return false;
 
         if (m.track_id < 0 || m.track_id >= kTotalTracks ||
             !isfinite(m.timestamp) || m.timestamp < 0 || !isfinite(m.true_x) || !isfinite(m.true_y) ||

@@ -29,6 +29,8 @@ jobs:
           done
       - name: Test output verification
         run: python3 -B -m unittest discover -s tests -v
+      - name: Test filter failure paths
+        run: python3 -B tests/check_filter_failures.py "$RUNNER_TEMP/kalman-build/Kalman_Filter" common/sensor_data.csv Linux
       - name: Run and verify integrated filter
         run: |
           set -euo pipefail

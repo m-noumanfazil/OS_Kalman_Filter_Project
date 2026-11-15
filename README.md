@@ -1,5 +1,7 @@
 # OS Kalman Filter Project
 
+> **Benchmark version:** The original `linux_results.csv` and `windows_results.csv` are historical results from the per-iteration process-launch design. The current persistent-worker benchmark writes separate, locally ignored sample and summary CSVs; see [persistent benchmark protocol](docs/persistent-benchmark.md). Controlled cross-platform measurements for the new design remain to be collected.
+
 **Course:** CT-353 Operating Systems — Complex Computing Activity (CCA)
 
 ## 1. Project Overview

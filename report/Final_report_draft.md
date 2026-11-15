@@ -1,5 +1,7 @@
 # Implementation and Performance Comparison of Linux System Calls and Windows System APIs with Multi-Process Kalman Filtering
 
+> **Experiment status:** The numerical tables and conclusions below describe the historical benchmark artifacts committed at baseline `104402e`, which launched fresh filter workers on each measured iteration. The current filter also supports persistent benchmark workers, multiple workload sizes, and separate raw sample files; those changes have not yet been evaluated in a controlled Linux–Windows experiment. Descriptions of the historical benchmark below should not be interpreted as measurements of the new implementation. See [`docs/persistent-benchmark.md`](../docs/persistent-benchmark.md) for the current measurement protocol. Claims of bit-level parity should be read as tolerance-based checks: the current native validation compares position and velocity within `1e-9`.
+
 **Course:** CT-353 — Operating Systems  
 **Activity:** Complex Computing Activity (CCA)  
 **Department:** Department of Computer Science & Information Technology  

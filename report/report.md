@@ -1,5 +1,7 @@
 # CT-353 Operating Systems — Complex Computing Activity (CCA) Report
 
+> **Historical draft:** This file predates the saved baseline data and contains outdated figures. Use `Final_report_draft.md` as the working report and consult its baseline-status note. Do not use this file as current experimental evidence.
+
 **Course:** CT-353 Operating Systems  
 **Institution:** NED University of Engineering and Technology  
 **Submission Date:** November 2026  

@@ -176,6 +176,18 @@ bool ingestSensorDataWin32(const char* filePath, vector<kalman::RadarMeasurement
 
     double lastTimestamp[kTotalTracks] = {};
     bool seenTrack[kTotalTracks] = {};
+    auto parseDouble = [](const string& value) {
+        size_t used = 0;
+        double number = stod(value, &used);
+        if (value.find_first_not_of(" \t\r", used) != string::npos) throw invalid_argument("invalid numeric field");
+        return number;
+    };
+    auto parseInt = [](const string& value) {
+        size_t used = 0;
+        int number = stoi(value, &used);
+        if (value.find_first_not_of(" \t\r", used) != string::npos) throw invalid_argument("invalid integer field");
+        return number;
+    };
     while (getline(ss, line)) {
         if (line.empty()) continue;
         stringstream lineStream(line);
@@ -183,14 +195,15 @@ bool ingestSensorDataWin32(const char* filePath, vector<kalman::RadarMeasurement
         kalman::RadarMeasurement m{};
 
         // Columns: timestamp,track_id,true_x,true_y,meas_x,meas_y,true_vx,true_vy
-        if (!getline(lineStream, cell, ',')) return false; m.timestamp = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.track_id = stoi(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.meas_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.meas_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_vx = stod(cell);
-        if (!getline(lineStream, cell, ',')) return false; m.true_vy = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.timestamp = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.track_id = parseInt(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_x = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_y = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_x = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_y = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vx = parseDouble(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vy = parseDouble(cell);
+        if (getline(lineStream, cell, ',')) return false;
 
         if (m.track_id < 0 || m.track_id >= kTotalTracks ||
             !isfinite(m.timestamp) || m.timestamp < 0 || !isfinite(m.true_x) || !isfinite(m.true_y) ||
@@ -274,8 +287,13 @@ int runWorkerChild(int argc, char* argv[]) {
     // Arguments: --worker <workerId> <totalWorkers> <shmName>
     if (argc != 5) return 2;
 
-    int workerId     = atoi(argv[2]);
-    int totalWorkers = atoi(argv[3]);
+    int workerId, totalWorkers;
+    try {
+        size_t usedId = 0, usedCount = 0;
+        workerId = stoi(argv[2], &usedId);
+        totalWorkers = stoi(argv[3], &usedCount);
+        if (usedId != strlen(argv[2]) || usedCount != strlen(argv[3])) return 2;
+    } catch (const exception&) { return 2; }
     const char* shmName = argv[4];
     if (totalWorkers < 2 || totalWorkers > kTotalTracks || workerId < 0 || workerId >= totalWorkers) return 2;
 
