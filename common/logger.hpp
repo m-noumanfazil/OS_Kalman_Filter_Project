@@ -31,6 +31,7 @@ namespace detail {
 struct State {
     string path = "logs/syscalls_windows.log";
     bool ready = false;
+    bool console = true;
 };
 
 inline State& state() {
@@ -89,6 +90,8 @@ inline void init(const string& logFilePath = "logs/syscalls_windows.log") {
     detail::state().ready = true;
 }
 
+inline void setConsoleEnabled(bool enabled) { detail::state().console = enabled; }
+
 // Records the result of one system call.
 // callName: e.g. "CreateFile"   success: did the call work?   detail: e.g. a file name
 inline void logSyscall(const char* callName, bool success, const char* detail = "") {
@@ -120,7 +123,7 @@ inline void logSyscall(const char* callName, bool success, const char* detail = 
     }
 
     // Console
-    cout << line << endl;   // endl flushes
+    if (st.console) cout << line << endl;   // endl flushes
 
     // File: opened in append mode for every line, written in one piece and
     // flushed, so several processes can share the same log file.

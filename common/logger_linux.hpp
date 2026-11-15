@@ -44,6 +44,7 @@ namespace detail {
 struct State {
     std::string path = "logs/syscalls_linux.log";
     bool ready = false;
+    bool console = true;
     bool warnedAboutFile = false;   // warn about an unusable log file only once
 };
 
@@ -116,6 +117,8 @@ inline void init(const std::string& logFilePath = "logs/syscalls_linux.log") {
     detail::state().ready = true;
 }
 
+inline void setConsoleEnabled(bool enabled) { detail::state().console = enabled; }
+
 // Records the result of one system call.
 // callName: e.g. "open"   success: did the call work?   detail: e.g. a file name
 inline void logSyscall(const char* callName, bool success, const char* detail = "") {
@@ -147,7 +150,7 @@ inline void logSyscall(const char* callName, bool success, const char* detail = 
     }
 
     // Console
-    std::cout << line << std::endl;   // endl flushes
+    if (st.console) std::cout << line << std::endl;   // endl flushes
 
     // File: opened in append mode, the WHOLE line (with its newline) is written
     // with ONE write() call, then the file is closed. With O_APPEND the kernel

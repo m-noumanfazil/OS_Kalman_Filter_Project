@@ -4,7 +4,7 @@ The 3D prototype has separate native applications for Linux and Windows. Both re
 
 Linux uses `open`/`read`/`write`, a `MAP_SHARED` anonymous mapping, `fork`, pipes, and process waits. Windows uses `CreateFile`/`ReadFile`/`WriteFile`, a named file mapping, `CreateProcess`, events, and process waits. Worker processes persist across 128-record batches. A track is assigned to one worker by track ID modulo worker count, so its filter state persists across batches and observations are processed in input order.
 
-The input accepts up to 100,000 records and 64 MiB. Track IDs must be nonnegative, each track must start with an observation, and timestamps for each track must be strictly increasing. Worker counts 1–8 are supported. Output is created only after successful processing and must not already exist. A write failure can leave a partial newly created output file; discard it before retrying. The applications report errors to standard error and use nonzero exit status on failure. Parent-side operating-system operations are logged to `<output.csv>.log`; repeated reads/writes and successful batch synchronization are summarized. The existing logger appends to that path and warns on log-write failure; worker-side operations and every individual synchronization call are not fully logged.
+The input accepts up to 100,000 records and 64 MiB. Track IDs must be nonnegative, each track must start with an observation, and timestamps for each track must be strictly increasing. Worker counts 1–8 are supported. Output is created only after successful processing and must not already exist. A write failure can leave a partial newly created output file; discard it before retrying. The applications report errors to standard error and use nonzero exit status on failure. Parent operations are logged to `<output.csv>.log`; each worker writes `<output.csv>.worker-<id>.log`, including its batch synchronization calls. Logs append to their paths and warn if they cannot be written. The logger's own file operations and some setup/cleanup paths are not individually traced.
 
 ## Build and verify
 
@@ -28,8 +28,8 @@ Timings cover the entire native process: startup, input, parent-side logging, ma
 
 ## Current limitations
 
-- Parent-side logs summarize repeated operations and can fail independently; full per-call and worker-side logging remain to be added.
+- Logging includes per-batch synchronization and affects the measured end-to-end time. It can fail independently of computation, and the audit does not yet cover every setup/cleanup call or the logger's own file operations.
 - No controlled throughput or speedup claim has been established for the 3D implementation.
-- Correctness tests include 1,800 observations across three tracks and an expanded 14,400-observation, 24-track interleaved workload. Test-instrumented builds simulate a process-start failure and a hung worker, checking that errors propagate, no output is created, and observed worker processes have exited. These checks do not prove absence of every possible resource leak.
+- Correctness tests include 1,800 observations across three tracks and an expanded 14,400-observation, 24-track interleaved workload. Test-instrumented builds simulate a process-start failure and a hung worker, checking that errors propagate, no output is created, and observed worker processes have exited. Successful runs also report parent descriptor/handle counts before and after; the test checks whether the delta increases with worker count. On the local Windows setup, the count increased by four regardless of whether 1, 2, 4, or 8 workers were used. This diagnostic does not prove that all resources are leak-free.
 - The shared arena is fixed-size and is not a streaming design. The measurement parser caps file size to prevent unbounded input memory growth.
 - Platform-specific builds are required. Existing Phase 1 caveats on OS benchmarking and remaining cleanup audit still apply.
