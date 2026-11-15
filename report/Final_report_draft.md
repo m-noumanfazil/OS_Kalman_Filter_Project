@@ -788,9 +788,44 @@ CloseHandle(hFile);
 
 ### 4.6 Multi-Process Architecture
 
+```text
+                      common/sensor_data.csv (80,000 Radar Pings)
+                                          │
+                         [ Native File I/O Ingestion ]
+                         Windows: CreateFileA / ReadFile
+                         Linux:   open / read
+                                          │
+                                          ▼
+                   ┌──────────────────────────────────────────────┐
+                   │    Shared Memory Arena (SharedRadarArena)    │
+                   │    - recordCount (80,000), trackCount (8)    │
+                   │    - inputs[100,000] (RadarMeasurement)      │
+                   │    - outputs[100,000] (FilteredOutput)       │
+                   └──────────────────────┬───────────────────────┘
+                                          │
+         ┌────────────────────────────────┼────────────────────────────────┐
+         │                                │                                │
+         ▼                                ▼                                ▼
+  [ Worker Process 0 ]             [ Worker Process 1 ]           [ Worker Process N-1 ]
+  Windows: CreateProcessA          Windows: CreateProcessA        Windows: CreateProcessA
+  Linux:   fork()                  Linux:   fork()                Linux:   fork()
+  Affinity: Core 0                 Affinity: Core 1               Affinity: Core N-1
+  Tracks: {0, 4, ...}              Tracks: {1, 5, ...}            Tracks: {N-1, ...}
+  Kalman Filter (X, Y)             Kalman Filter (X, Y)           Kalman Filter (X, Y)
+         │                                │                                │
+         └────────────────────────────────┼────────────────────────────────┘
+                                          │ Disjoint, lock-free array writes
+                                          ▼
+                   ┌──────────────────────────────────────────────┐
+                   │   Shared Memory Arena: arena->outputs[]      │
+                   │   (Contains filtered estimates & velocities) │
+                   └──────────────────────┬───────────────────────┘
+                                          │
+                       [ Native File I/O Results Export ]
+                       Windows: WriteFile (filtered_sensor_data.csv)
+                       Linux:   write (filtered_sensor_data.csv)
 ```
-[FIGURE PLACEHOLDER: Multi-Process Kalman Filter Architecture — Parent Process, Worker Processes, Shared Memory, Sensor Data and Filtered Output]
-```
+*Figure 4.1: Multi-Process Kalman Filter Architecture showing shared memory arena, worker process spawning, and lock-free spatial partitioning.*
 
 #### Shared Memory Arena Design
 To support parallel processing across worker processes, both platforms allocate an in-memory **Shared Memory Arena** (`SharedRadarArena`):
