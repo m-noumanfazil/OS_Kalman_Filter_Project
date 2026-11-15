@@ -2,20 +2,22 @@
 
 **Course:** CT-353 Operating Systems — Complex Computing Activity (CCA)
 
-## What This Project Is About
+## 1. Project Overview
 
-This project compares how **Linux** and **Windows** handle common operating system operations, including file handling, process management, memory management, inter-process communication, and file permissions.
+This project compares how Linux and Windows provide operating-system facilities for file handling, process management, memory management, inter-process communication (IPC), and file permissions.
 
-The project has two main parts:
+It consists of two main parts:
 
-1. **Part A — System Calls:** Implement native system calls on both operating systems, demonstrate their functionality, handle errors, log operations, and measure their execution time and resource usage.
-2. **Part B — Kalman Filter:** Implement a Kalman Filter that uses operating system facilities for reading sensor data, memory-mapped arrays, multi-process parallelism, inter-process communication, and writing results. Its performance will be compared across Linux and Windows.
+- **Part A — System Call and API Implementation:** Implement native operating-system operations, demonstrate their functionality, handle errors, record execution logs, and measure performance.
+- **Part B — Kalman Filter Integration:** Apply operating-system facilities to a practical Kalman Filter application involving sensor-data processing, memory mapping, multi-process execution, IPC, and output generation.
 
-Linux development and testing are performed natively on Ubuntu 22.04. Windows development and testing are performed natively on Windows 10 using a dual-boot setup on the same machine.
+Linux development and testing are performed natively on **Ubuntu 22.04**. Windows development and testing are performed natively on **Windows 10** using a dual-boot setup on the same HP ZBook machine.
 
-All benchmarks are conducted natively, without using a virtual machine or WSL.
+All operating-system benchmarks are conducted natively, without using a virtual machine or WSL.
 
-## System Calls Covered
+## 2. System Calls and APIs Covered
+
+The project implements five categories of operating-system operations.
 
 | Category | Linux | Windows |
 |---|---|---|
@@ -25,222 +27,335 @@ All benchmarks are conducted natively, without using a virtual machine or WSL.
 | IPC | `pipe()`, `shmget()`, `shmat()` | `CreatePipe()`, `CreateFileMapping()`, `MapViewOfFile()` |
 | Permissions | `chmod()`, `chown()`, `umask()` | `SetFileSecurity()` |
 
-### Windows and Linux Differences
+The assignment requires 15 operations per operating system. The CCP explicitly lists 15 Linux interfaces but only 12 Windows APIs. The Windows implementation also uses supporting APIs where required by the implementation.
 
-- Windows does not provide `fork()`. `CreateProcess()` provides process creation and program execution through a different mechanism.
-- Windows has no direct equivalent of Linux `umask()` or `chown()`. These differences are documented in the project report.
-- Windows uses `UnmapViewOfFile()` to release memory mapped through `MapViewOfFile()`.
-- Linux and Windows use different APIs and resource-management mechanisms, so their implementations are native to their respective operating systems.
+### 2.1 Operating-System Differences
 
-## Repository Structure
+The two operating systems provide different interfaces and resource-management mechanisms.
+
+- Windows does not provide a direct equivalent of Linux `fork()`. `CreateProcess()` provides process creation through a different mechanism.
+- Windows does not provide direct equivalents of Linux `umask()` and `chown()`.
+- Windows uses `UnmapViewOfFile()` to release a mapped view created through `MapViewOfFile()`.
+- Linux implementations use POSIX/Linux interfaces, while Windows implementations use native Win32 APIs.
+
+Linux functions such as `open()`, `read()`, and `mmap()` are library interfaces that invoke underlying kernel functionality. Windows functions such as `CreateFile()` and `CreateProcess()` are Win32 APIs. The comparison therefore focuses on the native operating-system interfaces rather than claiming that every function is a direct kernel system call.
+
+## 3. Repository Structure
 
 ```text
 OS_Kalman_Filter_CCP/
 │
 ├── Linux/
-│   ├── Kalman_Filter/
 │   ├── File_IO/
 │   ├── Process/
 │   ├── Memory/
 │   ├── IPC/
-│   └── Permissions/
+│   ├── Permissions/
+│   └── Kalman_Filter/
 │
 ├── Windows/
-│   ├── Kalman_Filter/
 │   ├── File_IO/
 │   ├── Process/
 │   ├── Memory/
 │   ├── IPC/
-│   └── Permissions/
+│   ├── Permissions/
+│   └── Kalman_Filter/
 │
 ├── common/
 │   ├── logger.hpp
+│   ├── logger_linux.hpp
 │   ├── metrics.hpp
+│   ├── metrics_linux.hpp
 │   ├── kalman_core.hpp
 │   ├── generate_sensor_data.py
-│   └── sensor_data.csv
+│   ├── sensor_data.csv
+│   ├── generate_charts.py
+│   └── verify_part_b.py
+│
+├── logs/
+│   ├── syscalls_linux.log
+│   └── syscalls_windows.log
 │
 ├── results/
 │   ├── Linux/
+│   │   ├── linux_results.csv
+│   │   └── filtered_sensor_data.csv
+│   │
 │   ├── Windows/
+│   │   ├── windows_results.csv
+│   │   └── filtered_sensor_data.csv
+│   │
 │   └── charts/
+│       ├── trajectory_jet0.png
+│       ├── rmse_per_jet.png
+│       ├── syscall_comparison_fileio.png
+│       ├── syscall_comparison_memory.png
+│       ├── syscall_comparison_process.png
+│       └── speedup_curve.png
 │
 ├── report/
+│   └── report.md
+│
 ├── presentation/
-└── README.md
+│   └── slides.md
+│
+├── README.md
+└── .gitignore
 ```
 
-Each system-call category contains:
-- A C++ source file (`.cpp`) containing the demonstration and benchmark implementation.
-- A text file (`.txt`) containing the corresponding console output.
+Each operating-system category contains:
 
-Shared helper files are maintained in the `common/` directory.
+- A C++ source file (`.cpp`) implementing demonstrations and benchmarks.
+- A text output file (`.txt`) containing the corresponding execution output.
 
-## How Each Program Works
+Windows executable files may also be present locally. Generated executables are not required to be committed if they are excluded through `.gitignore`.
 
-Each system-call implementation performs three main tasks:
+## 4. How the Programs Work
 
-### 1. Demonstration
+Each system-call category performs three main tasks.
 
-- Executes the relevant operating system calls.
-- Checks their return values and handles errors.
-- Verifies that the operations produce the expected results.
-- Logs successful and failed operations.
+### 4.1 Demonstration
 
-### 2. Benchmarking
+- Executes the relevant native operating-system operations.
+- Checks return values and handles errors.
+- Verifies expected operation results.
+- Records successful and failed operations.
 
-- Measures individual system-call execution times.
-- Uses repeated iterations with warm-up runs.
-- Reports minimum, median, mean, maximum, and standard deviation.
+### 4.2 Benchmarking
+
+- Measures operation execution times.
+- Uses repeated iterations and warm-up runs.
+- Reports statistical measurements, including minimum, median, mean, maximum, and standard deviation where implemented.
 - Collects additional CPU and memory-related metrics where supported.
-- Keeps logging outside timed benchmark operations.
+- Keeps logging outside timed benchmark operations to reduce measurement interference.
 
-### 3. Saving Results
+### 4.3 Saving Results
 
-- Appends benchmark statistics to a CSV file under `results/`.
-- Saves console output in the corresponding category's `.txt` file.
-- Maintains separate results for Linux and Windows.
+- Stores benchmark measurements in the appropriate CSV file.
+- Saves console output in the corresponding category's text file.
+- Maintains separate Linux and Windows results.
 
-## Shared Helpers
+## 5. Shared Components
 
-The `common/` directory contains reusable components:
+The `common/` directory contains reusable components.
 
-- **Logger:** Records system-call execution results, including success or failure information and error details.
-- **Metrics:** Measures execution time, CPU usage, memory changes, and other performance statistics.
-- **Kalman Core:** Contains the shared Kalman Filter mathematical implementation, designed to remain independent of operating-system-specific code.
-- **Sensor Data Generator:** Generates sensor data for the Kalman Filter implementation.
+| Component | Purpose |
+|---|---|
+| `logger.hpp` and `logger_linux.hpp` | Logging utilities for operating-system operations |
+| `metrics.hpp` and `metrics_linux.hpp` | Performance measurement utilities |
+| `kalman_core.hpp` | Shared, operating-system-independent Kalman Filter mathematics |
+| `generate_sensor_data.py` | Generates the sensor dataset |
+| `verify_part_b.py` | Supports verification of Kalman Filter outputs |
+| `generate_charts.py` | Generates project performance and Kalman Filter charts |
 
-## Building and Running
+The shared Kalman Filter core ensures that both operating-system implementations use the same underlying mathematical model.
 
-All commands below should be executed from the **repository root directory**.
+## 6. Building and Running
 
-### Prerequisites
+Commands should be executed from the repository root unless otherwise specified.
 
-**Linux:**
+### 6.1 Prerequisites
+
+**Linux**
+
 - Ubuntu 22.04
-- G++ compiler with C++17 support
+- G++ with C++17 support
 
-Install the compiler if necessary:
+Install G++ if necessary:
 
 ```bash
 sudo apt update
 sudo apt install g++
 ```
 
-**Windows:**
+**Windows**
+
 - Windows 10
 - MinGW-w64 G++ compiler with C++17 support
 - G++ available through the terminal PATH
 
-### Linux — Ubuntu 22.04
+### 6.2 Linux — Ubuntu 22.04
 
-Compile a category using G++:
+Example: compile the Linux File I/O program.
 
 ```bash
 g++ -std=c++17 Linux/File_IO/File_IO_Linux.cpp -o Linux/File_IO/file_io_linux
 ```
 
-Run the compiled program:
+Run it:
 
 ```bash
 ./Linux/File_IO/file_io_linux
 ```
 
-The same compilation pattern applies to the other Linux categories. Change the source-file path and output executable path accordingly.
+The same general compilation approach applies to other Linux categories. Additional source files, compiler options, or libraries may be required depending on the implementation.
 
-### Windows — MinGW-w64
+### 6.3 Windows — MinGW-w64
 
-Compile a category using G++:
-
-```bash
-g++ -std=c++17 Windows/File_IO/File_IO_Windows.cpp -o Windows/File_IO/file_io.exe -lpsapi -ladvapi32
-```
-
-Run the compiled program from the repository root:
+Example: compile the Windows File I/O program.
 
 ```powershell
-.\Windows\File_IO\file_io.exe
+g++ -std=c++17 Windows/File_IO/File_IO_Windows.cpp -o Windows/File_IO/file_io_windows.exe -lpsapi -ladvapi32
 ```
 
-The same compilation pattern applies to the other Windows categories. Change the source-file path and output executable path accordingly.
+Run it:
 
-The additional libraries are:
-- `-lpsapi`: Provides access to Windows process and memory performance information.
-- `-ladvapi32`: Provides access to Windows security and access-control APIs.
+```powershell
+.\Windows\File_IO\file_io_windows.exe
+```
 
-**Important:** Compile and execute the Windows programs natively on Windows. Similarly, compile and execute Linux programs on Linux.
+Additional libraries may be required by individual Windows implementations:
 
-### Output Locations
+- `-lpsapi`: Windows process and memory performance information.
+- `-ladvapi32`: Windows security and access-control functionality.
 
-Each program saves its console output in its category folder.
+The exact compiler and linker options depend on the source file being built.
 
-For example:
+**Important:** Compile and execute Windows programs natively on Windows and Linux programs natively on Ubuntu. Do not use WSL or a virtual machine for the native performance comparison.
+
+### 6.4 Output Locations
+
+Example execution logs:
 
 ```text
 Linux/Permissions/Permissions_Linux.txt
 Windows/Permissions/Permissions_Windows.txt
 ```
 
-Benchmark results are appended to the corresponding CSV files:
+Benchmark CSV files:
 
 ```text
 results/Linux/linux_results.csv
 results/Windows/windows_results.csv
 ```
 
-Run programs from the repository root to ensure that relative paths for logs, transcripts, and results work correctly.
+Run programs from the repository root to ensure that relative paths for logs, transcripts, and result files resolve correctly.
 
-## Part A — System Calls
+## 7. Part A — System Call and API Implementation
 
-Part A implements and benchmarks five system-call categories on both operating systems:
+Part A covers five categories on both operating systems:
 
 1. File I/O
 2. Memory Management
 3. Process Management
-4. Inter-Process Communication (IPC)
+4. Inter-Process Communication
 5. Permissions
 
 Each category includes demonstrations, error handling, verification, benchmarking, and result logging.
 
-## Part B — Kalman Filter
+The implementation uses native operating-system interfaces rather than simulated system-call operations.
 
-Part B will integrate the system-call concepts into a practical Kalman Filter application.
+## 8. Part B — Kalman Filter Integration
 
-The planned implementation includes:
+Part B applies operating-system facilities to a multi-process Kalman Filter application.
 
-1. Implementing shared Kalman Filter mathematics in `common/kalman_core.hpp`.
-2. Generating a common sensor dataset for both operating systems.
-3. Reading sensor data using native file operations.
-4. Managing arrays using memory-mapped memory.
-5. Distributing independent sensor tracks among worker processes.
-6. Using pipes and shared memory for inter-process communication.
-7. Writing the filtered results using native file operations.
-8. Comparing single-process and multi-process execution.
-9. Measuring performance with 1, 2, 4, and 8 worker processes.
-10. Verifying that parallel execution produces results consistent with single-process execution.
+The implementation includes:
 
-The implementation will be developed separately for Linux and Windows while maintaining the same underlying Kalman Filter mathematics.
+1. A shared Kalman Filter mathematical core in `common/kalman_core.hpp`.
+2. A common generated sensor dataset used by both operating systems.
+3. Native file operations for reading sensor data.
+4. Memory-mapped arrays for managing shared data.
+5. Distribution of independent sensor tracks among worker processes.
+6. Inter-process communication and shared-memory coordination.
+7. Native file operations for writing filtered results.
+8. Single-process and multi-process execution.
+9. Performance measurements using 1, 2, 4, and 8 worker processes.
+10. Verification of consistency between single-process and multi-process filtering results.
 
-## Measuring Performance Fairly
+### 8.1 Dataset
+
+The sensor dataset contains:
+
+- 8 simulated jet tracks.
+- 10,000 observations per track.
+- 80,000 observations in total.
+- A sampling interval of 0.05 seconds (20 Hz).
+
+The same generated dataset is used for both operating-system implementations to support a consistent comparison.
+
+### 8.2 Multi-Process Architecture
+
+Independent tracks are distributed among worker processes.
+
+The worker configurations are:
+
+| Workers | Work distribution |
+|---:|---|
+| 1 | All eight tracks handled by one worker |
+| 2 | Four tracks per worker |
+| 4 | Two tracks per worker |
+| 8 | One track per worker |
+
+The parent process coordinates execution, shared-memory access, worker synchronization, and output collection.
+
+### 8.3 Kalman Filter Results
+
+The recorded positional RMSE measurements are:
+
+| Measurement | RMSE |
+|---|---:|
+| Raw sensor measurements | 70.81 m |
+| Filtered measurements | 22.95 m |
+| RMSE reduction | 67.58% |
+
+The positional RMSE measures the difference between the actual and estimated two-dimensional positions.
+
+### 8.4 Parallel Performance Findings
+
+The multi-process implementation was evaluated with 1, 2, 4, and 8 workers.
+
+The measured results showed that increasing the worker count did not improve execution time in the tested environment. Process creation, synchronization, and coordination overhead outweighed the computational benefit for this workload.
+
+This is an observed performance limitation, not a claim of successful parallel speed-up. The project documents the measured behaviour rather than presenting theoretical speed-up as an achieved result.
+
+## 9. Performance Evaluation
+
+The comparison uses native execution on the same physical machine, with separate operating-system runs.
+
+The evaluation considers:
+
+- System-call/API execution time.
+- Minimum, median, mean, maximum, and standard deviation where collected.
+- CPU usage and memory-related metrics where supported.
+- Kalman Filter execution time.
+- Single-process versus multi-process performance.
+- Filtering accuracy and output consistency.
+
+### 9.1 Fairness Considerations
 
 To make the comparison meaningful:
 
-- Both operating systems will use the same sensor dataset.
-- Benchmarks will use consistent iteration and warm-up settings wherever applicable.
-- Other resource-intensive applications should be closed during testing.
-- Benchmark runs should be conducted under similar power conditions.
-- Multiple runs should be performed to observe performance consistency.
-- Results will be compared using execution time and available CPU and memory metrics.
+- Both operating systems use the same sensor dataset.
+- Benchmarks use consistent iteration and warm-up settings wherever applicable.
+- Resource-intensive background applications should be minimized.
+- Runs should use similar power conditions.
+- Repeated measurements are used to observe performance consistency.
+- Platform-specific metrics are interpreted with care.
 
-Some metrics are platform-specific. For example, CPU-cycle measurements may use different mechanisms on Linux and Windows, so they should not automatically be treated as directly equivalent.
+Some metrics are collected through different operating-system mechanisms. For example, CPU and memory measurements may not be directly equivalent between Linux and Windows.
 
-## Project Status
+### 9.2 Performance Charts
 
-### Part A — System Calls
+The generated charts are stored in `results/charts/`.
+
+| Chart | Purpose |
+|---|---|
+| `trajectory_jet0.png` | Example actual, measured, and filtered trajectory |
+| `rmse_per_jet.png` | Filtering accuracy across all eight tracks |
+| `syscall_comparison_fileio.png` | Linux and Windows File I/O comparison |
+| `syscall_comparison_memory.png` | Linux and Windows memory-operation comparison |
+| `syscall_comparison_process.png` | Linux and Windows process-operation comparison |
+| `speedup_curve.png` | Single-process versus multi-process execution performance |
+
+The charts present measured results. In particular, speed-up values below 1 indicate that the corresponding multi-process configuration was slower than the single-worker baseline.
+
+## 10. Project Status
+
+### Part A — System Call and API Implementation
 
 - [x] Repository structure
-- [x] Linux logger and metrics helpers
-- [x] Windows logger and metrics helpers
+- [x] Linux logging and metrics utilities
+- [x] Windows logging and metrics utilities
 - [x] Linux File I/O
 - [x] Linux Memory Management
 - [x] Linux Process Management
@@ -251,19 +366,38 @@ Some metrics are platform-specific. For example, CPU-cycle measurements may use 
 - [x] Windows Process Management
 - [x] Windows IPC
 - [x] Windows Permissions
+- [x] Demonstration programs and execution logs
+- [x] Benchmark result collection
 
-### Part B — Kalman Filter
+### Part B — Kalman Filter Integration
 
-- [x] Shared Kalman Filter mathematical implementation (`common/kalman_core.hpp`)
-- [x] Sensor data generation (`common/generate_sensor_data.py` & `common/sensor_data.csv`)
-- [x] Windows Kalman Filter implementation (`Windows/Kalman_Filter/Kalman_Filter_Windows.cpp`)
-- [x] Linux Kalman Filter implementation (`Linux/Kalman_Filter/Kalman_Filter_Linux.cpp`)
-- [x] Multi-process execution and IPC integration (1, 2, 4, 8 workers via shared memory)
-- [] Performance comparison (execution & benchmark data collection)
+- [x] Shared Kalman Filter mathematical implementation
+- [x] Sensor data generation
+- [x] Linux Kalman Filter implementation
+- [x] Windows Kalman Filter implementation
+- [x] Native file input and output
+- [x] Memory-mapped data management
+- [x] Multi-process execution and IPC integration
+- [x] 1, 2, 4, and 8 worker configurations
+- [x] Filtered output generation
+- [x] Filtering accuracy evaluation
+- [x] Single-process and multi-process performance measurements
+- [x] Performance comparison charts
 
-### Final Deliverables
+### Final Documentation and Submission
 
-- [x] Project report (`report/report.md`)
-- [x] Project presentation 10–12 slides (`presentation/slides.md`)
-- [x] Performance & verification charts (`results/charts/`)
-- [] Native compilation & runtime execution on dual-boot machine (HP ZBook)
+- [ ] Final project report
+- [ ] Final presentation (10–12 slides)
+- [x] Performance and verification charts
+- [x] Native Linux execution
+- [x] Native Windows execution
+
+## 11. Conclusion
+
+This project demonstrates how Linux and Windows provide different mechanisms for file operations, process management, memory management, IPC, and permissions.
+
+It also demonstrates how these operating-system facilities can be integrated into a practical Kalman Filter application using memory-mapped data and multiple worker processes.
+
+The performance evaluation highlights that native API behaviour and execution overhead differ between operating systems. It also shows that multi-process execution does not automatically improve performance: the overhead of process management and synchronization can outweigh the benefits for relatively small computational workloads.
+
+The project provides a practical comparison of operating-system facilities through implementation, measurement, and analysis.
