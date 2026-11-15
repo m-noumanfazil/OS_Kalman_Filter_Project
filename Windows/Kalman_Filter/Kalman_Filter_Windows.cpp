@@ -162,9 +162,10 @@ bool ingestSensorDataWin32(const char* filePath, vector<kalman::RadarMeasurement
     BOOL readOk = ReadFile(hFile, buffer.data(), static_cast<DWORD>(totalBytes), &bytesRead, nullptr);
     bool readSuccess = (readOk && bytesRead == totalBytes);
     LOG_SYSCALL("ReadFile", readSuccess, filePath);
-    CloseHandle(hFile);
+    bool closeOk = CloseHandle(hFile) != 0;
+    LOG_SYSCALL("CloseHandle", closeOk, filePath);
 
-    if (!readSuccess) return false;
+    if (!readSuccess || !closeOk) return false;
 
     // Fast CSV parsing
     stringstream ss(buffer.data());
@@ -172,6 +173,8 @@ bool ingestSensorDataWin32(const char* filePath, vector<kalman::RadarMeasurement
     // Skip header line
     if (!getline(ss, line)) return false;
 
+    double lastTimestamp[kTotalTracks] = {};
+    bool seenTrack[kTotalTracks] = {};
     while (getline(ss, line)) {
         if (line.empty()) continue;
         stringstream lineStream(line);
@@ -179,17 +182,24 @@ bool ingestSensorDataWin32(const char* filePath, vector<kalman::RadarMeasurement
         kalman::RadarMeasurement m{};
 
         // Columns: timestamp,track_id,true_x,true_y,meas_x,meas_y,true_vx,true_vy
-        if (!getline(lineStream, cell, ',')) continue; m.timestamp = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.track_id = stoi(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.meas_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.meas_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_vx = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_vy = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.timestamp = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.track_id = stoi(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_x = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_y = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_x = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_y = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vx = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vy = stod(cell);
+
+        if (m.track_id < 0 || m.track_id >= kTotalTracks ||
+            !isfinite(m.timestamp) || m.timestamp < 0 || !isfinite(m.true_x) || !isfinite(m.true_y) ||
+            !isfinite(m.meas_x) || !isfinite(m.meas_y) || !isfinite(m.true_vx) || !isfinite(m.true_vy) ||
+            (seenTrack[m.track_id] && m.timestamp <= lastTimestamp[m.track_id]) ||
+            outData.size() >= kMaxRecords) return false;
+        seenTrack[m.track_id] = true;
+        lastTimestamp[m.track_id] = m.timestamp;
 
         outData.push_back(m);
-        if (outData.size() >= kMaxRecords) break;
     }
 
     return !outData.empty();
@@ -222,8 +232,9 @@ bool exportFilteredResultsWin32(const char* filePath, const SharedRadarArena* ar
     BOOL writeOk = WriteFile(hFile, content.data(), static_cast<DWORD>(content.size()), &bytesWritten, nullptr);
     bool writeGood = (writeOk && bytesWritten == content.size());
     LOG_SYSCALL("WriteFile", writeGood, filePath);
-    CloseHandle(hFile);
-    return writeGood;
+    bool closeOk = CloseHandle(hFile) != 0;
+    LOG_SYSCALL("CloseHandle", closeOk, filePath);
+    return writeGood && closeOk;
 }
 
 // ----------------------------- Worker Core Logic -----------------------------
@@ -260,11 +271,12 @@ void executeWorkerFiltering(SharedRadarArena* arena, int workerId, int totalWork
 // Worker process entry point: maps shared arena, runs Kalman filter, exits
 int runWorkerChild(int argc, char* argv[]) {
     // Arguments: --worker <workerId> <totalWorkers> <shmName>
-    if (argc < 5) return 2;
+    if (argc != 5) return 2;
 
     int workerId     = atoi(argv[2]);
     int totalWorkers = atoi(argv[3]);
     const char* shmName = argv[4];
+    if (totalWorkers < 2 || totalWorkers > kTotalTracks || workerId < 0 || workerId >= totalWorkers) return 2;
 
     // --- CPU Core Affinity Optimization (Option B) ---
     // Locks worker process to dedicated CPU core, preventing OS thread migration & L1/L2 cache thrashing
@@ -324,6 +336,7 @@ bool spawnAndJoinWorkers(const string& exePath, const string& shmName, int numWo
             // Cleanup already started workers
             for (HANDLE h : processHandles) {
                 TerminateProcess(h, 1);
+                WaitForSingleObject(h, INFINITE);
                 CloseHandle(h);
             }
             for (HANDLE h : threadHandles) CloseHandle(h);
@@ -352,12 +365,15 @@ bool spawnAndJoinWorkers(const string& exePath, const string& shmName, int numWo
     );
 
     bool allOk = (waitResult >= WAIT_OBJECT_0 && waitResult < WAIT_OBJECT_0 + processHandles.size());
+    if (!allOk) {
+        for (HANDLE h : processHandles) TerminateProcess(h, 1);
+        for (HANDLE h : processHandles) WaitForSingleObject(h, INFINITE);
+    }
 
     // Check exit codes and clean up handles
     for (size_t i = 0; i < processHandles.size(); ++i) {
         DWORD exitCode = 0;
-        GetExitCodeProcess(processHandles[i], &exitCode);
-        if (exitCode != 0) allOk = false;
+        if (!GetExitCodeProcess(processHandles[i], &exitCode) || exitCode != 0) allOk = false;
         CloseHandle(processHandles[i]);
         CloseHandle(threadHandles[i]);
     }
@@ -417,10 +433,16 @@ bool runDemonstration(const string& exePath, const vector<kalman::RadarMeasureme
     bool parityExact = true;
     double maxDiff = 0.0;
     for (uint32_t i = 0; i < arena->recordCount; ++i) {
-        double dx = abs(arena->outputs[i].est_x - singleProcessOutputs[i].est_x);
-        double dy = abs(arena->outputs[i].est_y - singleProcessOutputs[i].est_y);
-        maxDiff = max(maxDiff, max(dx, dy));
-        if (dx > 1e-9 || dy > 1e-9) {
+        const auto& actual = arena->outputs[i];
+        const auto& expected = singleProcessOutputs[i];
+        double differences[] = {abs(actual.est_x - expected.est_x), abs(actual.est_y - expected.est_y),
+                                abs(actual.est_vx - expected.est_vx), abs(actual.est_vy - expected.est_vy)};
+        bool valid = actual.track_id == expected.track_id && actual.timestamp == expected.timestamp;
+        for (double difference : differences) {
+            if (!isfinite(difference) || difference > 1e-9) valid = false;
+            else maxDiff = max(maxDiff, difference);
+        }
+        if (!valid) {
             parityExact = false;
             break;
         }
@@ -438,7 +460,7 @@ bool runDemonstration(const string& exePath, const vector<kalman::RadarMeasureme
     // Cleanup Demo Mapping
     UnmapViewOfFile(view);
     CloseHandle(hMap);
-    return filterEffective && parityExact;
+    return filterEffective && parallelOk && parityExact;
 }
 
 // ----------------------------- PART 2: BENCHMARKING & SCALABILITY ------------
@@ -468,17 +490,28 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
     for (int workers : workerConfigs) {
         string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers");
 
+        bool workersOk = true;
         auto action = [&]() {
             if (workers == 1) {
                 executeWorkerFiltering(arena, 0, 1);
             } else {
-                spawnAndJoinWorkers(exePath, shmName, workers);
+                workersOk = spawnAndJoinWorkers(exePath, shmName, workers) && workersOk;
             }
         };
 
         metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup);
+        if (!workersOk) {
+            cerr << "Worker failure; benchmark results discarded.\n";
+            UnmapViewOfFile(view);
+            CloseHandle(hMap);
+            return false;
+        }
         metrics::printStats(stats);
-        metrics::appendStatsToCsv(stats, "results/Windows/windows_results.csv");
+        if (!metrics::appendStatsToCsv(stats, "results/Windows/windows_results.csv")) {
+            UnmapViewOfFile(view);
+            CloseHandle(hMap);
+            return false;
+        }
 
         if (workers == 1) {
             baselineMeanUs = stats.meanUs;
@@ -494,11 +527,12 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
 
     // Export final filtered trajectory
     cout << "Exporting final filtered supersonic trajectory to " << kOutputCsvPath << "...\n";
-    exportFilteredResultsWin32(kOutputCsvPath, arena);
-
-    UnmapViewOfFile(view);
-    CloseHandle(hMap);
-    return true;
+    bool exported = exportFilteredResultsWin32(kOutputCsvPath, arena);
+    bool unmapped = UnmapViewOfFile(view) != 0;
+    LOG_SYSCALL("UnmapViewOfFile", unmapped, "benchmark arena");
+    bool closed = CloseHandle(hMap) != 0;
+    LOG_SYSCALL("CloseHandle", closed, "benchmark mapping");
+    return exported && unmapped && closed;
 }
 
 // ----------------------------- MAIN DISPATCH ---------------------------------

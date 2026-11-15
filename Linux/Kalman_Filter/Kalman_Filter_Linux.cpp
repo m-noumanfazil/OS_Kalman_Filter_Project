@@ -162,9 +162,10 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
 
     bool readSuccess = (totalRead == totalBytes);
     LOG_SYSCALL("read", readSuccess, filePath);
-    close(fd);
+    bool closeOk = close(fd) == 0;
+    LOG_SYSCALL("close", closeOk, filePath);
 
-    if (!readSuccess) return false;
+    if (!readSuccess || !closeOk) return false;
 
     // Fast CSV parsing
     stringstream ss(buffer.data());
@@ -172,6 +173,8 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
     // Skip header line
     if (!getline(ss, line)) return false;
 
+    double lastTimestamp[kTotalTracks] = {};
+    bool seenTrack[kTotalTracks] = {};
     while (getline(ss, line)) {
         if (line.empty()) continue;
         stringstream lineStream(line);
@@ -179,17 +182,24 @@ bool ingestSensorDataPOSIX(const char* filePath, vector<kalman::RadarMeasurement
         kalman::RadarMeasurement m{};
 
         // Columns: timestamp,track_id,true_x,true_y,meas_x,meas_y,true_vx,true_vy
-        if (!getline(lineStream, cell, ',')) continue; m.timestamp = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.track_id = stoi(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.meas_x = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.meas_y = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_vx = stod(cell);
-        if (!getline(lineStream, cell, ',')) continue; m.true_vy = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.timestamp = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.track_id = stoi(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_x = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_y = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_x = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.meas_y = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vx = stod(cell);
+        if (!getline(lineStream, cell, ',')) return false; m.true_vy = stod(cell);
+
+        if (m.track_id < 0 || m.track_id >= kTotalTracks ||
+            !isfinite(m.timestamp) || m.timestamp < 0 || !isfinite(m.true_x) || !isfinite(m.true_y) ||
+            !isfinite(m.meas_x) || !isfinite(m.meas_y) || !isfinite(m.true_vx) || !isfinite(m.true_vy) ||
+            (seenTrack[m.track_id] && m.timestamp <= lastTimestamp[m.track_id]) ||
+            outData.size() >= kMaxRecords) return false;
+        seenTrack[m.track_id] = true;
+        lastTimestamp[m.track_id] = m.timestamp;
 
         outData.push_back(m);
-        if (outData.size() >= kMaxRecords) break;
     }
 
     return !outData.empty();
@@ -229,8 +239,9 @@ bool exportFilteredResultsPOSIX(const char* filePath, const SharedRadarArena* ar
 
     bool writeGood = (totalWritten == content.size());
     LOG_SYSCALL("write", writeGood, filePath);
-    close(fd);
-    return writeGood;
+    bool closeOk = close(fd) == 0;
+    LOG_SYSCALL("close", closeOk, filePath);
+    return writeGood && closeOk;
 }
 
 // ----------------------------- Worker Core Logic -----------------------------
@@ -352,10 +363,16 @@ bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
     bool parityExact = true;
     double maxDiff = 0.0;
     for (uint32_t i = 0; i < arena->recordCount; ++i) {
-        double dx = abs(arena->outputs[i].est_x - singleProcessOutputs[i].est_x);
-        double dy = abs(arena->outputs[i].est_y - singleProcessOutputs[i].est_y);
-        maxDiff = max(maxDiff, max(dx, dy));
-        if (dx > 1e-9 || dy > 1e-9) {
+        const auto& actual = arena->outputs[i];
+        const auto& expected = singleProcessOutputs[i];
+        double differences[] = {abs(actual.est_x - expected.est_x), abs(actual.est_y - expected.est_y),
+                                abs(actual.est_vx - expected.est_vx), abs(actual.est_vy - expected.est_vy)};
+        bool valid = actual.track_id == expected.track_id && actual.timestamp == expected.timestamp;
+        for (double difference : differences) {
+            if (!isfinite(difference) || difference > 1e-9) valid = false;
+            else maxDiff = max(maxDiff, difference);
+        }
+        if (!valid) {
             parityExact = false;
             break;
         }
@@ -372,7 +389,7 @@ bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
 
     // Cleanup Demo Mapping
     munmap(mmapPtr, kArenaSize);
-    return filterEffective && parityExact;
+    return filterEffective && parallelOk && parityExact;
 }
 
 // ----------------------------- PART 2: BENCHMARKING & SCALABILITY ------------
@@ -395,17 +412,26 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
     for (int workers : workerConfigs) {
         string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers");
 
+        bool workersOk = true;
         auto action = [&]() {
             if (workers == 1) {
                 executeWorkerFiltering(arena, 0, 1);
             } else {
-                spawnAndJoinWorkers(arena, workers);
+                workersOk = spawnAndJoinWorkers(arena, workers) && workersOk;
             }
         };
 
         metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup);
+        if (!workersOk) {
+            cerr << "Worker failure; benchmark results discarded.\n";
+            munmap(mmapPtr, kArenaSize);
+            return false;
+        }
         metrics::printStats(stats);
-        metrics::appendStatsToCsv(stats, "results/Linux/linux_results.csv");
+        if (!metrics::appendStatsToCsv(stats, "results/Linux/linux_results.csv")) {
+            munmap(mmapPtr, kArenaSize);
+            return false;
+        }
 
         if (workers == 1) {
             baselineMeanUs = stats.meanUs;
@@ -420,10 +446,10 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
     }
 
     cout << "Exporting final filtered supersonic trajectory to " << kOutputCsvPath << "...\n";
-    exportFilteredResultsPOSIX(kOutputCsvPath, arena);
-
-    munmap(mmapPtr, kArenaSize);
-    return true;
+    bool exported = exportFilteredResultsPOSIX(kOutputCsvPath, arena);
+    bool unmapped = munmap(mmapPtr, kArenaSize) == 0;
+    LOG_SYSCALL("munmap", unmapped, "benchmark arena");
+    return exported && unmapped;
 }
 
 // ----------------------------- MAIN DISPATCH ---------------------------------
