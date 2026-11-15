@@ -47,3 +47,14 @@ jobs:
         run: |
           python3 common/run_filter_experiment.py --binary "$RUNNER_TEMP/kalman-build/Kalman_Filter" --input common/sensor_data.csv --output-dir "$RUNNER_TEMP/kalman-experiment" --build-command "g++ -std=c++17 -O2" --notes "GitHub-hosted CI; not controlled performance evidence"
           python3 tests/check_benchmark_samples.py "$RUNNER_TEMP/kalman-experiment/results/Linux"
+      - name: Preserve Linux experiment evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-filter-experiment-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/kalman-experiment/manifest.json
+            ${{ runner.temp }}/kalman-experiment/execution.log
+            ${{ runner.temp }}/kalman-experiment/results/Linux/persistent_samples.csv
+            ${{ runner.temp }}/kalman-experiment/results/Linux/persistent_summary.csv
+          if-no-files-found: error
+          retention-days: 14

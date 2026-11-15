@@ -20,6 +20,18 @@ def sha256(path):
     return digest.hexdigest()
 
 
+def source_revision():
+    """Identify the source checkout when git is available; do not infer binary provenance."""
+    try:
+        result = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).resolve().parent,
+                                capture_output=True, text=True, timeout=5, check=True)
+        status = subprocess.run(['git', 'status', '--porcelain'], cwd=Path(__file__).resolve().parent,
+                                capture_output=True, text=True, timeout=5, check=True)
+        return {'commit': result.stdout.strip(), 'tracked_or_untracked_changes': bool(status.stdout.strip())}
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
@@ -46,7 +58,7 @@ def main():
             'logical_cpus': os.cpu_count(), 'python_version': platform.python_version(),
             'binary': str(binary), 'binary_sha256': sha256(binary),
             'input': str(source), 'input_sha256': sha256(source),
-            'build_command': args.build_command, 'notes': args.notes,
+            'build_command': args.build_command, 'source_checkout': source_revision(), 'notes': args.notes,
         }
         manifest_path = output / 'manifest.json'
         manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
