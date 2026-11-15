@@ -671,12 +671,6 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
             return false;
         }
         metrics::printStats(stats);
-        if (!metrics::appendStatsToCsv(stats, "results/Windows/persistent_summary.csv")) {
-            UnmapViewOfFile(view);
-            CloseHandle(hMap);
-            return false;
-        }
-
         {
             const char* samplePath = "results/Windows/persistent_samples.csv";
             const string expectedHeader = "run_id,platform,compiler,records,workers,iteration,elapsed_us,launch_us,parent_cpu_us,worker_cpu_us";
@@ -698,6 +692,11 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
                         << workers << "," << (i + 1) << "," << setprecision(17) << stats.samplesUs[i] << "," << launchUs << "," << stats.totalCpuUs << "," << workerCpu << "\n";
             samples.flush();
             if (!samples) { cerr << "Failed writing benchmark samples.\n"; UnmapViewOfFile(view); CloseHandle(hMap); return false; }
+        }
+        if (!metrics::appendStatsToCsv(stats, "results/Windows/persistent_summary.csv")) {
+            UnmapViewOfFile(view);
+            CloseHandle(hMap);
+            return false;
         }
 
         if (workers == 1) {

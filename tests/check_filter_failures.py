@@ -40,6 +40,7 @@ def main():
         'repeated timestamp': header + '1,0,0,0,1,1,0,0\n1,0,0,0,1,1,0,0\n',
         'malformed row': header + '0,0,0\n',
         'trailing numeric garbage': header + '0,0junk,0,0,0,0,0,0\n',
+        'record limit exceeded': header + ''.join(f'{i},0,0,0,0,0,0,0\n' for i in range(100001)),
     }
     for name, content in cases.items():
         with tempfile.TemporaryDirectory() as temporary:
@@ -69,6 +70,8 @@ def main():
             run(binary, root)
             assert destination.is_dir()
             assert not (root / f'results/{args.platform}/filtered_sensor_data.csv').exists()
+            if filename == 'persistent_samples.csv':
+                assert not (root / f'results/{args.platform}/persistent_summary.csv').exists()
             print(f'unwritable {filename}: reported failure')
     if args.test_worker_failure:
         cases = [('KALMAN_TEST_FAIL_POOL_WORKER', 'Persistent worker startup or parity failed.'),

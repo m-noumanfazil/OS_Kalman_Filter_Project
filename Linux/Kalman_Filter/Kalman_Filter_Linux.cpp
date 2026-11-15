@@ -588,11 +588,6 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
             return false;
         }
         metrics::printStats(stats);
-        if (!metrics::appendStatsToCsv(stats, "results/Linux/persistent_summary.csv")) {
-            munmap(mmapPtr, kArenaSize);
-            return false;
-        }
-
         {
             const char* samplePath = "results/Linux/persistent_samples.csv";
             const string expectedHeader = "run_id,platform,compiler,records,workers,iteration,elapsed_us,launch_us,parent_cpu_us,worker_cpu_us";
@@ -614,6 +609,10 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
                         << workers << "," << (i + 1) << "," << setprecision(17) << stats.samplesUs[i] << "," << launchUs << "," << stats.totalCpuUs << "," << workerCpu << "\n";
             samples.flush();
             if (!samples) { cerr << "Failed writing benchmark samples.\n"; munmap(mmapPtr, kArenaSize); return false; }
+        }
+        if (!metrics::appendStatsToCsv(stats, "results/Linux/persistent_summary.csv")) {
+            munmap(mmapPtr, kArenaSize);
+            return false;
         }
 
         if (workers == 1) {

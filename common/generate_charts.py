@@ -651,21 +651,11 @@ print("[6/6] Generating speedup_curve.png ...")
 
 workers = np.array([1, 2, 4, 8], dtype=float)
 
-# Actual measured mean execution times in microseconds.
-# Order: 1, 2, 4 and 8 worker processes.
-linux_times = np.array([
-    2131.355,
-    5313.664,
-    5494.792,
-    8502.792
-])
-
-windows_times = np.array([
-    2350.510,
-    30210.732,
-    36403.950,
-    49416.734
-])
+# Historical median execution times, read from the selected benchmark CSVs.
+names = ['KalmanFilter_1Worker', 'KalmanFilter_2Workers',
+         'KalmanFilter_4Workers', 'KalmanFilter_8Workers']
+linux_times = np.array([get_median(linux_data, name, 'Linux') for name in names])
+windows_times = np.array([get_median(win_data, name, 'Windows') for name in names])
 
 # Speedup = single-worker time / execution time with N workers.
 linux_speedup = linux_times[0] / linux_times
@@ -768,7 +758,7 @@ for n, sp in zip(workers[1:], windows_speedup[1:]):
     )
 
 fig.suptitle(
-    "Kalman Filter Parallel Speedup: Actual Measurements",
+    "Historical Kalman Filter Speedup (Median Latency)",
     fontsize=14, fontweight="bold"
 )
 fig.text(
