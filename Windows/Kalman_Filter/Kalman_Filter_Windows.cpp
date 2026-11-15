@@ -48,6 +48,7 @@
 #include "../../common/kalman_core.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -298,7 +299,28 @@ int runWorkerChild(int argc, char* argv[]) {
     }
 
     SharedRadarArena* arena = static_cast<SharedRadarArena*>(view);
-    executeWorkerFiltering(arena, workerId, totalWorkers);
+    if (strcmp(argv[1], "--pool") == 0) {
+        string prefix = string(shmName);
+        string suffix = to_string(workerId);
+        HANDLE go = OpenEventA(SYNCHRONIZE, FALSE, (prefix + "_go_" + suffix).c_str());
+        HANDLE done = OpenEventA(EVENT_MODIFY_STATE, FALSE, (prefix + "_done_" + suffix).c_str());
+        HANDLE stop = OpenEventA(SYNCHRONIZE, FALSE, (prefix + "_stop").c_str());
+        if (!go || !done || !stop) {
+            if (go) CloseHandle(go); if (done) CloseHandle(done); if (stop) CloseHandle(stop);
+            UnmapViewOfFile(view); CloseHandle(hMap); return 5;
+        }
+        HANDLE waits[] = {stop, go};
+        for (;;) {
+            DWORD result = WaitForMultipleObjects(2, waits, FALSE, INFINITE);
+            if (result == WAIT_OBJECT_0) break;
+            if (result != WAIT_OBJECT_0 + 1) { CloseHandle(go); CloseHandle(done); CloseHandle(stop); UnmapViewOfFile(view); CloseHandle(hMap); return 6; }
+            executeWorkerFiltering(arena, workerId, totalWorkers);
+            if (!SetEvent(done)) { CloseHandle(go); CloseHandle(done); CloseHandle(stop); UnmapViewOfFile(view); CloseHandle(hMap); return 7; }
+        }
+        CloseHandle(go); CloseHandle(done); CloseHandle(stop);
+    } else {
+        executeWorkerFiltering(arena, workerId, totalWorkers);
+    }
 
     UnmapViewOfFile(view);
     CloseHandle(hMap);
@@ -380,6 +402,56 @@ bool spawnAndJoinWorkers(const string& exePath, const string& shmName, int numWo
 
     return allOk;
 }
+
+// Named events signal full independent trials to long-lived workers.
+class PersistentWorkers {
+    vector<HANDLE> processes_, go_, done_;
+    HANDLE stop_ = nullptr;
+    bool healthy_ = true;
+public:
+    PersistentWorkers(const string& exe, const string& name, int count) {
+        if (!count) return;
+        stop_ = CreateEventA(nullptr, TRUE, FALSE, (name + "_stop").c_str());
+        if (!stop_ || GetLastError() == ERROR_ALREADY_EXISTS) { healthy_ = false; return; }
+        for (int w = 0; w < count; ++w) {
+            string suffix = to_string(w);
+            HANDLE go = CreateEventA(nullptr, FALSE, FALSE, (name + "_go_" + suffix).c_str());
+            bool goNew = go && GetLastError() != ERROR_ALREADY_EXISTS;
+            HANDLE done = CreateEventA(nullptr, FALSE, FALSE, (name + "_done_" + suffix).c_str());
+            bool doneNew = done && GetLastError() != ERROR_ALREADY_EXISTS;
+            if (!goNew || !doneNew) { if (go) CloseHandle(go); if (done) CloseHandle(done); healthy_ = false; break; }
+            go_.push_back(go); done_.push_back(done);
+            string cmd = "\"" + exe + "\" --pool " + suffix + " " + to_string(count) + " " + name;
+            vector<char> buffer(cmd.begin(), cmd.end()); buffer.push_back('\0');
+            STARTUPINFOA si{}; si.cb = sizeof(si); PROCESS_INFORMATION pi{};
+            if (!CreateProcessA(nullptr, buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+                healthy_ = false; break;
+            }
+            CloseHandle(pi.hThread); processes_.push_back(pi.hProcess);
+        }
+    }
+    bool ready() const { return healthy_; }
+    bool run() {
+        if (!healthy_) return false;
+        for (HANDLE event : go_) if (!SetEvent(event)) return healthy_ = false;
+        DWORD result = WaitForMultipleObjects(static_cast<DWORD>(done_.size()), done_.data(), TRUE, 15000);
+        if (result != WAIT_OBJECT_0) return healthy_ = false;
+        for (HANDLE process : processes_) if (WaitForSingleObject(process, 0) != WAIT_TIMEOUT) return healthy_ = false;
+        return true;
+    }
+    ~PersistentWorkers() {
+        if (stop_) SetEvent(stop_);
+        for (HANDLE process : processes_) {
+            if (WaitForSingleObject(process, 15000) != WAIT_OBJECT_0) {
+                TerminateProcess(process, 1); WaitForSingleObject(process, INFINITE);
+            }
+            CloseHandle(process);
+        }
+        for (HANDLE event : go_) CloseHandle(event);
+        for (HANDLE event : done_) CloseHandle(event);
+        if (stop_) CloseHandle(stop_);
+    }
+};
 
 // ----------------------------- PART 1: DEMONSTRATION & VALIDATION ------------
 
@@ -488,16 +560,39 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
 
     int workerConfigs[] = {1, 2, 4, 8};
     double baselineMeanUs = 0.0;
+    executeWorkerFiltering(arena, 0, 1);
+    vector<kalman::FilteredOutput> reference(arena->outputs, arena->outputs + arena->recordCount);
 
     for (int workers : workerConfigs) {
         string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers");
 
-        bool workersOk = true;
+        auto startupBegin = chrono::steady_clock::now();
+        PersistentWorkers pool(exePath, shmName, workers == 1 ? 0 : workers);
+        auto startupEnd = chrono::steady_clock::now();
+        cout << "  Worker startup (us): " << chrono::duration<double, micro>(startupEnd - startupBegin).count() << "\n";
+        bool workersOk = pool.ready();
+        if (workers > 1 && workersOk) {
+            memset(arena->outputs, 0, sizeof(arena->outputs));
+            workersOk = pool.run();
+            for (uint32_t i = 0; workersOk && i < arena->recordCount; ++i) {
+                const auto& a = arena->outputs[i];
+                const auto& b = reference[i];
+                double diffs[] = {abs(a.est_x - b.est_x), abs(a.est_y - b.est_y),
+                                  abs(a.est_vx - b.est_vx), abs(a.est_vy - b.est_vy)};
+                workersOk = a.track_id == b.track_id && a.timestamp == b.timestamp;
+                for (double d : diffs) if (!isfinite(d) || d > 1e-9) workersOk = false;
+            }
+        }
+        if (!workersOk) {
+            cerr << "Persistent worker startup or parity failed.\n";
+            UnmapViewOfFile(view); CloseHandle(hMap);
+            return false;
+        }
         auto action = [&]() {
             if (workers == 1) {
                 executeWorkerFiltering(arena, 0, 1);
             } else {
-                workersOk = spawnAndJoinWorkers(exePath, shmName, workers) && workersOk;
+                workersOk = pool.run() && workersOk;
             }
         };
 
@@ -541,7 +636,7 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
 
 int main(int argc, char* argv[]) {
     // 1. CHILD WORKER MODE: Must check FIRST before transcript or logging
-    if (argc >= 2 && strcmp(argv[1], "--worker") == 0) {
+    if (argc >= 2 && (strcmp(argv[1], "--worker") == 0 || strcmp(argv[1], "--pool") == 0)) {
         return runWorkerChild(argc, argv);
     }
 

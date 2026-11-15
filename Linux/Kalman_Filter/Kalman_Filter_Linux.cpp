@@ -44,6 +44,7 @@
 #include "../../common/kalman_core.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -60,6 +61,8 @@
 
 #include <fcntl.h>
 #include <sched.h>
+#include <poll.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -320,6 +323,61 @@ bool spawnAndJoinWorkers(SharedRadarArena* arena, int numWorkers) {
     return allSuccess;
 }
 
+// Each command executes one independent full-dataset trial. Workers remain
+// alive across warm-up and timed trials; filter state is reset each trial.
+class PersistentWorkers {
+    struct Worker { pid_t pid; int command; int done; };
+    vector<Worker> workers_;
+    bool healthy_ = true;
+public:
+    PersistentWorkers(SharedRadarArena* arena, int count) {
+        for (int w = 0; w < count; ++w) {
+            int command[2], done[2];
+            if (pipe(command) != 0) { healthy_ = false; break; }
+            if (pipe(done) != 0) { close(command[0]); close(command[1]); healthy_ = false; break; }
+            pid_t pid = fork();
+            if (pid == 0) {
+                close(command[1]); close(done[0]);
+                for (const auto& old : workers_) { close(old.command); close(old.done); }
+                char cmd;
+                while (read(command[0], &cmd, 1) == 1 && cmd == 'R') {
+                    executeWorkerFiltering(arena, w, count);
+                    char reply = 'D';
+                    if (write(done[1], &reply, 1) != 1) _exit(2);
+                }
+                close(command[0]); close(done[1]); _exit(0);
+            }
+            close(command[0]); close(done[1]);
+            if (pid < 0) { close(command[1]); close(done[0]); healthy_ = false; break; }
+            workers_.push_back({pid, command[1], done[0]});
+        }
+    }
+    bool ready() const { return healthy_; }
+    bool run() {
+        if (!healthy_) return false;
+        for (const auto& worker : workers_) {
+            char cmd = 'R';
+            if (write(worker.command, &cmd, 1) != 1) return healthy_ = false;
+        }
+        for (const auto& worker : workers_) {
+            pollfd pfd{worker.done, POLLIN, 0};
+            int result;
+            do { result = poll(&pfd, 1, 15000); } while (result < 0 && errno == EINTR);
+            char reply = 0;
+            if (result <= 0 || !(pfd.revents & POLLIN) || read(worker.done, &reply, 1) != 1 || reply != 'D')
+                return healthy_ = false;
+        }
+        return true;
+    }
+    ~PersistentWorkers() {
+        for (const auto& worker : workers_) { close(worker.command); close(worker.done); }
+        for (const auto& worker : workers_) {
+            if (!healthy_) kill(worker.pid, SIGKILL);
+            while (waitpid(worker.pid, nullptr, 0) < 0 && errno == EINTR) {}
+        }
+    }
+};
+
 // ----------------------------- PART 1: DEMONSTRATION & VALIDATION ------------
 
 bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
@@ -410,16 +468,41 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
 
     int workerConfigs[] = {1, 2, 4, 8};
     double baselineMeanUs = 0.0;
+    executeWorkerFiltering(arena, 0, 1);
+    vector<kalman::FilteredOutput> reference(arena->outputs, arena->outputs + arena->recordCount);
 
     for (int workers : workerConfigs) {
         string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers");
 
-        bool workersOk = true;
+        // Ignore SIGPIPE so a dead child becomes a reported write failure.
+        signal(SIGPIPE, SIG_IGN);
+        auto startupBegin = chrono::steady_clock::now();
+        PersistentWorkers pool(arena, workers == 1 ? 0 : workers);
+        auto startupEnd = chrono::steady_clock::now();
+        cout << "  Worker startup (us): " << chrono::duration<double, micro>(startupEnd - startupBegin).count() << "\n";
+        bool workersOk = pool.ready();
+        if (workers > 1 && workersOk) {
+            memset(arena->outputs, 0, sizeof(arena->outputs));
+            workersOk = pool.run();
+            for (uint32_t i = 0; workersOk && i < arena->recordCount; ++i) {
+                const auto& a = arena->outputs[i];
+                const auto& b = reference[i];
+                double diffs[] = {abs(a.est_x - b.est_x), abs(a.est_y - b.est_y),
+                                  abs(a.est_vx - b.est_vx), abs(a.est_vy - b.est_vy)};
+                workersOk = a.track_id == b.track_id && a.timestamp == b.timestamp;
+                for (double d : diffs) if (!isfinite(d) || d > 1e-9) workersOk = false;
+            }
+        }
+        if (!workersOk) {
+            cerr << "Persistent worker startup or parity failed.\n";
+            munmap(mmapPtr, kArenaSize);
+            return false;
+        }
         auto action = [&]() {
             if (workers == 1) {
                 executeWorkerFiltering(arena, 0, 1);
             } else {
-                workersOk = spawnAndJoinWorkers(arena, workers) && workersOk;
+                workersOk = pool.run() && workersOk;
             }
         };
 
