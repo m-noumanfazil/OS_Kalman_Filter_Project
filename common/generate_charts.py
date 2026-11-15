@@ -26,7 +26,7 @@ import numpy as np
 # Paths
 # =============================================================================
 
-ROOT = r"C:\Users\hp ZBook\Desktop\OS_Kalman_Filter_CCP"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SENSOR_CSV = os.path.join(ROOT, "common", "sensor_data.csv")
 FILTERED_WIN_CSV = os.path.join(
