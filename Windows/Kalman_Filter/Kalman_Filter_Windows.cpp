@@ -339,6 +339,11 @@ int runWorkerChild(int argc, char* argv[]) {
             if (!SetEvent(done)) { CloseHandle(go); CloseHandle(done); CloseHandle(stop); UnmapViewOfFile(view); CloseHandle(hMap); return 7; }
         }
         CloseHandle(go); CloseHandle(done); CloseHandle(stop);
+#ifdef KALMAN_TEST_FAILURES
+        if (workerId == 0 && getenv("KALMAN_TEST_FAIL_POOL_SHUTDOWN")) {
+            UnmapViewOfFile(view); CloseHandle(hMap); return 92;
+        }
+#endif
     } else {
         executeWorkerFiltering(arena, workerId, totalWorkers);
     }
@@ -429,11 +434,15 @@ class PersistentWorkers {
     vector<HANDLE> processes_, go_, done_;
     HANDLE stop_ = nullptr;
     bool healthy_ = true;
+    bool stopped_ = false;
 public:
     PersistentWorkers(const string& exe, const string& name, int count) {
         if (!count) return;
         stop_ = CreateEventA(nullptr, TRUE, FALSE, (name + "_stop").c_str());
-        if (!stop_ || GetLastError() == ERROR_ALREADY_EXISTS) { healthy_ = false; return; }
+        if (!stop_) { healthy_ = false; return; }
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            CloseHandle(stop_); stop_ = nullptr; healthy_ = false; return;
+        }
         for (int w = 0; w < count; ++w) {
             string suffix = to_string(w);
             HANDLE go = CreateEventA(nullptr, FALSE, FALSE, (name + "_go_" + suffix).c_str());
@@ -475,18 +484,26 @@ public:
         }
         return true;
     }
-    ~PersistentWorkers() {
-        if (stop_) SetEvent(stop_);
+    bool shutdown() {
+        if (stopped_) return healthy_;
+        stopped_ = true;
+        bool success = healthy_;
+        if (stop_ && !SetEvent(stop_)) success = false;
         for (HANDLE process : processes_) {
             if (WaitForSingleObject(process, 15000) != WAIT_OBJECT_0) {
+                success = false;
                 TerminateProcess(process, 1); WaitForSingleObject(process, INFINITE);
             }
-            CloseHandle(process);
+            DWORD exitCode = 0;
+            if (!GetExitCodeProcess(process, &exitCode) || exitCode != 0) success = false;
+            if (!CloseHandle(process)) success = false;
         }
-        for (HANDLE event : go_) CloseHandle(event);
-        for (HANDLE event : done_) CloseHandle(event);
-        if (stop_) CloseHandle(stop_);
+        for (HANDLE event : go_) if (!CloseHandle(event)) success = false;
+        for (HANDLE event : done_) if (!CloseHandle(event)) success = false;
+        if (stop_ && !CloseHandle(stop_)) success = false;
+        return healthy_ = success;
     }
+    ~PersistentWorkers() { shutdown(); }
 };
 
 // ----------------------------- PART 1: DEMONSTRATION & VALIDATION ------------
@@ -646,7 +663,8 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
                                                   nullptr, [&]() { workerBefore = pool.workerCpuUs(); });
         double workerAfter = pool.workerCpuUs();
         double workerCpu = workerBefore >= 0 && workerAfter >= 0 ? workerAfter - workerBefore : -1;
-        if (!workersOk) {
+        bool shutdownOk = pool.shutdown();
+        if (!workersOk || !shutdownOk) {
             cerr << "Worker failure; benchmark results discarded.\n";
             UnmapViewOfFile(view);
             CloseHandle(hMap);

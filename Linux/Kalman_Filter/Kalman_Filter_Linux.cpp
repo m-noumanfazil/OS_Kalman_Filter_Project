@@ -357,6 +357,7 @@ class PersistentWorkers {
     vector<Worker> workers_;
     SharedRadarArena* arena_;
     bool healthy_ = true;
+    bool stopped_ = false;
 public:
     PersistentWorkers(SharedRadarArena* arena, int count) : arena_(arena) {
         for (int w = 0; w < count; ++w) {
@@ -377,7 +378,11 @@ public:
                     char reply = 'D';
                     if (write(done[1], &reply, 1) != 1) _exit(2);
                 }
-                close(command[0]); close(done[1]); _exit(0);
+                close(command[0]); close(done[1]);
+#ifdef KALMAN_TEST_FAILURES
+                if (w == 0 && getenv("KALMAN_TEST_FAIL_POOL_SHUTDOWN")) _exit(92);
+#endif
+                _exit(0);
             }
             close(command[0]); close(done[1]);
             if (pid < 0) { close(command[1]); close(done[0]); healthy_ = false; break; }
@@ -406,13 +411,34 @@ public:
         }
         return true;
     }
-    ~PersistentWorkers() {
-        for (const auto& worker : workers_) { close(worker.command); close(worker.done); }
+    bool shutdown() {
+        if (stopped_) return healthy_;
+        stopped_ = true;
+        bool success = healthy_;
+        for (const auto& worker : workers_) {
+            if (close(worker.command) != 0) success = false;
+            if (close(worker.done) != 0) success = false;
+        }
         for (const auto& worker : workers_) {
             if (!healthy_) kill(worker.pid, SIGKILL);
-            while (waitpid(worker.pid, nullptr, 0) < 0 && errno == EINTR) {}
+            int status = 0;
+            pid_t result;
+            auto deadline = chrono::steady_clock::now() + chrono::seconds(5);
+            do {
+                result = waitpid(worker.pid, &status, WNOHANG);
+                if (result == 0 && chrono::steady_clock::now() >= deadline) {
+                    success = false;
+                    kill(worker.pid, SIGKILL);
+                    do { result = waitpid(worker.pid, &status, 0); } while (result < 0 && errno == EINTR);
+                    break;
+                }
+                if (result == 0) usleep(1000);
+            } while (result == 0 || (result < 0 && errno == EINTR));
+            if (result != worker.pid || !WIFEXITED(status) || WEXITSTATUS(status) != 0) success = false;
         }
+        return healthy_ = success;
     }
+    ~PersistentWorkers() { shutdown(); }
 };
 
 // ----------------------------- PART 1: DEMONSTRATION & VALIDATION ------------
@@ -555,7 +581,8 @@ bool runScalabilityBenchmarks(const vector<kalman::RadarMeasurement>& data) {
         metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup,
                                                   nullptr, [&]() { workerBefore = pool.workerCpuUs(); });
         double workerCpu = pool.workerCpuUs() - workerBefore;
-        if (!workersOk) {
+        bool shutdownOk = pool.shutdown();
+        if (!workersOk || !shutdownOk) {
             cerr << "Worker failure; benchmark results discarded.\n";
             munmap(mmapPtr, kArenaSize);
             return false;

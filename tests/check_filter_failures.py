@@ -60,21 +60,24 @@ def main():
         assert destination.is_dir()
         print('unwritable output path: reported failure')
     if args.test_worker_failure:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            workspace(root, args.platform)
-            shutil.copyfile(dataset, root / 'common/sensor_data.csv')
-            env = os.environ.copy()
-            env['KALMAN_TEST_FAIL_POOL_WORKER'] = '1'
-            result = run(binary, root, env)
-            if 'Persistent worker startup or parity failed.' not in result.stdout:
-                raise AssertionError('Expected a persistent-worker failure diagnostic')
-            summary = root / f'results/{args.platform}/persistent_summary.csv'
-            if summary.exists():
-                with summary.open(newline='', encoding='utf-8') as file:
-                    assert all('_2Workers_' not in row['call_name'] for row in csv.DictReader(file))
-            assert not (root / f'results/{args.platform}/filtered_sensor_data.csv').exists()
-            print('failed persistent worker: rejected without recording its benchmark')
+        cases = [('KALMAN_TEST_FAIL_POOL_WORKER', 'Persistent worker startup or parity failed.'),
+                 ('KALMAN_TEST_FAIL_POOL_SHUTDOWN', 'Worker failure; benchmark results discarded.')]
+        for variable, diagnostic in cases:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                workspace(root, args.platform)
+                shutil.copyfile(dataset, root / 'common/sensor_data.csv')
+                env = os.environ.copy()
+                env[variable] = '1'
+                result = run(binary, root, env)
+                if diagnostic not in result.stdout:
+                    raise AssertionError('Expected a persistent-worker failure diagnostic')
+                summary = root / f'results/{args.platform}/persistent_summary.csv'
+                if summary.exists():
+                    with summary.open(newline='', encoding='utf-8') as file:
+                        assert all('_2Workers_' not in row['call_name'] for row in csv.DictReader(file))
+                assert not (root / f'results/{args.platform}/filtered_sensor_data.csv').exists()
+                print(f'{variable}: rejected without recording its benchmark')
 
 
 if __name__ == '__main__':
