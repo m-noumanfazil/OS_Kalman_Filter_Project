@@ -223,15 +223,20 @@ Radar Ping (meas_x, meas_y)
 - Workers only write to their assigned jet slots (non-overlapping)
 - No mutex/semaphore needed — the assignment strategy is the synchronization
 
-### Theoretical Speedup (Amdahl's Law, p=0.90)
-| Workers | Ideal | Theoretical | Linux (est.) | Windows (est.) |
-|---|---|---|---|---|
-| 1 | 1.0× | 1.0× | 1.0× | 1.0× |
-| 2 | 2.0× | 1.82× | 1.90× | 1.72× |
-| 4 | 4.0× | 3.08× | 3.49× | 2.89× |
-| 8 | 8.0× | 4.71× | 5.93× | 4.37× |
+### Parallel Scalability & Amdahl's Law: Measured vs. Theoretical
 
-**Linux achieves higher speedup** because fork() overhead (94 µs) is negligible vs. the KF computation time, while Windows CreateProcess overhead (2,113 µs) consumes a larger fraction of total runtime.
+| Workers | Ideal Linear | Linux (Measured) | Windows (Measured) | Relative Slowdown |
+|---|---|---|---|---|
+| 1 Worker (Baseline) | 1.00× | **1.00×** (~1.9 ms) | **1.00×** (~1.9 ms) | Baseline (In-Process) |
+| 2 Workers | 2.00× | **0.40×** (~5.2 ms) | **0.08×** (~29.9 ms) | Linux 2.5× / Win 12.8× |
+| 4 Workers | 4.00× | **0.39×** (~5.3 ms) | **0.06×** (~33.8 ms) | Linux 2.6× / Win 15.4× |
+| 8 Workers | 8.00× | **0.25×** (~7.9 ms) | **0.05×** (~43.5 ms) | Linux 4.0× / Win 20.8× |
+
+### Key OS Takeaway: The Granularity of Parallelism
+- **The math is extremely fast:** C++ Kalman Filter processes 80k pings in only **~1.9 ms**.
+- **OS process creation is heavy:** Spawning Windows processes on-demand takes **~25–40 ms**, while Linux `fork()` takes **~3–5 ms**.
+- **Empirical Proof:** Linux is **5× faster** than Windows under multi-processing (0.25× vs 0.05×) because Copy-on-Write `fork()` is vastly cheaper than Win32 subsystem initialization.
+- **Production Solution:** Pre-spawning workers as long-running daemons or thread pools eliminates creation overhead, restoring linear speedup.
 
 ---
 
