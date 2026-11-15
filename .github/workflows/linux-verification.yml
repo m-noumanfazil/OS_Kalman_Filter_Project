@@ -38,3 +38,4 @@ jobs:
           cd "$run_dir"
           "$RUNNER_TEMP/kalman-build/Kalman_Filter"
           python3 "$GITHUB_WORKSPACE/common/verify_part_b.py" --input "$run_dir/common/sensor_data.csv" --output "$run_dir/results/Linux/filtered_sensor_data.csv"
+          python3 "$GITHUB_WORKSPACE/tests/check_benchmark_samples.py" "$run_dir/results/Linux"

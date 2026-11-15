@@ -431,6 +431,18 @@ public:
         }
     }
     bool ready() const { return healthy_; }
+    double workerCpuUs() const {
+        double total = 0;
+        for (HANDLE process : processes_) {
+            FILETIME creation, exit, kernel, user;
+            if (!GetProcessTimes(process, &creation, &exit, &kernel, &user)) return -1;
+            ULARGE_INTEGER k{}, u{};
+            k.LowPart = kernel.dwLowDateTime; k.HighPart = kernel.dwHighDateTime;
+            u.LowPart = user.dwLowDateTime; u.HighPart = user.dwHighDateTime;
+            total += static_cast<double>(k.QuadPart + u.QuadPart) / 10.0;
+        }
+        return total;
+    }
     bool run() {
         if (!healthy_) return false;
         for (HANDLE event : go_) if (!SetEvent(event)) return healthy_ = false;
@@ -559,17 +571,24 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
     memcpy(arena->inputs, data.data(), data.size() * sizeof(kalman::RadarMeasurement));
 
     int workerConfigs[] = {1, 2, 4, 8};
+    const auto runId = chrono::duration_cast<chrono::nanoseconds>(
+        chrono::system_clock::now().time_since_epoch()).count();
+    vector<size_t> workloads = {max<size_t>(1, data.size() / 4), max<size_t>(1, data.size() / 2), data.size()};
+    workloads.erase(unique(workloads.begin(), workloads.end()), workloads.end());
+    for (size_t workload : workloads) {
+    arena->recordCount = static_cast<uint32_t>(workload);
     double baselineMeanUs = 0.0;
     executeWorkerFiltering(arena, 0, 1);
     vector<kalman::FilteredOutput> reference(arena->outputs, arena->outputs + arena->recordCount);
 
     for (int workers : workerConfigs) {
-        string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers");
+        string benchName = "KalmanFilter_" + to_string(workers) + (workers == 1 ? "Worker" : "Workers") + "_" + to_string(workload) + "Records";
 
         auto startupBegin = chrono::steady_clock::now();
         PersistentWorkers pool(exePath, shmName, workers == 1 ? 0 : workers);
         auto startupEnd = chrono::steady_clock::now();
-        cout << "  Worker startup (us): " << chrono::duration<double, micro>(startupEnd - startupBegin).count() << "\n";
+        double launchUs = chrono::duration<double, micro>(startupEnd - startupBegin).count();
+        cout << "  Worker launch (us; excludes readiness): " << launchUs << "\n";
         bool workersOk = pool.ready();
         if (workers > 1 && workersOk) {
             memset(arena->outputs, 0, sizeof(arena->outputs));
@@ -596,7 +615,10 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
             }
         };
 
+        double workerBefore = pool.workerCpuUs();
         metrics::Stats stats = metrics::benchmark(benchName, action, kBenchIterations, kBenchWarmup);
+        double workerAfter = pool.workerCpuUs();
+        double workerCpu = workerBefore >= 0 && workerAfter >= 0 ? workerAfter - workerBefore : -1;
         if (!workersOk) {
             cerr << "Worker failure; benchmark results discarded.\n";
             UnmapViewOfFile(view);
@@ -604,10 +626,25 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
             return false;
         }
         metrics::printStats(stats);
-        if (!metrics::appendStatsToCsv(stats, "results/Windows/windows_results.csv")) {
+        if (!metrics::appendStatsToCsv(stats, "results/Windows/persistent_summary.csv")) {
             UnmapViewOfFile(view);
             CloseHandle(hMap);
             return false;
+        }
+
+        {
+            const char* samplePath = "results/Windows/persistent_samples.csv";
+            ifstream existing(samplePath, ios::binary | ios::ate);
+            bool headerNeeded = !existing || existing.tellg() == 0;
+            existing.close();
+            ofstream samples(samplePath, ios::app);
+            if (!samples) { cerr << "Cannot write benchmark samples.\n"; UnmapViewOfFile(view); CloseHandle(hMap); return false; }
+            if (headerNeeded) samples << "run_id,platform,compiler,records,workers,iteration,elapsed_us,launch_us,parent_cpu_us,worker_cpu_us_with_warmup\n";
+            for (size_t i = 0; i < stats.samplesUs.size(); ++i)
+                samples << runId << ",Windows,\"" << __VERSION__ << "\"," << workload << ","
+                        << workers << "," << (i + 1) << "," << setprecision(17) << stats.samplesUs[i] << "," << launchUs << "," << stats.totalCpuUs << "," << workerCpu << "\n";
+            samples.flush();
+            if (!samples) { cerr << "Failed writing benchmark samples.\n"; UnmapViewOfFile(view); CloseHandle(hMap); return false; }
         }
 
         if (workers == 1) {
@@ -622,6 +659,7 @@ bool runScalabilityBenchmarks(const string& exePath, const vector<kalman::RadarM
         }
     }
 
+    }
     // Export final filtered trajectory
     cout << "Exporting final filtered supersonic trajectory to " << kOutputCsvPath << "...\n";
     bool exported = exportFilteredResultsWin32(kOutputCsvPath, arena);

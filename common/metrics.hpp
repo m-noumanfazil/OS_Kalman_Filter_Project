@@ -171,6 +171,7 @@ private:
 // ---------- Benchmark ----------
 
 struct Stats {
+    std::vector<double> samplesUs;
     string callName;
     int iterations = 0;
     double minUs = 0.0;
@@ -195,6 +196,7 @@ inline Stats computeStats(const string& callName,
                           unsigned long long totalCpuCycles = 0) {
     Stats s;
     s.callName = callName;
+    s.samplesUs = timesUs;
     s.iterations = static_cast<int>(timesUs.size());
     s.totalCpuUs = totalCpuUs;
     s.totalCpuCycles = totalCpuCycles;
