@@ -59,6 +59,17 @@ def main():
         run(binary, root)
         assert destination.is_dir()
         print('unwritable output path: reported failure')
+    for filename in ('persistent_summary.csv', 'persistent_samples.csv'):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workspace(root, args.platform)
+            shutil.copyfile(dataset, root / 'common/sensor_data.csv')
+            destination = root / f'results/{args.platform}/{filename}'
+            destination.mkdir()
+            run(binary, root)
+            assert destination.is_dir()
+            assert not (root / f'results/{args.platform}/filtered_sensor_data.csv').exists()
+            print(f'unwritable {filename}: reported failure')
     if args.test_worker_failure:
         cases = [('KALMAN_TEST_FAIL_POOL_WORKER', 'Persistent worker startup or parity failed.'),
                  ('KALMAN_TEST_FAIL_POOL_SHUTDOWN', 'Worker failure; benchmark results discarded.')]

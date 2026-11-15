@@ -371,6 +371,15 @@ inline bool appendStatsToCsv(const Stats& s,
         << s.totalCpuCycles << "," << s.cyclesPerCall << ","
         << s.memDeltaKb << "," << s.pageFaults << "\n";
     out.flush();
+    if (!out) {
+        std::cerr << "metrics: failed writing " << csvPath << std::endl;
+        return false;
+    }
+    out.close();
+    if (!out) {
+        std::cerr << "metrics: failed closing " << csvPath << std::endl;
+        return false;
+    }
     return true;
 }
 
