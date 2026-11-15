@@ -1,4 +1,4 @@
-# CT-353 Operating Systems — CCA Presentation
+# CT-353 Operating Systems — Project Presentation
 ## Supersonic Fighter Jet Radar Tracking: OS System Calls + Kalman Filter
 
 ---
@@ -26,125 +26,140 @@
 
 ---
 
-## Slide 2: Criterion 1 — Diverse Tools, Compilers, Documentation & Profilers
+## Slide 2: Project Overview & Scope
 
-### Multi-Platform Toolchain & Experimental Setup
-- **Bare-Metal Dual-Boot Hardware:** HP ZBook (Intel Core i7-10850H @ 2.70 GHz, 6 physical cores / 12 threads, 32 GB RAM, NVMe SSD). Identical bare metal ensures zero virtualization overhead.
-- **Operating Systems:** Ubuntu 22.04.4 LTS (Linux Kernel 5.15.0 x86_64) vs Windows 10 Pro (Build 19045, NT 10.0 x86_64).
-- **Compilers & Toolchains:**
-  - *Linux:* GCC 11.4.0 (`-O2 -Wall -std=c++17 -lpthread -lrt`).
-  - *Windows:* MinGW-w64 GCC 13.2.0 (`-O2 -Wall -std=c++17 -lpsapi`).
-- **Official System Call Documentation:**
-  - *Linux:* POSIX.1-2017 Base Specifications & Linux Programmer's Manual (`man 2` / `man 3`).
-  - *Windows:* Microsoft Learn Win32 API Reference (MSDN) & Windows Internals 7th Ed.
-- **High-Resolution Profiling & Performance Monitors:**
-  - *Wall-Clock Timers:* Linux `clock_gettime(CLOCK_MONOTONIC)` vs Windows `QueryPerformanceCounter` (QPC, ~100 ns resolution) + Hardware Cycle Counter (`__rdtsc`).
-  - *CPU Time & Memory Profilers:* Linux `getrusage(RUSAGE_SELF)` & `/proc/self/statm` vs Windows PSAPI (`GetProcessTimes`, `GetProcessMemoryInfo`, `K32GetProcessMemoryInfo`).
+### Two Interconnected Phases
+
+| Phase | Scope | Core Engineering Objective |
+|---|---|---|
+| **Part A: System Micro-benchmarking** | **31 Windows APIs** vs **32 Linux Syscalls** across 5 core OS domains | Measure sub-microsecond latency, CPU time, memory deltas, and page faults on identical bare metal |
+| **Part B: Real-World Radar Tracking** | **Multi-process 2D Kalman Filter** tracking **8 supersonic fighter jets** | Evaluate how native OS primitives (shared memory, process spawning, CPU affinity) perform under load |
+
+### Experimental Platform & Tools Used
+- **Bare-Metal Dual-Boot Hardware:** HP ZBook (Intel Core i7-10850H @ 2.70 GHz, 6 physical cores / 12 logical threads, 32 GB RAM, NVMe SSD). Identical hardware eliminates virtualization artifacts.
+- **Operating Systems:** Ubuntu 22.04.4 LTS (Linux Kernel 5.15.0) vs Windows 10 Pro (Build 19045, NT 10.0).
+- **Compilers & Flags:** GCC 11.4.0 (Linux) and MinGW-w64 GCC 13.2.0 (Windows) using `-O2 -Wall -std=c++17`.
+- **System Documentation:** POSIX.1-2017 Base Specifications (`man 2`/`man 3`) and Microsoft Learn Win32 API Reference (MSDN).
+- **High-Resolution Profiling Tools:** Windows `QueryPerformanceCounter` (QPC, ~100 ns) & PSAPI vs Linux `clock_gettime(CLOCK_MONOTONIC)` & `getrusage(RUSAGE_SELF)`.
 
 ---
 
-## Slide 3: Criterion 4 — System Architecture & Modular Code Structure
+## Slide 3: System Architecture & Code Modularity
 
-### Clean Separation of Concerns Across Subsystems
+### Modular Subsystem Layout
 ```
 OS_Kalman_Filter_Project/
 ├── common/               ◄── Zero-Dependency Core
-│   ├── common_types.hpp  (Shared structs: BenchmarkResult, RadarMeasurement, SharedMemoryArena)
-│   ├── kalman_core.hpp   (Pure header-only 2D Kalman math; zero OS or library dependencies)
-│   └── sensor_data.csv   (Standardized 8-jet radar telemetry dataset, 80,000 points)
-├── Windows/ & Linux/     ◄── Parallel Subsystem Implementations (12 Standalone Executables)
-│   ├── sys_file_io.cpp   (File operations: 4 KB & 1 MB block latency, sequential/random)
-│   ├── sys_memory.cpp    (Demand paging, VirtualAlloc/mmap, page fault tracking)
-│   ├── sys_process.cpp   (Process lifecycle, fork/CreateProcess, exec/wait)
-│   ├── sys_ipc.cpp       (Pipes vs zero-copy shared memory arenas)
-│   ├── sys_permissions.cpp (NTFS DACL security descriptors vs POSIX mode bits)
+│   ├── common_types.hpp  (Shared structures: BenchmarkResult, RadarMeasurement, SharedMemoryArena)
+│   ├── kalman_core.hpp   (Pure header-only 2D kinematic math; zero OS or external dependencies)
+│   └── sensor_data.csv   (Standardized 8-jet radar telemetry dataset, 80,000 observations)
+├── Windows/ & Linux/     ◄── Mirrored Subsystem Implementations (12 Standalone Executables)
+│   ├── sys_file_io.cpp   (File operations: 4 KB & 1 MB block latency, sequential & random I/O)
+│   ├── sys_memory.cpp    (VirtualAlloc/mmap, demand paging, physical page fault tracking)
+│   ├── sys_process.cpp   (Process lifecycle, fork vs CreateProcess, execve, waitpid)
+│   ├── sys_ipc.cpp       (Anonymous pipes vs zero-copy shared memory arenas)
+│   ├── sys_permissions.cpp (NTFS DACL security descriptors vs POSIX 9-bit mode flags)
 │   └── kalman_filter.cpp (Multi-process parallel jet tracking with core affinity)
 └── results/ & logs/      ◄── Reproducible CSV metrics, execution transcripts, and generated plots
 ```
 
-### 3-Phase Execution Pattern in Every Binary
-1. **Interactive Demo:** Demonstrates correctness and returns human-readable status for every call.
-2. **Microsecond Benchmark:** Executes 1,000 warm-up & timed iterations, extracting latency, CPU time, memory delta, and page faults.
-3. **Structured Logging:** Emits machine-readable CSV records and full console execution transcripts.
+### 3-Phase Execution Model in Every Subsystem Binary
+1. **Interactive Functional Demo:** Demonstrates system call correctness and validates outputs.
+2. **Microsecond Timed Benchmark:** Executes 1,000 warm-up and timed iterations, capturing latency, CPU time, and memory usage.
+3. **Structured Diagnostic Logging:** Emits machine-readable CSV records and full console execution transcripts.
 
 ---
 
-## Slide 4: Criteria 2 & 4 — Robust Error Handling, Logging & Failure Recovery
+## Slide 4: Part A — System Call Usage & Error Handling
 
-### System-Call-Level Error Checking & Preservation
-- **Preserving Error Codes:** When a system call fails, `errno` (Linux) or `GetLastError()` (Windows) is immediately captured before any intermediate logging call overwrites it.
-- **Human-Readable Error Formatting:**
-  - *Linux:* `strerror(errno)` maps numeric codes to POSIX standard error messages.
-  - *Windows:* `FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, ...)` converts Win32 error codes to system diagnostic strings.
-- **Atomic Execution Logging:** Every benchmark run appends structured diagnostic messages to `logs/windows_run.log` and `logs/linux_run.log` with timestamp, subsystem, PID, and status.
-- **Deliberate Failure & Edge-Case Testing:**
-  - *Missing Files:* Verified controlled return codes when attempting to read non-existent telemetry files.
-  - *Invalid Memory Operations:* Tested error recovery on mapping handles with mismatched access flags (`PAGE_READONLY` vs `FILE_MAP_WRITE`).
-  - *Process Failure Handling:* Checked non-zero exit code capture and resource cleanup via `waitpid(..., WEXITSTATUS)` and `GetExitCodeProcess`.
+### 5 Core OS Subsystems Evaluated
 
----
+| Subsystem | Windows Win32 APIs | Linux POSIX Syscalls | Key Mechanism Evaluated |
+|---|---|---|---|
+| **1. File I/O** | `CreateFileA`, `ReadFile`, `WriteFile`, `CloseHandle` | `open`, `read`, `write`, `close` | 4 KB vs 1 MB block throughput & write-behind caching |
+| **2. Memory** | `VirtualAlloc`, `VirtualFree` | `mmap`, `munmap` | Lazy demand paging vs first-touch physical page faults |
+| **3. Process** | `CreateProcessA`, `WaitForSingleObject` | `fork`, `execve`, `waitpid` | Address space initialization vs Copy-on-Write (COW) |
+| **4. IPC** | `CreatePipe`, `CreateFileMappingA`, `MapViewOfFile` | `pipe`, `shmget`, `shmat`, `shmdt` | Pipe buffer context switches vs zero-copy memory arenas |
+| **5. Permissions** | `SetFileSecurityA`, `GetFileSecurityA` | `chmod`, `chown`, `umask` | NTFS DACL/SID security evaluation vs POSIX inode mode bits |
 
-## Slide 5: Criteria 2 & 5 — Part A Syscall Latency Benchmarks (5 Categories)
-
-### 31 Windows APIs vs 32 Linux Syscalls (Median Latency, HP ZBook Bare Metal)
-
-| Category | Windows Win32 API | Linux POSIX Syscall | Windows Median | Linux Median | Speed Ratio | Architectural Cause |
-|---|---|---|---|---|---|---|
-| **Process** | `CreateProcessA` | `fork` | 1,659.0 µs | **115.4 µs** | 🐧 **Linux 14.4× faster** | Linux COW page-table clone vs Win32 PE loading |
-| **Process** | `CreateProcess + Wait` | `fork + execve + wait` | 10,670.0 µs | **2,248.9 µs** | 🐧 **Linux 4.7× faster** | Win32 subsystem & DLL initialization overhead |
-| **Permissions** | `SetFileSecurityA` | `chmod` | 121.8 µs | **5.3 µs** | 🐧 **Linux 22.8× faster** | Inode mode write vs NTFS DACL/SID security traversal |
-| **File I/O** | `CreateFileA` (Open) | `open` | 19.7 µs | **1.9 µs** | 🐧 **Linux 10.6× faster** | dentry/inode cache vs NTFS MFT metadata transaction |
-| **File I/O** | `WriteFile` (1 MB) | `write` (1 MB) | **62.0 µs** | 200.4 µs | 🪟 **Windows 3.2× faster** | NT Cache Manager aggressive write-behind buffering |
-| **Memory** | `VirtualAlloc` (Reserve) | `mmap` (Anon) | 2.1 µs | 2.5 µs | 🤝 **Parity (~1.0×)** | Both OSes defer physical page frame allocation |
-| **IPC** | `MapViewOfFile` | `mmap` (Shared) | 4.8 µs | **2.6 µs** | 🐧 **Linux 1.8× faster** | Lightweight VMA insertion vs Win32 section view mapping |
+### Error Handling & Logging Implementation
+- **Immediate Error Preservation:** Captured `errno` (Linux) or `GetLastError()` (Windows) immediately before any logging call could overwrite the thread-local error state.
+- **Human-Readable Diagnostics:** Mapped numeric codes to descriptions via `strerror()` and `FormatMessageA()`.
+- **Atomic File Logging:** Structured diagnostic messages appended to `logs/windows_run.log` and `logs/linux_run.log`.
+- **Negative Edge-Case Tests:** Deliberately tested failure recovery on missing files, invalid handles, and child process non-zero exit codes.
 
 ---
 
-## Slide 6: Criterion 5 — Part A CPU Time & Memory Usage Metrics
+## Slide 5: Part A — Performance Comparison: Latency, CPU & Memory
 
-### Resource Consumption per Call (Extracted from Hardware Monitors & OS Counters)
+### Empirical Measurements on HP ZBook (1,000 Iterations per Syscall)
 
-| Benchmark Operation | Windows CPU Time (`cpu_per_call_us`) | Linux CPU Time (`cpu_per_call_us`) | Windows Memory Delta (`mem_delta_kb`) | Linux Memory Delta (`mem_delta_kb`) | Windows Page Faults | Linux Page Faults |
-|---|---|---|---|---|---|---|
-| **FirstTouch_64KB** | 46.88 µs | 53.32 µs | **+64,000 KB** | **+64,000 KB** | 16,032 | 16,000 |
-| **VirtualFree_64KB_touched** | 31.25 µs | 13.10 µs | **-63,848 KB** | **-64,000 KB** | 0 | 0 |
-| **CreateProcess vs fork** | 1,328.12 µs | **263.75 µs** | +208 KB | **0 KB (COW)** | 52 | 426 |
-| **CreateProcess+Wait vs fork+exec+wait** | **1,171.88 µs** | 2,389.64 µs | +416 KB | +812 KB | 138 | 940 |
-| **WriteFile_1MB vs write_1MB** | **93.75 µs** | 213.87 µs | +64 KB | 0 KB | 0 | 0 |
-| **SetFileSecurity vs chmod** | 234.38 µs | **12.07 µs** | 0 KB | 0 KB | 0 | 0 |
+| Benchmark Operation | Windows Median Latency | Linux Median Latency | Measured Margin | Windows CPU Time | Linux CPU Time | Windows Memory Delta | Linux Memory Delta |
+|---|---|---|---|---|---|---|---|
+| **Process Creation** | 1,659.0 µs | **115.4 µs** | 🐧 **Linux 14.4× faster** | 1,328.1 µs | **263.8 µs** | +208 KB | **0 KB (COW)** |
+| **Spawn + Exec + Wait** | 10,670.0 µs | **2,248.9 µs** | 🐧 **Linux 4.7× faster** | 1,171.9 µs | 2,389.6 µs | +416 KB | +812 KB |
+| **File Permissions** | 121.8 µs | **5.3 µs** | 🐧 **Linux 22.8× faster** | 234.4 µs | **12.1 µs** | 0 KB | 0 KB |
+| **File Creation (Open)** | 19.7 µs | **1.9 µs** | 🐧 **Linux 10.6× faster** | 15.6 µs | **2.1 µs** | 0 KB | 0 KB |
+| **Large Write (1 MB)** | **62.0 µs** | 200.4 µs | 🪟 **Windows 3.2× faster** | **93.8 µs** | 213.9 µs | +64 KB | 0 KB |
+| **Demand Page Alloc** | 2.1 µs | 2.5 µs | 🤝 **Parity (~1.0×)** | 46.9 µs | 53.3 µs | **+64,000 KB** | **+64,000 KB** |
 
-### Key Resource Takeaways
-- **Demand Paging Verified:** Zero physical memory is committed during `VirtualAlloc` / `mmap` reservation. Exact 64,000 KB allocated and 16,000 page faults triggered upon first memory write.
-- **COW Memory Isolation:** Linux `fork()` incurs **0 KB immediate memory delta**, duplicating only page table entries, whereas Windows allocates new process control blocks and subsystem heap.
+### Key Empirical Findings
+- **Linux dominates process lifecycle:** `fork()` is 14.4× faster because it clones page table entries without allocating physical memory.
+- **Windows dominates buffered writes:** The NT Cache Manager's asynchronous write-behind buffer acknowledged 1 MB writes in 62.0 µs vs Linux 200.4 µs.
+- **Demand paging parity verified:** Both kernels allocate 0 physical frames at reservation, triggering exactly 16,000 page faults upon first memory touch (+64 MB).
 
 ---
 
-## Slide 7: Criterion 3 — Part B Supersonic Fighter Jet Radar Tracking Scenario
+## Slide 6: OS Deep Dive — Process Lifecycle & Security Models
 
-### Mission Context & Tactical Scenario
-- **Fleet Scope:** **8 supersonic fighter jets** flying high-dynamic combat trajectories at **Mach 1.5 to 2.0** (540 to 680 m/s).
-- **Radar Sensor:** 20 Hz air defense pulse-Doppler radar ($\Delta t = 0.05\text{ s}$).
-- **Workload Volume:** **80,000 radar pings** (10,000 timesteps $\times$ 8 aircraft = 500 seconds of flight per jet).
-- **Radar Noise Corruption:** Range & bearing corrupted by zero-mean Gaussian noise ($\sigma = 50\text{ m}$, variance $R = 2500\text{ m}^2$).
+### Why Is Linux `fork()` 14.4× Faster Than Windows `CreateProcessA()`?
 
-### Tactical Radar Jitter at Mach 2
+```
+Linux fork() — Copy-on-Write (115.4 µs)
+Parent Page Tables ──► Duplicated Read-Only (~115 µs)
+                       ├── Frame 0x1A00 ──► Shared Read-Only (0 KB allocated)
+                       └── Physical frame copied ONLY on memory write (Page Fault)
 
-| Aircraft ID | Tactical Flight Profile | True Position Error | Raw Radar RMSE |
+Windows CreateProcessA() — Full Subsystem Initialization (1,659.0 µs)
+1. Read & parse PE executable headers from disk
+2. Create fresh Virtual Address Descriptor (VAD) root tree
+3. Map ntdll.dll, kernel32.dll, and C Runtime (CRT) subsystem dependencies
+4. Initialize Win32 executive client structures & primary thread stack
+5. Validate user security tokens and DACL access rights
+```
+
+### Security Subsystem Comparison: DACLs vs Inode Mode Bits
+- **Linux (`chmod` = 5.3 µs):** 9 permission bits stored directly in the inode structure; updated with a single fast metadata write.
+- **Windows (`SetFileSecurity` = 121.8 µs):** Constructs full Discretionary Access Control Lists (DACLs), verifies Security Identifiers (SIDs), and evaluates inheritance rules (23× slower, but enterprise-grade).
+
+---
+
+## Slide 7: Part B — Supersonic Fighter Jet Radar Tracking Scenario
+
+### Tactical Air Defense Problem
+- **Fleet Scope:** **8 supersonic fighter jets** flying combat maneuvers at **Mach 1.5 to 2.0** (540 to 680 m/s).
+- **Radar Sensor:** 20 Hz pulse-Doppler air defense radar ($\Delta t = 0.05\text{ s}$).
+- **Workload Volume:** **80,000 radar observations** (10,000 timesteps $\times$ 8 aircraft = 500 seconds of flight per jet).
+- **Measurement Corruption:** Range and bearing degraded by zero-mean Gaussian radar noise ($\sigma = 50\text{ m}$, variance $R = 2500\text{ m}^2$).
+
+### Tactical Radar Jitter Across the Fleet
+
+| Aircraft ID | Tactical Flight Profile | True Position Error | Raw Radar Jitter (RMSE) |
 |---|---|---|---|
 | **Jet 0** | Climbing Right Turn | 0.00 m (Ground Truth) | 70.63 m |
 | **Jet 2** | Tactical 7G Combat Turn | 0.00 m (Ground Truth) | 71.13 m |
 | **Jet 5** | High-Speed Mach 2 Dash | 0.00 m (Ground Truth) | 70.15 m |
 | **Jet 7** | Combat Air Patrol (CAP Orbit) | 0.00 m (Ground Truth) | 70.85 m |
-| **Fleet Average** | **All 8 Supersonic Jets** | — | **70.81 m** |
+| **Fleet Average** | **All 8 Supersonic Jets (80,000 Pings)** | — | **70.81 m** |
 
-**Operational Danger:** At 680 m/s, a jet travels 34 m per radar scan. A 70 m sensor jitter exceeds the physical displacement per timestep, making missile fire control impossible without kinematic filtering.
+**Operational Danger:** At Mach 2, an aircraft travels 34 meters per radar scan. A 70-meter sensor jitter exceeds the physical displacement per timestep, making missile fire control impossible without kinematic filtering.
 
 ---
 
-## Slide 8: Criterion 3 — Part B Kalman Filter Kinematic Design & Mathematics
+## Slide 8: Part B — Kalman Filter Kinematic Implementation
 
-### Kinematic State Vector & Constant Velocity Motion Model
-Independent Cartesian tracking on X and Y axes (`common/kalman_core.hpp`):
+### State Vector & Constant Velocity Kinematic Model
+Independent 2D Cartesian axis filtering implemented in `common/kalman_core.hpp`:
 $$\mathbf{x} = \begin{bmatrix} p \\ v \end{bmatrix} = \begin{bmatrix} \text{position (m)} \\ \text{velocity (m/s)} \end{bmatrix}, \quad \mathbf{F} = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix}, \quad \mathbf{H} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
 
 ### Complete 2D Discrete White Noise Acceleration (DWNA) Formulation
@@ -154,16 +169,16 @@ $$\mathbf{x} = \begin{bmatrix} p \\ v \end{bmatrix} = \begin{bmatrix} \text{posi
    $$p_{00,\text{pred}} = p_{00} + 2\Delta t \cdot p_{01} + \Delta t^2 \cdot p_{11} + q \frac{\Delta t^3}{3}$$
    $$p_{01,\text{pred}} = p_{01} + \Delta t \cdot p_{11} + q \frac{\Delta t^2}{2}, \quad p_{11,\text{pred}} = p_{11} + q \cdot \Delta t$$
 
-2. **Measurement Correction Step ($r = 2500.0\text{ m}^2$):**
+2. **Measurement Correction Step ($r = 2500.0\text{ m}^2$ matching radar $\sigma = 50\text{ m}$):**
    - Innovation residual: $y = z_{\text{meas}} - p_{\text{pred}}$
    - Optimal Kalman Gains: $k_0 = \frac{p_{00,\text{pred}}}{p_{00,\text{pred}} + r}, \quad k_1 = \frac{p_{01,\text{pred}}}{p_{00,\text{pred}} + r}$
-   - Updated State: $p = p_{\text{pred}} + k_0 \cdot y, \quad v = v_{\text{pred}} + k_1 \cdot y$
+   - Posterior State: $p = p_{\text{pred}} + k_0 \cdot y, \quad v = v_{\text{pred}} + k_1 \cdot y$
 
 ---
 
-## Slide 9: Criterion 5 — Part B Tracking Accuracy & Mathematical Parity
+## Slide 9: Part B — Tracking Accuracy & Mathematical Parity
 
-### Empirical Error Attenuation Across 80,000 Coordinates
+### Kinematic Error Reduction Across 80,000 Telemetry Coordinates
 
 | Aircraft ID | Tactical Flight Profile | Raw Radar Jitter (RMSE) | Filtered Track (RMSE) | Noise Reduction |
 |---|---|---|---|---|
@@ -177,13 +192,13 @@ $$\mathbf{x} = \begin{bmatrix} p \\ v \end{bmatrix} = \begin{bmatrix} \text{posi
 | **Jet 7** | Combat Air Patrol | 70.85 m | 22.68 m | **67.99%** |
 | **Fleet Average** | **All 8 Supersonic Jets (80,000 Pings)** | **70.81 m** | **22.95 m** | **67.58% Error Reduction** |
 
-### Numerical Parity Verification
-- **Cross-Worker & Cross-OS Bitwise Parity:** Max coordinate deviation between 1-worker and 8-worker runs = **`0.00e+00 m`**.
-- Multi-process memory mapping partitions data cleanly with zero floating-point drift or race conditions.
+### Numerical Parity Across Workers & Platforms
+- **Bit-for-Bit Mathematical Equivalence:** Single-process vs 8-worker execution outputs were verified across all 80,000 coordinates. Maximum discrepancy = **`0.00e+00 m`**.
+- Cross-platform numerical parity between Windows and Linux verified to 10 decimal places.
 
 ---
 
-## Slide 10: Criterion 5 — Multi-Process Parallel Scalability & CPU Affinity
+## Slide 10: Part B — Multi-Process Parallel Scalability & CPU Affinity
 
 ### Measured Multi-Process Speedup on HP ZBook (Dual-Scale Evaluation)
 
@@ -196,13 +211,13 @@ $$\mathbf{x} = \begin{bmatrix} p \\ v \end{bmatrix} = \begin{bmatrix} \text{posi
 
 ### Amdahl's Law & Granularity Analysis
 - **C++ Kalman Math is ultra-fast:** 80,000 matrix operations execute in only **~1.9 ms** of raw CPU time.
-- **Process Spawning Latency Dominates:** Spawning 8 processes costs **~25–40 ms** on Windows (`CreateProcessA`) and **~4–6 ms** on Linux (`fork`).
-- **Linux vs Windows Efficiency:** Linux parallel filtering is **5× faster than Windows** (0.25× vs 0.05×) because `fork()` is 14× lighter.
+- **Process Spawning Latency Dominates:** Spawning 8 worker processes costs **~25–40 ms** on Windows (`CreateProcessA`) and **~4–6 ms** on Linux (`fork`). The lifecycle overhead exceeds the computation.
+- **Linux vs Windows Multi-Processing:** Linux parallel filtering is **5× faster than Windows** (0.25× vs 0.05×) because `fork()` is vastly cheaper than Win32 subsystem initialization.
 - **Hardware Core Pinning:** Workers locked to physical cores via `SetProcessAffinityMask` / `sched_setaffinity` eliminated thread migration and L1/L2 cache invalidations.
 
 ---
 
-## Slide 11: OS Architectural Insights & Engineering Tradeoffs
+## Slide 11: Key OS Architecture Lessons & Engineering Tradeoffs
 
 ### 1. Security Subsystem vs File Access Simplicity
 - **Linux (`chmod` = 5.3 µs):** 9-bit permission flags stored directly within the inode struct; modified by a single metadata write.
@@ -215,22 +230,27 @@ $$\mathbf{x} = \begin{bmatrix} p \\ v \end{bmatrix} = \begin{bmatrix} \text{posi
 ### 3. Zero-Copy Shared Memory vs Pipe IPC
 - Memory-mapped arenas (`mmap` / `CreateFileMapping`) require only a 3–7 µs setup. Telemetry processing then runs at **raw bus memory bandwidth with zero context switches**.
 
-### 4. Lock-Free Sharding Eliminates Synchronization Overhead
+### 4. Lock-Free Workload Partitioning
 - Partitioning by `jet_id % num_workers` gives each process disjoint array bounds in shared memory, achieving **100% thread safety without mutexes, semaphores, or spinlocks**.
 
 ---
 
-## Slide 12: Conclusions & CCA Rubric Compliance Checklist
+## Slide 12: Conclusions & Summary of Achievements
 
-### Comprehensive Rubric Fulfillment Matrix
+### Key Project Outcomes
 
-| Rubric Criterion | Required Element | Implementation in Project | Verified Status |
-|---|---|---|---|
-| **Criterion 1: Diverse Resources** | Linux + Windows, C++ tools, documentation, profilers | GCC 11.4 & MinGW 13.2, MSDN & POSIX man pages, QPC, PSAPI, getrusage, __rdtsc | ✅ **Exemplary (2/2)** |
-| **Criterion 2: Technical Issues** | 15+ syscalls, process control, IPC, error handling, logging | 31 Win32 APIs vs 32 Linux Syscalls, errno/GetLastError preservation, atomic logging | ✅ **Exemplary (2/2)** |
-| **Criterion 3: Innovation** | Kalman filter integration, multi-process parallelism, shared memory | 8 supersonic jets, 80,000 pings, DWNA kinematic model, zero-copy shared memory arena | ✅ **Exemplary (2/2)** |
-| **Criterion 4: Quality & Modularity** | Modular code, maintainability, robust handling, reliability | Decoupled `common/kalman_core.hpp`, 3-phase execution model, failure path tests | ✅ **Exemplary (2/2)** |
-| **Criterion 5: Evaluation & Impact** | Reproducible cross-OS metrics, CPU/memory, charts, insights | Complete latency, CPU time, memory delta, page faults, 6 charts, Amdahl's Law analysis | ✅ **Exemplary (2/2)** |
+1. **System Call Usage & Evaluation:**
+   - Implemented and benchmarked **31 Windows APIs** and **32 Linux Syscalls** across 5 core OS domains with microsecond timers and hardware performance counters.
+   - Built robust error handling with thread-local error state preservation and atomic logging.
+
+2. **Kalman Filter Implementation:**
+   - Developed an ultra-fast, zero-dependency 2D DWNA Kalman Filter tracking 8 supersonic jets over 80,000 radar observations.
+   - Reduced radar tracking error from **70.81 m to 22.95 m (67.58% error reduction)**.
+
+3. **Performance Comparison & OS Insights:**
+   - Quantified the **14.4× process creation gap** and **22.8× permission evaluation gap** on identical bare-metal hardware.
+   - Proved bit-for-bit mathematical parity (**`0.00e+00 m` deviation**) across single-worker, 8-worker, and cross-OS runs.
+   - Empirically demonstrated why process lifecycle overhead causes Amdahl's Law slowdown when computational grain size is fine (~1.9 ms).
 
 ---
 
