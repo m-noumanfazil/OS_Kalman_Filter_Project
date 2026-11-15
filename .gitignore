@@ -25,4 +25,9 @@ cmake-build-*/
 __pycache__/
 *.pyc
 
-* .pdf
+# PDF files
+*.pdf
+
+# Old charts
+/old_charts_files/
+/old_charts/

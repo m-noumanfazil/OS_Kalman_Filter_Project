@@ -259,11 +259,11 @@ Some metrics are platform-specific. For example, CPU-cycle measurements may use 
 - [x] Windows Kalman Filter implementation (`Windows/Kalman_Filter/Kalman_Filter_Windows.cpp`)
 - [x] Linux Kalman Filter implementation (`Linux/Kalman_Filter/Kalman_Filter_Linux.cpp`)
 - [x] Multi-process execution and IPC integration (1, 2, 4, 8 workers via shared memory)
-- [ ] Performance comparison (execution & benchmark data collection)
+- [] Performance comparison (execution & benchmark data collection)
 
 ### Final Deliverables
 
 - [x] Project report (`report/report.md`)
 - [x] Project presentation 10–12 slides (`presentation/slides.md`)
 - [x] Performance & verification charts (`results/charts/`)
-- [ ] Native compilation & runtime execution on dual-boot machine (HP ZBook)
+- [] Native compilation & runtime execution on dual-boot machine (HP ZBook)
