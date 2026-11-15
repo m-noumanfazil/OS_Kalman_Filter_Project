@@ -30,7 +30,9 @@ jobs:
       - name: Test output verification
         run: python3 -B -m unittest discover -s tests -v
       - name: Test filter failure paths
-        run: python3 -B tests/check_filter_failures.py "$RUNNER_TEMP/kalman-build/Kalman_Filter" common/sensor_data.csv Linux
+        run: |
+          g++ -std=c++17 -O2 -DKALMAN_TEST_FAILURES Linux/Kalman_Filter/Kalman_Filter_Linux.cpp -o "$RUNNER_TEMP/kalman-build/Kalman_Filter_faults"
+          python3 -B tests/check_filter_failures.py "$RUNNER_TEMP/kalman-build/Kalman_Filter_faults" common/sensor_data.csv Linux --test-worker-failure
       - name: Run and verify integrated filter
         run: |
           set -euo pipefail

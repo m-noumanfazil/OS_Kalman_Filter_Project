@@ -302,7 +302,7 @@ bool spawnAndJoinWorkers(SharedRadarArena* arena, int numWorkers) {
             // Error: kill any children started so far
             for (pid_t c : childPids) {
                 kill(c, SIGKILL);
-                waitpid(c, nullptr, 0);
+                while (waitpid(c, nullptr, 0) < 0 && errno == EINTR) {}
             }
             return false;
         }
@@ -328,7 +328,20 @@ bool spawnAndJoinWorkers(SharedRadarArena* arena, int numWorkers) {
     bool allSuccess = true;
     for (pid_t pid : childPids) {
         int status = 0;
-        pid_t waited = waitpid(pid, &status, 0);
+        pid_t waited;
+        auto deadline = chrono::steady_clock::now() + chrono::seconds(15);
+        do {
+            waited = waitpid(pid, &status, WNOHANG);
+            if (waited == 0) {
+                if (chrono::steady_clock::now() >= deadline) {
+                    kill(pid, SIGKILL);
+                    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+                    waited = -1;
+                    break;
+                }
+                usleep(1000);
+            }
+        } while (waited == 0 || (waited < 0 && errno == EINTR));
         if (waited <= 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
             allSuccess = false;
         }
@@ -354,6 +367,9 @@ public:
             if (pid == 0) {
                 close(command[1]); close(done[0]);
                 for (const auto& old : workers_) { close(old.command); close(old.done); }
+#ifdef KALMAN_TEST_FAILURES
+                if (w == 0 && getenv("KALMAN_TEST_FAIL_POOL_WORKER")) _exit(91);
+#endif
                 char cmd;
                 while (read(command[0], &cmd, 1) == 1 && cmd == 'R') {
                     executeWorkerFiltering(arena, w, count);
@@ -469,8 +485,9 @@ bool runDemonstration(const vector<kalman::RadarMeasurement>& data) {
     if (fdFail >= 0) close(fdFail);
 
     // Cleanup Demo Mapping
-    munmap(mmapPtr, kArenaSize);
-    return filterEffective && parallelOk && parityExact;
+    bool unmapped = munmap(mmapPtr, kArenaSize) == 0;
+    LOG_SYSCALL("munmap", unmapped, "demonstration arena");
+    return filterEffective && parallelOk && parityExact && unmapped;
 }
 
 // ----------------------------- PART 2: BENCHMARKING & SCALABILITY ------------

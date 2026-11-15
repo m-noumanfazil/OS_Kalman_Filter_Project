@@ -296,6 +296,9 @@ int runWorkerChild(int argc, char* argv[]) {
     } catch (const exception&) { return 2; }
     const char* shmName = argv[4];
     if (totalWorkers < 2 || totalWorkers > kTotalTracks || workerId < 0 || workerId >= totalWorkers) return 2;
+#ifdef KALMAN_TEST_FAILURES
+    if (strcmp(argv[1], "--pool") == 0 && workerId == 0 && getenv("KALMAN_TEST_FAIL_POOL_WORKER")) return 91;
+#endif
 
     // --- CPU Core Affinity Optimization (Option B) ---
     // Locks worker process to dedicated CPU core, preventing OS thread migration & L1/L2 cache thrashing
@@ -340,9 +343,9 @@ int runWorkerChild(int argc, char* argv[]) {
         executeWorkerFiltering(arena, workerId, totalWorkers);
     }
 
-    UnmapViewOfFile(view);
-    CloseHandle(hMap);
-    return 0;
+    bool unmapped = UnmapViewOfFile(view) != 0;
+    bool closed = CloseHandle(hMap) != 0;
+    return unmapped && closed ? 0 : 8;
 }
 
 // ----------------------------- MULTI-PROCESS ORCHESTRATION -------------------
@@ -464,9 +467,12 @@ public:
     bool run() {
         if (!healthy_) return false;
         for (HANDLE event : go_) if (!SetEvent(event)) return healthy_ = false;
-        DWORD result = WaitForMultipleObjects(static_cast<DWORD>(done_.size()), done_.data(), TRUE, 15000);
-        if (result != WAIT_OBJECT_0) return healthy_ = false;
-        for (HANDLE process : processes_) if (WaitForSingleObject(process, 0) != WAIT_TIMEOUT) return healthy_ = false;
+        for (size_t i = 0; i < processes_.size(); ++i) {
+            HANDLE waits[] = {processes_[i], done_[i]};
+            // A dead worker takes precedence over a possibly signaled event.
+            if (WaitForMultipleObjects(2, waits, FALSE, 15000) != WAIT_OBJECT_0 + 1)
+                return healthy_ = false;
+        }
         return true;
     }
     ~PersistentWorkers() {
@@ -562,9 +568,11 @@ bool runDemonstration(const string& exePath, const vector<kalman::RadarMeasureme
     if (hFail) CloseHandle(hFail);
 
     // Cleanup Demo Mapping
-    UnmapViewOfFile(view);
-    CloseHandle(hMap);
-    return filterEffective && parallelOk && parityExact;
+    bool unmapped = UnmapViewOfFile(view) != 0;
+    LOG_SYSCALL("UnmapViewOfFile", unmapped, "demonstration arena");
+    bool closed = CloseHandle(hMap) != 0;
+    LOG_SYSCALL("CloseHandle", closed, "demonstration mapping");
+    return filterEffective && parallelOk && parityExact && unmapped && closed;
 }
 
 // ----------------------------- PART 2: BENCHMARKING & SCALABILITY ------------

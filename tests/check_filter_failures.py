@@ -1,5 +1,7 @@
 """Exercise native filter failure paths in disposable working directories."""
 import argparse
+import csv
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -11,9 +13,9 @@ def workspace(root, platform):
         (root / relative).mkdir(parents=True, exist_ok=True)
 
 
-def run(binary, root):
+def run(binary, root, env=None):
     result = subprocess.run([str(binary)], cwd=root, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True, timeout=120)
+                            stderr=subprocess.STDOUT, text=True, timeout=120, env=env)
     if result.returncode == 0:
         raise AssertionError(f'Expected failure, got exit 0:\n{result.stdout[-3000:]}')
     if result.returncode < 0 or result.returncode >= 128:
@@ -26,6 +28,8 @@ def main():
     parser.add_argument('binary', type=Path)
     parser.add_argument('dataset', type=Path)
     parser.add_argument('platform', choices=['Linux', 'Windows'])
+    parser.add_argument('--test-worker-failure', action='store_true',
+                        help='binary must be compiled with -DKALMAN_TEST_FAILURES')
     args = parser.parse_args()
     binary, dataset = args.binary.resolve(), args.dataset.resolve()
     header = 'timestamp,track_id,true_x,true_y,meas_x,meas_y,true_vx,true_vy\n'
@@ -55,6 +59,22 @@ def main():
         run(binary, root)
         assert destination.is_dir()
         print('unwritable output path: reported failure')
+    if args.test_worker_failure:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workspace(root, args.platform)
+            shutil.copyfile(dataset, root / 'common/sensor_data.csv')
+            env = os.environ.copy()
+            env['KALMAN_TEST_FAIL_POOL_WORKER'] = '1'
+            result = run(binary, root, env)
+            if 'Persistent worker startup or parity failed.' not in result.stdout:
+                raise AssertionError('Expected a persistent-worker failure diagnostic')
+            summary = root / f'results/{args.platform}/persistent_summary.csv'
+            if summary.exists():
+                with summary.open(newline='', encoding='utf-8') as file:
+                    assert all('_2Workers_' not in row['call_name'] for row in csv.DictReader(file))
+            assert not (root / f'results/{args.platform}/filtered_sensor_data.csv').exists()
+            print('failed persistent worker: rejected without recording its benchmark')
 
 
 if __name__ == '__main__':
