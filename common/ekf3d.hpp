@@ -43,18 +43,27 @@ class Filter {
     bool initialized_ = false;
     double jerk_;
     Measurement variance_;
+    bool constant_velocity_;
+    double log_likelihood_ = 0.0;
 public:
     // jerk spectral density in m^2/s^5; measurement variances in m^2, rad^2, rad^2.
-    explicit Filter(double jerk = 25.0, Measurement variance = {2500.0, 1e-6, 1e-6})
-        : jerk_(jerk), variance_(variance) {
+    explicit Filter(double jerk = 25.0, Measurement variance = {2500.0, 1e-6, 1e-6}, bool constant_velocity = false)
+        : jerk_(jerk), variance_(variance), constant_velocity_(constant_velocity) {
         if (!std::isfinite(jerk_) || jerk_ < 0) throw std::invalid_argument("invalid jerk noise");
         for (double v : variance_) if (!std::isfinite(v) || v <= 0) throw std::invalid_argument("invalid measurement variance");
     }
     const State& state() const { return x_; }
     const Covariance& covariance() const { return p_; }
     bool initialized() const { return initialized_; }
+    double log_likelihood() const { return log_likelihood_; }
+    // IMM mixing occurs at the previous timestamp; validation is performed on step.
+    void set_mixed(const State& state, const Covariance& covariance) {
+        if (!initialized_) throw std::logic_error("cannot mix an uninitialized filter");
+        x_ = state; p_ = covariance;
+    }
 
     void step(double timestamp, const Measurement* z) {
+        log_likelihood_ = 0.0;
         if (!std::isfinite(timestamp) || timestamp < 0 || (initialized_ && timestamp <= last_))
             throw std::invalid_argument("timestamps must be finite and increasing");
         if (z) {
@@ -76,7 +85,11 @@ public:
         if (!std::isfinite(dt)) throw std::invalid_argument("invalid time interval");
         Covariance f{};
         for (int i=0;i<9;++i) f[i][i]=1;
-        for (int a=0;a<3;++a) { f[a][a+3]=dt; f[a][a+6]=0.5*dt*dt; f[a+3][a+6]=dt; }
+        for (int a=0;a<3;++a) {
+            f[a][a+3]=dt;
+            if (constant_velocity_) f[a+6][a+6]=0;
+            else { f[a][a+6]=0.5*dt*dt; f[a+3][a+6]=dt; }
+        }
         State predicted{};
         for (int i=0;i<9;++i) for (int j=0;j<9;++j) predicted[i]+=f[i][j]*x_[j];
         Covariance tmp{}, predictedP{};
@@ -85,7 +98,16 @@ public:
         // Integrated continuous white jerk covariance for each independent axis.
         const double d2=dt*dt,d3=d2*dt,d4=d3*dt,d5=d4*dt;
         const double q[3][3]={{d5/20,d4/8,d3/6},{d4/8,d3/3,d2/2},{d3/6,d2/2,dt}};
-        for(int a=0;a<3;++a) for(int i=0;i<3;++i) for(int j=0;j<3;++j) predictedP[a+3*i][a+3*j]+=jerk_*q[i][j];
+        if (constant_velocity_) {
+            // White acceleration spectral density in m^2/s^3; acceleration is a zero-valued placeholder.
+            for(int a=0;a<3;++a) {
+                predictedP[a][a] += jerk_*d3/3;
+                predictedP[a][a+3] += jerk_*d2/2;
+                predictedP[a+3][a] += jerk_*d2/2;
+                predictedP[a+3][a+3] += jerk_*dt;
+                predictedP[a+6][a+6] += 1e-9;
+            }
+        } else for(int a=0;a<3;++a) for(int i=0;i<3;++i) for(int j=0;j<3;++j) predictedP[a+3*i][a+3*j]+=jerk_*q[i][j];
         if (z) {
             auto expected = observe(predicted); auto h = jacobian(predicted);
             double ph[9][3]{}; double s[3][3]{};
@@ -105,6 +127,14 @@ public:
                 for(int i=2;i>=0;--i) { double v=y[i]; for(int k=i+1;k<3;++k) v-=l[k][i]*gain[row][k]; gain[row][i]=v/l[i][i]; }
             }
             double residual[3]={(*z)[0]-expected[0],wrap((*z)[1]-expected[1]),wrap((*z)[2]-expected[2])};
+            double whitened[3]{};
+            double logdet = 0, mahalanobis = 0;
+            for(int i=0;i<3;++i) {
+                double v=residual[i]; for(int k=0;k<i;++k) v-=l[i][k]*whitened[k];
+                whitened[i]=v/l[i][i]; mahalanobis+=whitened[i]*whitened[i]; logdet+=2*std::log(l[i][i]);
+            }
+            log_likelihood_=-0.5*(3*std::log(2*pi)+logdet+mahalanobis);
+            if (!std::isfinite(log_likelihood_)) throw std::domain_error("invalid innovation likelihood");
             for(int i=0;i<9;++i) for(int j=0;j<3;++j) predicted[i]+=gain[i][j]*residual[j];
             // Joseph form: (I-KH)P(I-KH)^T + KRK^T.
             Covariance a{}, ap{}, updated{};
