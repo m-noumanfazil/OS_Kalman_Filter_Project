@@ -43,10 +43,14 @@ jobs:
         run: |
           g++ -std=c++17 -O2 tests/test_imm3d.cpp -o "$RUNNER_TEMP/kalman-build/test_imm3d"
           "$RUNNER_TEMP/kalman-build/test_imm3d"
+          g++ -std=c++17 -O2 tests/test_imm_invariants.cpp -o "$RUNNER_TEMP/kalman-build/test_imm_invariants"
+          "$RUNNER_TEMP/kalman-build/test_imm_invariants"
           g++ -std=c++17 -O2 common/run_imm3d.cpp -o "$RUNNER_TEMP/kalman-build/run_imm3d"
           "$RUNNER_TEMP/kalman-build/run_imm3d" "$RUNNER_TEMP/ekf3d-scenario/measurements.csv" "$RUNNER_TEMP/imm3d-estimates.csv"
           python3 -B common/evaluate_3d_scenario.py "$RUNNER_TEMP/ekf3d-scenario" "$RUNNER_TEMP/imm3d-estimates.csv"
+          python3 -B tests/check_imm3d_reference.py "$RUNNER_TEMP/kalman-build/run_imm3d"
           python3 -B common/compare_imm3d.py --scenario "$RUNNER_TEMP/ekf3d-scenario" --ekf "$RUNNER_TEMP/kalman-build/run_ekf3d" --imm "$RUNNER_TEMP/kalman-build/run_imm3d" --output-dir "$RUNNER_TEMP/imm3d-comparison" --iterations 1 --notes "CI smoke test; not controlled performance evidence"
+          python3 -B common/compare_imm3d_multiseed.py --ekf "$RUNNER_TEMP/kalman-build/run_ekf3d" --imm "$RUNNER_TEMP/kalman-build/run_imm3d" --output-dir "$RUNNER_TEMP/imm3d-multiseed" --seeds 1 42 --notes "CI functional smoke test"
       - name: Test native parallel 3D EKF
         run: |
           g++ -std=c++17 -O2 Linux/Kalman_Filter/EKF3D_Linux.cpp -o "$RUNNER_TEMP/kalman-build/EKF3D_Linux"

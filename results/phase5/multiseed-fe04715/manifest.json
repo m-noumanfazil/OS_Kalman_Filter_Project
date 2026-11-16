@@ -1,0 +1,3748 @@
+{
+  "status": "complete",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+  "python_version": "3.12.10",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "ekf_executable_sha256": "f803e50268f7ad3cda05dc586c4c691b88440ff7ffed1f0ff81b9bf4a99038f1",
+  "imm_executable_sha256": "346cbca9606e2f21ba53b9267c85263a0fc678bb86adc008a478fbda09ff7bdf",
+  "generator_sha256": "792c2f6f08578fff0ecf73166f6651d3bdbc728219dd1fd00b567d001d12c9d1",
+  "evaluator_sha256": "5fb847fcd613e7172bd49d74b97ffdf0db940f398aed16b1f7e7f7cd8902f8f3",
+  "source_checkout": {
+    "revision": "fe047150e052123b02121fa852143295a002d8f3",
+    "tracked_or_untracked_changes": true
+  },
+  "source_sha256": {
+    "ekf3d.hpp": "7312bb105a1e631a5c66d6ce9afe83d02dc9da6d25105aa1b3b768c49fe9291f",
+    "imm3d.hpp": "ee48a902d912afb282570ad1f8c8798a2cad8e945194d20e2e82c7c3e9d09cda",
+    "run_ekf3d.cpp": "772d449ac0a12a2bbffe700f2371663e8f61eef18ccd540dd1da1d12d42eedb7",
+    "run_imm3d.cpp": "b7aa3d97475271737b1f743a46f9ea7562277da2cf6e2fb87c82ab92fb353df5"
+  },
+  "method": "same deterministic trajectories, observation times and missing-data pattern; different seeded measurement noise",
+  "notes": "Windows 11; Ryzen 5 5600U; g++ 15.1.0 -std=c++17 -O2 -static -static-libgcc -static-libstdc++; executable source files at checkout revision, with untracked validation work. Noise seeds 0-19; fixed deterministic paths and gaps.",
+  "runs": [
+    {
+      "seed": 0,
+      "measurement_sha256": "c6523c33c419e0a53eedf926ba3e2129a7b9e9c06ba0f09d1e9df2e4b463c377",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "c6523c33c419e0a53eedf926ba3e2129a7b9e9c06ba0f09d1e9df2e4b463c377",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "ba0a508d2b23e637c5a01014842fb51ce6a490ef62db40ec0cfa27ba911cb616"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 21.596232623427973,
+          "velocity_mps": 23.86380301228571,
+          "acceleration_mps2": 6.1889345115774965
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.82607855835694,
+          "baseline_xy_m": 24.101333125239115,
+          "ekf_xy_m": 20.139351271475938,
+          "ekf_xyz_m": 21.232978823029345
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 26.510404376841073,
+            "velocity_mps": 40.73224850201877,
+            "acceleration_mps2": 7.814257174130985
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 21.210267888865104,
+            "velocity_mps": 15.034614042755045,
+            "acceleration_mps2": 5.577410605407903
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 17.688504517095716,
+            "velocity_mps": 13.718690168162068,
+            "acceleration_mps2": 5.633832566882825
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 20.00072143470039,
+            "velocity_mps": 14.30266511744794,
+            "acceleration_mps2": 5.413081185234169
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 26.048331847374474,
+            "velocity_mps": 35.94027604155334,
+            "acceleration_mps2": 5.875882497223266
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.760360891677426,
+            "coverage_95_fraction": 0.9570661896243292
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.4691853829063963,
+            "coverage_95_fraction": 0.959349593495935
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "c6523c33c419e0a53eedf926ba3e2129a7b9e9c06ba0f09d1e9df2e4b463c377",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "18ab84d4b4a250b4606213d21a129c9289a2637f80f023bedde7400ee08c2da6"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 17.935524095970827,
+          "velocity_mps": 20.179799679448934,
+          "acceleration_mps2": 1.8206194789329389
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.82607855835694,
+          "baseline_xy_m": 24.101333125239115,
+          "ekf_xy_m": 16.69299408923276,
+          "ekf_xyz_m": 17.543779716599868
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 24.34498440984166,
+            "velocity_mps": 38.28044207194149,
+            "acceleration_mps2": 1.7930906825319735
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 16.65725896051448,
+            "velocity_mps": 8.015890581783419,
+            "acceleration_mps2": 1.835413691242837
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 13.76585071133948,
+            "velocity_mps": 7.4622773065618535,
+            "acceleration_mps2": 2.280955378352553
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 15.069535845162623,
+            "velocity_mps": 6.600373532484952,
+            "acceleration_mps2": 1.2132378565063466
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 22.609324208662667,
+            "velocity_mps": 33.51005178004336,
+            "acceleration_mps2": 1.5885962992610092
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.6022965309760386,
+            "coverage_95_fraction": 0.9630292188431724
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.4174762485859285,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3589264506882584,
+          "min_ca": 0.2566502435557911,
+          "max_ca": 0.6098545144882398
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3608795913036727,
+          "min_ca": 0.2881457314889467,
+          "max_ca": 0.5530113508301172
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.4031739344360813,
+          "min_ca": 0.3056216813950491,
+          "max_ca": 0.7838375479010725
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.37217482731014023,
+          "min_ca": 0.31490262284527587,
+          "max_ca": 0.6175668695354135
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.37560979325616023,
+          "min_ca": 0.2928429095981158,
+          "max_ca": 0.5498306697803103
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "measurement_sha256": "41014d82df413f5435f7c3e43b5b5f059f0b71d6a122ec7abcdbc6473492a659",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "41014d82df413f5435f7c3e43b5b5f059f0b71d6a122ec7abcdbc6473492a659",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "b6b82cc8141f362435f12cb1a9148dc65716449cdb89653ad16e259ecdfb96a1"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 21.359157869177363,
+          "velocity_mps": 25.379780341448335,
+          "acceleration_mps2": 6.290372875618998
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.4239312331654,
+          "baseline_xy_m": 24.209789505597733,
+          "ekf_xy_m": 20.39466015604454,
+          "ekf_xyz_m": 21.328329081155548
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 24.496810020014287,
+            "velocity_mps": 44.562231921545035,
+            "acceleration_mps2": 8.534253598143936
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 24.27703659273213,
+            "velocity_mps": 15.790505969433308,
+            "acceleration_mps2": 5.729783830550845
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 18.710222828553288,
+            "velocity_mps": 13.50027302538139,
+            "acceleration_mps2": 5.241888400087728
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 16.89123602185825,
+            "velocity_mps": 12.615190698540832,
+            "acceleration_mps2": 5.013368372266683
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 21.775128220048803,
+            "velocity_mps": 36.54581801046501,
+            "acceleration_mps2": 6.7555545602794105
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5430241889623715,
+            "coverage_95_fraction": 0.975551580202743
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.074267302003434,
+            "coverage_95_fraction": 0.991869918699187
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "41014d82df413f5435f7c3e43b5b5f059f0b71d6a122ec7abcdbc6473492a659",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "d157036f3db258c6b3f1cdf99f5d64c5a1ce05a094ed6a88d7a5c27d43fb6968"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 17.739925862767095,
+          "velocity_mps": 21.73213643726484,
+          "acceleration_mps2": 1.9068287972213815
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.4239312331654,
+          "baseline_xy_m": 24.209789505597733,
+          "ekf_xy_m": 17.06546631780999,
+          "ekf_xyz_m": 17.77375880742993
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 20.55095443694565,
+            "velocity_mps": 41.72744699801866,
+            "acceleration_mps2": 2.3632343898974746
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 20.559222845787154,
+            "velocity_mps": 7.776932827829293,
+            "acceleration_mps2": 1.7854249478035717
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 15.474386300646628,
+            "velocity_mps": 7.3214622175614545,
+            "acceleration_mps2": 2.1377059455739187
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 13.203782594093886,
+            "velocity_mps": 5.820540381044936,
+            "acceleration_mps2": 1.0961653671209395
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 17.27203228611765,
+            "velocity_mps": 33.434378824640454,
+            "acceleration_mps2": 1.8673701714074993
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.495628870932428,
+            "coverage_95_fraction": 0.9785330948121646
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.0209810185359367,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3604371575147072,
+          "min_ca": 0.2333208837585284,
+          "max_ca": 0.8138895157717505
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.36027804788487616,
+          "min_ca": 0.28817920478261566,
+          "max_ca": 0.6958813712303672
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.38330418461596677,
+          "min_ca": 0.29974101734487857,
+          "max_ca": 0.6023257392078116
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.36988267500365096,
+          "min_ca": 0.31272966551059844,
+          "max_ca": 0.5419628418514042
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.37930396378305475,
+          "min_ca": 0.2982678546269406,
+          "max_ca": 0.5397748223472599
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "measurement_sha256": "a8432a4c54e441acec09e55ff06f5f2506e3dc5b1a7cce6ee86463b5e2f965cd",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "a8432a4c54e441acec09e55ff06f5f2506e3dc5b1a7cce6ee86463b5e2f965cd",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "0a979f89534a2152e1b9c471c8944fabeb9edc1556fdf8865486f0a7d5ba00eb"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 22.859037821332855,
+          "velocity_mps": 29.172228455499503,
+          "acceleration_mps2": 6.5070582490415205
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.15245337544187,
+          "baseline_xy_m": 25.978645173828326,
+          "ekf_xy_m": 21.451155472584677,
+          "ekf_xyz_m": 22.496401535184308
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 28.05818723319207,
+            "velocity_mps": 52.39551907674912,
+            "acceleration_mps2": 8.574453222603136
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 20.71773735448505,
+            "velocity_mps": 15.008575703128349,
+            "acceleration_mps2": 5.773971059476778
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.232194171646942,
+            "velocity_mps": 13.63095197974044,
+            "acceleration_mps2": 5.34795589524714
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 22.445013609046544,
+            "velocity_mps": 15.739283224051507,
+            "acceleration_mps2": 5.8229379273597
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 27.32734189382045,
+            "velocity_mps": 36.047299448031275,
+            "acceleration_mps2": 5.965589928077812
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.729662299074777,
+            "coverage_95_fraction": 0.960644007155635
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.4197916654264864,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "a8432a4c54e441acec09e55ff06f5f2506e3dc5b1a7cce6ee86463b5e2f965cd",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "05e787c9dda200239c80a3e6327c570897310727766eae7dd8b46bc072331b54"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 18.961013873860605,
+          "velocity_mps": 25.905474513400872,
+          "acceleration_mps2": 1.9170334339465094
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.15245337544187,
+          "baseline_xy_m": 25.978645173828326,
+          "ekf_xy_m": 17.776558826645083,
+          "ekf_xyz_m": 18.58645888584072
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 24.7978004198907,
+            "velocity_mps": 50.197254904116654,
+            "acceleration_mps2": 2.2265763403685797
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 15.89151185949524,
+            "velocity_mps": 7.621114501589781,
+            "acceleration_mps2": 1.850556142241405
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 16.71266588194996,
+            "velocity_mps": 7.3775227338645415,
+            "acceleration_mps2": 2.1473187331152603
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.06739384827205,
+            "velocity_mps": 7.218089166389645,
+            "acceleration_mps2": 1.3064802986691877
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 23.47903607545279,
+            "velocity_mps": 33.33850295876078,
+            "acceleration_mps2": 1.637335879764755
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.472165765785456,
+            "coverage_95_fraction": 0.9719737626714371
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.307064639479318,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.35985730295693624,
+          "min_ca": 0.24775089129995986,
+          "max_ca": 0.6373734810291257
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.36347522946354205,
+          "min_ca": 0.28873617887271336,
+          "max_ca": 0.5917233540840895
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3847907955763963,
+          "min_ca": 0.30537376278503314,
+          "max_ca": 0.6035151004011802
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3769511949455022,
+          "min_ca": 0.3150668369904503,
+          "max_ca": 0.6320590982740983
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3730473287149056,
+          "min_ca": 0.26346584751308016,
+          "max_ca": 0.5093716740635235
+        }
+      }
+    },
+    {
+      "seed": 3,
+      "measurement_sha256": "66db49caf41979fe70e2469242312b247dcbc2f5f0aaf28e37e1c9917543acb0",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "66db49caf41979fe70e2469242312b247dcbc2f5f0aaf28e37e1c9917543acb0",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "3b21512b1d538612512bea4869a860a70b937d3f77133e2a7450ee0a5313ddca"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.967610484794445,
+          "velocity_mps": 25.22486762893589,
+          "acceleration_mps2": 6.465284359046239
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.08768266586242,
+          "baseline_xy_m": 23.706518143399258,
+          "ekf_xy_m": 18.59930517467244,
+          "ekf_xyz_m": 19.875804503921223
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 21.48141858339546,
+            "velocity_mps": 44.398175919089766,
+            "acceleration_mps2": 8.88138483235319
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 16.74663107288304,
+            "velocity_mps": 12.138092219645666,
+            "acceleration_mps2": 5.009135585400103
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 23.018343460610662,
+            "velocity_mps": 15.845410679076391,
+            "acceleration_mps2": 6.064993290915555
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.974335636483282,
+            "velocity_mps": 13.250186426073222,
+            "acceleration_mps2": 5.142472936359156
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 21.17964397109072,
+            "velocity_mps": 35.9515610946687,
+            "acceleration_mps2": 6.601376770351883
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5863132152169372,
+            "coverage_95_fraction": 0.9725700655933214
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.6717385115023466,
+            "coverage_95_fraction": 0.9512195121951219
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "66db49caf41979fe70e2469242312b247dcbc2f5f0aaf28e37e1c9917543acb0",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "82509d8b15b10d0702c675a01e734e77c25259ef03c77f42fbe666b0076faaa8"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.46549386323462,
+          "velocity_mps": 22.012401859335473,
+          "acceleration_mps2": 1.8465239277105063
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.08768266586242,
+          "baseline_xy_m": 23.706518143399258,
+          "ekf_xy_m": 15.483175206402008,
+          "ekf_xyz_m": 16.45941374412211
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.46772770925084,
+            "velocity_mps": 42.30887358063906,
+            "acceleration_mps2": 1.9906157764030488
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 13.185052161436056,
+            "velocity_mps": 6.627902025205995,
+            "acceleration_mps2": 1.7843023415106893
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.0060397380836,
+            "velocity_mps": 8.380754942187448,
+            "acceleration_mps2": 2.2865322493670157
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 13.053060309901689,
+            "velocity_mps": 5.828929588550124,
+            "acceleration_mps2": 1.1243161120650635
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 16.54816823465533,
+            "velocity_mps": 33.349761452070865,
+            "acceleration_mps2": 1.753338719763774
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.437324803956277,
+            "coverage_95_fraction": 0.9821109123434705
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.4138171258825456,
+            "coverage_95_fraction": 0.975609756097561
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.36060365952341,
+          "min_ca": 0.2522853537662063,
+          "max_ca": 0.5701470187696884
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.35546374654966906,
+          "min_ca": 0.2872752770121823,
+          "max_ca": 0.5590631438552226
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.39415550583876213,
+          "min_ca": 0.31467215968872697,
+          "max_ca": 0.712614002852783
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.36925276319591516,
+          "min_ca": 0.31444209618299473,
+          "max_ca": 0.5734216220497994
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.38316985748750443,
+          "min_ca": 0.29866747136851823,
+          "max_ca": 0.5266375235882832
+        }
+      }
+    },
+    {
+      "seed": 4,
+      "measurement_sha256": "14b8a9a93374ffca62829f89785325c6ad03c3bf59dd711391c04a8fd9c3051c",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "14b8a9a93374ffca62829f89785325c6ad03c3bf59dd711391c04a8fd9c3051c",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "29a5e6e44a1a96d4327652171bc4155b724a25578fc0e54c61aebc5c174efc5d"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 20.827984394383098,
+          "velocity_mps": 25.21844325334266,
+          "acceleration_mps2": 6.427059561284455
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.486754219294774,
+          "baseline_xy_m": 24.07149586374102,
+          "ekf_xy_m": 19.671452305393046,
+          "ekf_xyz_m": 20.792103236600425
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 22.467071038650488,
+            "velocity_mps": 43.960913749834944,
+            "acceleration_mps2": 8.469790664690787
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 21.74117672206989,
+            "velocity_mps": 14.292574566320488,
+            "acceleration_mps2": 5.503164809316954
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 20.293504383853403,
+            "velocity_mps": 14.461264346006645,
+            "acceleration_mps2": 5.826393750607338
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 18.599606695764827,
+            "velocity_mps": 14.068110340372979,
+            "acceleration_mps2": 5.4091900926005225
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 21.311167343808894,
+            "velocity_mps": 35.95898477228029,
+            "acceleration_mps2": 6.517264571756215
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5972576760630885,
+            "coverage_95_fraction": 0.9594514013118665
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.1260648559333597,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "14b8a9a93374ffca62829f89785325c6ad03c3bf59dd711391c04a8fd9c3051c",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "1d0556b9a5ebac0355268a90c4efb8549c557f4b7f349c2c5402ba0936512376"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.46825865373017,
+          "velocity_mps": 21.735759709494303,
+          "acceleration_mps2": 1.8899865527636714
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.486754219294774,
+          "baseline_xy_m": 24.07149586374102,
+          "ekf_xy_m": 15.607784561064328,
+          "ekf_xyz_m": 16.508711816235152
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 17.668753453148693,
+            "velocity_mps": 41.611793574970804,
+            "acceleration_mps2": 2.012112410288482
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 17.366821490808537,
+            "velocity_mps": 7.247757272239453,
+            "acceleration_mps2": 1.825540543505962
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 16.873373612240133,
+            "velocity_mps": 8.047710826158472,
+            "acceleration_mps2": 2.348572145333547
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 13.649618969210488,
+            "velocity_mps": 6.398124807375519,
+            "acceleration_mps2": 1.1794960487650707
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 15.906454091132515,
+            "velocity_mps": 33.214011789838146,
+            "acceleration_mps2": 1.6162099660961855
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.294599058291886,
+            "coverage_95_fraction": 0.9803220035778175
+          },
+          "missing": {
+            "count": 123,
+            "mean": 1.931001342491178,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3543941533961342,
+          "min_ca": 0.24749033784356744,
+          "max_ca": 0.5651729738577248
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3598424647698719,
+          "min_ca": 0.2863561291346251,
+          "max_ca": 0.6960974118786714
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.39842249642908917,
+          "min_ca": 0.2982608177579307,
+          "max_ca": 0.7682520353459961
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3717781496162179,
+          "min_ca": 0.31022006466784635,
+          "max_ca": 0.5545602349464038
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.37460955473678914,
+          "min_ca": 0.28479171000066295,
+          "max_ca": 0.538582694238818
+        }
+      }
+    },
+    {
+      "seed": 5,
+      "measurement_sha256": "4679d10bf078e92434087b17ad2f4b1cb6fe0fe8ad70c9f60ddcb70cc427abaa",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "4679d10bf078e92434087b17ad2f4b1cb6fe0fe8ad70c9f60ddcb70cc427abaa",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "851695bdeebe7934f4340207fded1032d705696f6cf9c298c8e06b1de9ddc507"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 20.468656887359785,
+          "velocity_mps": 24.511863978790355,
+          "acceleration_mps2": 6.178947037568349
+        },
+        "available_rmse": {
+          "raw_xy_m": 50.966649311071066,
+          "baseline_xy_m": 23.22116250356644,
+          "ekf_xy_m": 19.19900427604713,
+          "ekf_xyz_m": 20.349893655138096
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 20.719218736684113,
+            "velocity_mps": 42.27060742625991,
+            "acceleration_mps2": 7.7568162336935425
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 18.009286958130144,
+            "velocity_mps": 12.819312178481361,
+            "acceleration_mps2": 5.153552949609735
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 21.770477475493042,
+            "velocity_mps": 15.543949993344546,
+            "acceleration_mps2": 5.931876600022616
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 21.172848834770804,
+            "velocity_mps": 14.51111658518901,
+            "acceleration_mps2": 5.550052241797338
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 22.02409481045232,
+            "velocity_mps": 35.62082300938799,
+            "acceleration_mps2": 5.840423087786769
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.650909764814944,
+            "coverage_95_fraction": 0.9695885509838998
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.598901887286898,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "4679d10bf078e92434087b17ad2f4b1cb6fe0fe8ad70c9f60ddcb70cc427abaa",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "5332ebc1914a553b609f6b3639052cc1abd25b2b973f8aba847e708013fadaed"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 17.339153686437196,
+          "velocity_mps": 21.14198562987482,
+          "acceleration_mps2": 1.8222042489251584
+        },
+        "available_rmse": {
+          "raw_xy_m": 50.966649311071066,
+          "baseline_xy_m": 23.22116250356644,
+          "ekf_xy_m": 16.295748613750614,
+          "ekf_xyz_m": 17.205566982513037
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 18.166608498469547,
+            "velocity_mps": 40.22868106552021,
+            "acceleration_mps2": 1.8402647155157625
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 16.104952307030686,
+            "velocity_mps": 6.9385508722214055,
+            "acceleration_mps2": 1.7636745954084834
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 18.15161858893873,
+            "velocity_mps": 8.530471464800348,
+            "acceleration_mps2": 2.2925846314262404
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 16.843651376731003,
+            "velocity_mps": 6.976748068105487,
+            "acceleration_mps2": 1.2363845297035396
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 19.06735312700564,
+            "velocity_mps": 33.4906640459842,
+            "acceleration_mps2": 1.66905031744924
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5027806458927726,
+            "coverage_95_fraction": 0.97376267143709
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.5163137744009507,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.35978381171546386,
+          "min_ca": 0.24319377355185945,
+          "max_ca": 0.6753849554338238
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.35632519301651977,
+          "min_ca": 0.2831282397016141,
+          "max_ca": 0.5441497923779784
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.40118531314233574,
+          "min_ca": 0.307308314927888,
+          "max_ca": 0.6751546497913327
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3757853283309643,
+          "min_ca": 0.3104662169977493,
+          "max_ca": 0.6285043316835138
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.38202325280929167,
+          "min_ca": 0.2977795238057283,
+          "max_ca": 0.5572267785828429
+        }
+      }
+    },
+    {
+      "seed": 6,
+      "measurement_sha256": "15d01f17bee11f5c2996140f1d6e0bd11fd1e784035de3a1b0fe27c0da990f9e",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "15d01f17bee11f5c2996140f1d6e0bd11fd1e784035de3a1b0fe27c0da990f9e",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "4cf27176276e5fd26793bb9b84e44bc6d1bad523f15c6c1a6ceb91993f64430a"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 20.51948488650295,
+          "velocity_mps": 26.30658062169777,
+          "acceleration_mps2": 6.277088192234692
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.72941135913338,
+          "baseline_xy_m": 23.248499285222046,
+          "ekf_xy_m": 19.120077439911753,
+          "ekf_xyz_m": 20.29268595606058
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 22.491679802730598,
+            "velocity_mps": 46.466671703464115,
+            "acceleration_mps2": 8.018816159720023
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 16.728804190120652,
+            "velocity_mps": 12.826334733903725,
+            "acceleration_mps2": 5.293827494811137
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.407801037575588,
+            "velocity_mps": 13.919144489584209,
+            "acceleration_mps2": 5.541152668626769
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 22.843067852974873,
+            "velocity_mps": 15.834636427716458,
+            "acceleration_mps2": 5.880216802732178
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 23.393354931730222,
+            "velocity_mps": 36.05030512686964,
+            "acceleration_mps2": 6.124047348230644
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.6490388975199175,
+            "coverage_95_fraction": 0.960644007155635
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.746645694839217,
+            "coverage_95_fraction": 0.926829268292683
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "15d01f17bee11f5c2996140f1d6e0bd11fd1e784035de3a1b0fe27c0da990f9e",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "a667c3c85d3e4605de3ad4c4482e7eaada90ee54cc7c266360e5d13fa8059c22"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.143225721685962,
+          "velocity_mps": 23.08369471570575,
+          "acceleration_mps2": 1.8732091775554156
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.72941135913338,
+          "baseline_xy_m": 23.248499285222046,
+          "ekf_xy_m": 15.055996731667785,
+          "ekf_xyz_m": 15.977885834192382
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 18.65474449553649,
+            "velocity_mps": 44.51970304803242,
+            "acceleration_mps2": 1.873574282383068
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 12.681984155515618,
+            "velocity_mps": 6.214136615007327,
+            "acceleration_mps2": 1.894274080211003
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 15.13255814457128,
+            "velocity_mps": 7.454667362101765,
+            "acceleration_mps2": 2.2686145300307885
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.45246161697207,
+            "velocity_mps": 7.432114643697311,
+            "acceleration_mps2": 1.338089579616432
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 18.248653039127333,
+            "velocity_mps": 33.42296700554935,
+            "acceleration_mps2": 1.7100038714455739
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.4477704524138506,
+            "coverage_95_fraction": 0.9695885509838998
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.5614744183274425,
+            "coverage_95_fraction": 0.959349593495935
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.35379770817742817,
+          "min_ca": 0.24551631681082967,
+          "max_ca": 0.6052424482902609
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.36177503352874874,
+          "min_ca": 0.28992606308211133,
+          "max_ca": 0.767423906909902
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3955077506298541,
+          "min_ca": 0.30404813158594096,
+          "max_ca": 0.7727667187761476
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.37727981904512653,
+          "min_ca": 0.30902824845587235,
+          "max_ca": 0.6359690398462977
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.38281015470641844,
+          "min_ca": 0.27641109014844517,
+          "max_ca": 0.6174681827152887
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "measurement_sha256": "c4335661b1cc86e91205c0914181b853f1da053bf250c506fddc2b65658f8973",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "c4335661b1cc86e91205c0914181b853f1da053bf250c506fddc2b65658f8973",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "89bd1a4cf405fbff2efcb30b3ee2c6aa589c7ed4c19a0ad5cc7428ef34901cff"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 21.2593545306971,
+          "velocity_mps": 22.58956413082484,
+          "acceleration_mps2": 5.966983797297727
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.98868757912474,
+          "baseline_xy_m": 24.211302816202164,
+          "ekf_xy_m": 19.50786161462011,
+          "ekf_xyz_m": 20.746920123301123
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 22.19787542749231,
+            "velocity_mps": 37.057324091082194,
+            "acceleration_mps2": 6.8645092263596466
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 22.802819602201204,
+            "velocity_mps": 15.97031083521585,
+            "acceleration_mps2": 5.993648360467106
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 18.525654311754693,
+            "velocity_mps": 13.528467849606017,
+            "acceleration_mps2": 5.2258311199624785
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 21.258562916242795,
+            "velocity_mps": 15.160411971970154,
+            "acceleration_mps2": 5.662593404684774
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 27.30277335785607,
+            "velocity_mps": 36.0409378857734,
+            "acceleration_mps2": 5.767522328206572
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.7194757970983465,
+            "coverage_95_fraction": 0.9600477042337507
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.890947236371685,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "c4335661b1cc86e91205c0914181b853f1da053bf250c506fddc2b65658f8973",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "7625726301a8d3373e5627deef14dd1ac5ab0ee09f188bac5fb5b36626ae9c49"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.85399595081197,
+          "velocity_mps": 18.512619281748155,
+          "acceleration_mps2": 1.7619794290137478
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.98868757912474,
+          "baseline_xy_m": 24.211302816202164,
+          "ekf_xy_m": 15.317612099592813,
+          "ekf_xyz_m": 16.354893297226376
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 18.41464724071425,
+            "velocity_mps": 34.61913774658765,
+            "acceleration_mps2": 1.5834484462602796
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 17.60791072401512,
+            "velocity_mps": 7.975376992858704,
+            "acceleration_mps2": 1.902436546349674
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 14.422418284753038,
+            "velocity_mps": 7.360139932684244,
+            "acceleration_mps2": 2.1568069957701006
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 16.7058317899689,
+            "velocity_mps": 7.389539522845347,
+            "acceleration_mps2": 1.2805841718593183
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 22.584027797077432,
+            "velocity_mps": 33.43746789025148,
+            "acceleration_mps2": 1.6336311135632633
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.4881905178127486,
+            "coverage_95_fraction": 0.9749552772808586
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.747760779709902,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3601597005212492,
+          "min_ca": 0.24894553349856277,
+          "max_ca": 0.5605193096500365
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3676037450984169,
+          "min_ca": 0.287010579470404,
+          "max_ca": 0.5885995606452161
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.38682943884600896,
+          "min_ca": 0.298211645479963,
+          "max_ca": 0.7029477825783573
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3780591391752985,
+          "min_ca": 0.31152028713088753,
+          "max_ca": 0.5642648685642896
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.37826159703524476,
+          "min_ca": 0.30377750371805257,
+          "max_ca": 0.6415735964170183
+        }
+      }
+    },
+    {
+      "seed": 8,
+      "measurement_sha256": "6ceeb5be5770f63876b9fed2560cd9c00c561753ffe470a2ec101406fb5d023b",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "6ceeb5be5770f63876b9fed2560cd9c00c561753ffe470a2ec101406fb5d023b",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "530d23efa1c2b6c6ae96539fa922409aa6390431c0a8f608e42423eed862600e"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 20.064745975318555,
+          "velocity_mps": 23.74961012941595,
+          "acceleration_mps2": 6.129534354031031
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.231624190983744,
+          "baseline_xy_m": 22.647243854466446,
+          "ekf_xy_m": 18.57105382443395,
+          "ekf_xyz_m": 19.69179857542559
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 17.499262279702,
+            "velocity_mps": 39.57386551224573,
+            "acceleration_mps2": 6.769398529263183
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 18.104856492054584,
+            "velocity_mps": 13.269787502691122,
+            "acceleration_mps2": 5.5812162775204985
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 23.191478225290425,
+            "velocity_mps": 16.882613643313697,
+            "acceleration_mps2": 6.40791312982103
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 20.94090382506063,
+            "velocity_mps": 15.13192617678708,
+            "acceleration_mps2": 5.678792417865195
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 24.591642506515175,
+            "velocity_mps": 37.187099150934834,
+            "acceleration_mps2": 6.633349525435729
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.693445527277463,
+            "coverage_95_fraction": 0.9660107334525939
+          },
+          "missing": {
+            "count": 123,
+            "mean": 3.033439210971518,
+            "coverage_95_fraction": 0.9349593495934959
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "6ceeb5be5770f63876b9fed2560cd9c00c561753ffe470a2ec101406fb5d023b",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "c3940eb9cd28494aacdad0eb0fbb255c44faa2678b6f1bb78c0aa5dc820e3105"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.023980815903133,
+          "velocity_mps": 20.15089140134394,
+          "acceleration_mps2": 1.9611677780710106
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.231624190983744,
+          "baseline_xy_m": 22.647243854466446,
+          "ekf_xy_m": 14.91494938283309,
+          "ekf_xyz_m": 15.818690356788244
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 14.327123887034121,
+            "velocity_mps": 37.9438749329381,
+            "acceleration_mps2": 1.884322309171323
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 16.334965843620104,
+            "velocity_mps": 7.4260314566080545,
+            "acceleration_mps2": 1.9378785380369485
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 17.454249424846733,
+            "velocity_mps": 9.020203208292717,
+            "acceleration_mps2": 2.5627142899127695
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 15.821612869183232,
+            "velocity_mps": 6.927195899868558,
+            "acceleration_mps2": 1.2292956886883888
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 18.598234573608508,
+            "velocity_mps": 33.82022559571482,
+            "acceleration_mps2": 2.0657900621871335
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5079317887293264,
+            "coverage_95_fraction": 0.9779367918902803
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.6041602078398,
+            "coverage_95_fraction": 0.943089430894309
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3474496104312016,
+          "min_ca": 0.24246397345685544,
+          "max_ca": 0.5670826347451856
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3726939889283522,
+          "min_ca": 0.2872197899855326,
+          "max_ca": 0.6205838126042911
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.4042133358830282,
+          "min_ca": 0.30339688456995495,
+          "max_ca": 0.7414792832199514
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.375493493908096,
+          "min_ca": 0.3113073834919922,
+          "max_ca": 0.6153767679238363
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.39506067838536135,
+          "min_ca": 0.28439096168408207,
+          "max_ca": 0.6692738835759835
+        }
+      }
+    },
+    {
+      "seed": 9,
+      "measurement_sha256": "3b6de20d29559ea4a34286736af5ee7e150cbffbb29ccd29e820856663d4ae65",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "3b6de20d29559ea4a34286736af5ee7e150cbffbb29ccd29e820856663d4ae65",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "1a3df98e27b4096615503268065a1803ce76b72035d47610443afd685f672c23"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.807872926079554,
+          "velocity_mps": 22.58524285297978,
+          "acceleration_mps2": 5.652990827407587
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.8170218180062,
+          "baseline_xy_m": 23.398130779739386,
+          "ekf_xy_m": 18.089611559577172,
+          "ekf_xyz_m": 19.36338159961969
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 22.93226185590049,
+            "velocity_mps": 38.54837007590056,
+            "acceleration_mps2": 6.653300656811041
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 16.708659056839604,
+            "velocity_mps": 11.61522622818162,
+            "acceleration_mps2": 4.6800104221793255
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 18.782508514218982,
+            "velocity_mps": 14.028887872896227,
+            "acceleration_mps2": 5.535478549089021
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 20.28686205480916,
+            "velocity_mps": 14.922223967008943,
+            "acceleration_mps2": 5.569092496086196
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 25.0946171255554,
+            "velocity_mps": 35.78261141072502,
+            "acceleration_mps2": 5.4561940789829055
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.4114478545531832,
+            "coverage_95_fraction": 0.9803220035778175
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.5265178412023723,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "3b6de20d29559ea4a34286736af5ee7e150cbffbb29ccd29e820856663d4ae65",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "8193ef34aec71501413e16fca335ff3bc18165c274f856364d7df286a64a1ce5"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.0658989799214,
+          "velocity_mps": 19.13050070182799,
+          "acceleration_mps2": 1.7601113814396059
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.8170218180062,
+          "baseline_xy_m": 23.398130779739386,
+          "ekf_xy_m": 14.698044128339182,
+          "ekf_xyz_m": 15.685085660724122
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.1248837475315,
+            "velocity_mps": 36.2862830389839,
+            "acceleration_mps2": 1.6439143827160752
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 13.855310435232813,
+            "velocity_mps": 6.10333155719824,
+            "acceleration_mps2": 1.6900765291064788
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 15.124268296111936,
+            "velocity_mps": 7.61754278542023,
+            "acceleration_mps2": 2.278524809795706
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 15.683690351002095,
+            "velocity_mps": 7.206405306428072,
+            "acceleration_mps2": 1.2812024896561112
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 20.56614380351791,
+            "velocity_mps": 33.39892358520639,
+            "acceleration_mps2": 1.786784723047648
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.1961883980174193,
+            "coverage_95_fraction": 0.9922480620155039
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.343178474354292,
+            "coverage_95_fraction": 1.0
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3550794524828598,
+          "min_ca": 0.24403593653486863,
+          "max_ca": 0.696955980521388
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.34712894894166263,
+          "min_ca": 0.28392358841037363,
+          "max_ca": 0.5081398259783297
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3981903505472769,
+          "min_ca": 0.2969489531040146,
+          "max_ca": 0.7779064052803882
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.379388398100475,
+          "min_ca": 0.31249787920754124,
+          "max_ca": 0.683668048582882
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.37683444598011473,
+          "min_ca": 0.2657724299784345,
+          "max_ca": 0.6851386216901046
+        }
+      }
+    },
+    {
+      "seed": 10,
+      "measurement_sha256": "a833f52f8b893302e7cafc7809bfca5fda017b147a1ffcee1ab20ce41ea4799e",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "a833f52f8b893302e7cafc7809bfca5fda017b147a1ffcee1ab20ce41ea4799e",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "a5e7993c2c246c50717dbaf21620e48ac96f4477f4f69d472be83a40c8edc195"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 20.238336853240867,
+          "velocity_mps": 22.944278204520625,
+          "acceleration_mps2": 5.974566599631565
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.243165337510646,
+          "baseline_xy_m": 23.94467066457746,
+          "ekf_xy_m": 18.590700315722714,
+          "ekf_xyz_m": 19.796406320632975
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 20.82041443860547,
+            "velocity_mps": 38.286349571658356,
+            "acceleration_mps2": 6.972036089647703
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 19.085101005835174,
+            "velocity_mps": 13.59283476314889,
+            "acceleration_mps2": 5.259866464274789
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.1247278645979,
+            "velocity_mps": 14.358752010265945,
+            "acceleration_mps2": 5.540116947810377
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 21.791630518339826,
+            "velocity_mps": 15.778977457109084,
+            "acceleration_mps2": 5.9844302954386395
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 25.51104545852564,
+            "velocity_mps": 35.57850520395042,
+            "acceleration_mps2": 5.578710674956165
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.49869486870482,
+            "coverage_95_fraction": 0.9689922480620154
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.2621397259139537,
+            "coverage_95_fraction": 0.991869918699187
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "a833f52f8b893302e7cafc7809bfca5fda017b147a1ffcee1ab20ce41ea4799e",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "7cbe04d2cae12e888e0ce562a731235b4259a214a2b2a268f39697bf502f47bd"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.414391629606907,
+          "velocity_mps": 19.49988485967597,
+          "acceleration_mps2": 1.9584948546990153
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.243165337510646,
+          "baseline_xy_m": 23.94467066457746,
+          "ekf_xy_m": 14.947698480801943,
+          "ekf_xyz_m": 15.924437840966226
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 18.957358733078003,
+            "velocity_mps": 36.8223381044995,
+            "acceleration_mps2": 2.2141106572486304
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 14.674595646072989,
+            "velocity_mps": 6.966347788220194,
+            "acceleration_mps2": 1.8156681011226328
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 14.596329712641722,
+            "velocity_mps": 7.543247885560427,
+            "acceleration_mps2": 2.2184745660658383
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.027946490693992,
+            "velocity_mps": 7.724432957243788,
+            "acceleration_mps2": 1.4907187284235794
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 22.033132342756346,
+            "velocity_mps": 33.317804395459525,
+            "acceleration_mps2": 1.7923338799348802
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.257237119248392,
+            "coverage_95_fraction": 0.977340488968396
+          },
+          "missing": {
+            "count": 123,
+            "mean": 1.9636856252500683,
+            "coverage_95_fraction": 0.991869918699187
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.34937525317311946,
+          "min_ca": 0.2381947366525063,
+          "max_ca": 0.6670229982306184
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3532545689338684,
+          "min_ca": 0.2865307419081275,
+          "max_ca": 0.5664495556336892
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.38692750351428845,
+          "min_ca": 0.30322206191958384,
+          "max_ca": 0.6502497236192616
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.38846423091562093,
+          "min_ca": 0.3133113949729793,
+          "max_ca": 0.6213256554196344
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.38131004619760683,
+          "min_ca": 0.2754391099960433,
+          "max_ca": 0.5745417725923774
+        }
+      }
+    },
+    {
+      "seed": 11,
+      "measurement_sha256": "45ca02112aed84b30a5cee23b4342cef3f4d3fc2728957b8503204d091c80470",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "45ca02112aed84b30a5cee23b4342cef3f4d3fc2728957b8503204d091c80470",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "d14877ba0f2c1915e15ed8e7a07aea434532352ce3b9fd98635abfa386c642a7"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.77095100749685,
+          "velocity_mps": 24.007317556408992,
+          "acceleration_mps2": 6.154724142216353
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.077641826112284,
+          "baseline_xy_m": 23.094844260536444,
+          "ekf_xy_m": 18.30287810897485,
+          "ekf_xyz_m": 19.582517038285307
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.514747919881124,
+            "velocity_mps": 40.98169867691059,
+            "acceleration_mps2": 7.504407774259622
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 18.025299527387237,
+            "velocity_mps": 13.46624347977067,
+            "acceleration_mps2": 5.425041639476013
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.279174720042764,
+            "velocity_mps": 14.493712443604235,
+            "acceleration_mps2": 5.8252188406575645
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 22.048551599796543,
+            "velocity_mps": 15.313332253876291,
+            "acceleration_mps2": 5.642883101142054
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 22.180958669492814,
+            "velocity_mps": 35.71469585357865,
+            "acceleration_mps2": 5.951209704492298
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.6306676856425995,
+            "coverage_95_fraction": 0.9630292188431724
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.5520422413573822,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "45ca02112aed84b30a5cee23b4342cef3f4d3fc2728957b8503204d091c80470",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "2774a24258a1e629c61395ac19775bce7d971eec384df2cfb3cbaba6b075133d"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 15.998727598791799,
+          "velocity_mps": 20.610695135466,
+          "acceleration_mps2": 2.066040442660704
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.077641826112284,
+          "baseline_xy_m": 23.094844260536444,
+          "ekf_xy_m": 14.753995853554613,
+          "ekf_xyz_m": 15.858600352998193
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 16.285977240776223,
+            "velocity_mps": 39.14748846269326,
+            "acceleration_mps2": 2.5887154934255685
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 14.829548420304457,
+            "velocity_mps": 6.9667004499220555,
+            "acceleration_mps2": 1.8109488945348293
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 15.669365108699086,
+            "velocity_mps": 8.213360243009332,
+            "acceleration_mps2": 2.3608629745773873
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.121903374754154,
+            "velocity_mps": 7.1191966745830655,
+            "acceleration_mps2": 1.232653501025186
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 17.799528073997138,
+            "velocity_mps": 33.36909713246908,
+            "acceleration_mps2": 1.8696183964886501
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.4248609764318125,
+            "coverage_95_fraction": 0.9761478831246273
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.275958902640877,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.36029592385919845,
+          "min_ca": 0.24858459964370694,
+          "max_ca": 0.7416772308555954
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.35903455227496406,
+          "min_ca": 0.2870600921427115,
+          "max_ca": 0.5012831111283005
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.40405030827170224,
+          "min_ca": 0.305388773745268,
+          "max_ca": 0.7377851098617909
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.37574917223519444,
+          "min_ca": 0.3138777971978382,
+          "max_ca": 0.5943943334945876
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3888045521016442,
+          "min_ca": 0.28984472996696636,
+          "max_ca": 0.7112789697863113
+        }
+      }
+    },
+    {
+      "seed": 12,
+      "measurement_sha256": "8eb0d8105307a49003eb578f2a80b986c74d888f45baf8a30b2ef13327a3423f",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "8eb0d8105307a49003eb578f2a80b986c74d888f45baf8a30b2ef13327a3423f",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "03645c6bb3fc8cd525a570978e4d551aafeab255df3bac4d8324f1ee91db64fd"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 23.601301268562384,
+          "velocity_mps": 26.719496476589125,
+          "acceleration_mps2": 7.164144665923627
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.57408221379929,
+          "baseline_xy_m": 24.566226852352898,
+          "ekf_xy_m": 22.312060289945016,
+          "ekf_xyz_m": 23.418500734589504
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 29.73472233554158,
+            "velocity_mps": 47.00671889490087,
+            "acceleration_mps2": 10.505277572930522
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 19.314016347478034,
+            "velocity_mps": 13.713478283269264,
+            "acceleration_mps2": 5.473659618002716
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 22.776230193632557,
+            "velocity_mps": 15.968313590000692,
+            "acceleration_mps2": 5.988721635337003
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 21.26367994026504,
+            "velocity_mps": 14.249484939860276,
+            "acceleration_mps2": 5.395672511698977
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 25.96555889174122,
+            "velocity_mps": 37.1737099773021,
+            "acceleration_mps2": 7.62433111057188
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 3.0135670535538237,
+            "coverage_95_fraction": 0.9505068574836016
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.759287750749855,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "8eb0d8105307a49003eb578f2a80b986c74d888f45baf8a30b2ef13327a3423f",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "cba350b59d7771cd325c989a2c4952acc5499c405888acffa1c751a9852c2b3c"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.27990054485578,
+          "velocity_mps": 22.636979347586617,
+          "acceleration_mps2": 2.3068954585534476
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.57408221379929,
+          "baseline_xy_m": 24.566226852352898,
+          "ekf_xy_m": 18.340399360007545,
+          "ekf_xyz_m": 19.199126397493806
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 25.20745202274602,
+            "velocity_mps": 43.25694685137799,
+            "acceleration_mps2": 3.237213220632794
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 13.778255533731173,
+            "velocity_mps": 6.887645678542509,
+            "acceleration_mps2": 1.8642503344370709
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.178568243837002,
+            "velocity_mps": 9.073929231563245,
+            "acceleration_mps2": 2.3847267729129116
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.1401521919373,
+            "velocity_mps": 6.985129228350392,
+            "acceleration_mps2": 1.2826402847415983
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 20.34922602175109,
+            "velocity_mps": 33.489215137587514,
+            "acceleration_mps2": 2.01109423509136
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.801803032045499,
+            "coverage_95_fraction": 0.964221824686941
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.4678911192871484,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3681680181772474,
+          "min_ca": 0.24933561416701802,
+          "max_ca": 0.8089722345190568
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3626220369723105,
+          "min_ca": 0.28988509260714346,
+          "max_ca": 0.6389364665738956
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.4051279504298145,
+          "min_ca": 0.29951618657514845,
+          "max_ca": 0.7588686564371846
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.37660319092744743,
+          "min_ca": 0.3089071486741089,
+          "max_ca": 0.625310617871538
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.38759767736246137,
+          "min_ca": 0.26437547731699684,
+          "max_ca": 0.6498325275847894
+        }
+      }
+    },
+    {
+      "seed": 13,
+      "measurement_sha256": "87c752ce4134e1c8bc9131e9e439274e8aabec14e7c4cd24ace98b7b6166f792",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "87c752ce4134e1c8bc9131e9e439274e8aabec14e7c4cd24ace98b7b6166f792",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "9074ac644943ea18915077a7e4ea146bc6cbc2a4efd7b3d64c88f5ee833b3bd0"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 21.2613062685642,
+          "velocity_mps": 24.039021121653104,
+          "acceleration_mps2": 6.1243464304364466
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.7803890693124,
+          "baseline_xy_m": 24.210010072633047,
+          "ekf_xy_m": 19.871092357600237,
+          "ekf_xyz_m": 21.033937616046515
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 22.66746742778813,
+            "velocity_mps": 40.60122411276803,
+            "acceleration_mps2": 7.061442906839727
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 22.57755626635192,
+            "velocity_mps": 16.263698979576827,
+            "acceleration_mps2": 6.240135847247667
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.549245116805544,
+            "velocity_mps": 14.145064175915046,
+            "acceleration_mps2": 5.559226028474842
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 20.060893943084327,
+            "velocity_mps": 14.087157323423225,
+            "acceleration_mps2": 5.506560763821987
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 24.148653127636774,
+            "velocity_mps": 36.49630598094063,
+            "acceleration_mps2": 6.304631664734443
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.7691439566846467,
+            "coverage_95_fraction": 0.9660107334525939
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.754529094296686,
+            "coverage_95_fraction": 0.943089430894309
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "87c752ce4134e1c8bc9131e9e439274e8aabec14e7c4cd24ace98b7b6166f792",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "0857a27ea81f3e0f0954309c1832deadb0f0a6535b1453b67108f54a7d550145"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 17.022097257041747,
+          "velocity_mps": 20.258913817315467,
+          "acceleration_mps2": 1.8320427481621044
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.7803890693124,
+          "baseline_xy_m": 24.210010072633047,
+          "ekf_xy_m": 15.98374223375459,
+          "ekf_xyz_m": 16.91346837342082
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.350570477976667,
+            "velocity_mps": 38.40689156060272,
+            "acceleration_mps2": 1.7353370079620116
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 17.032515951522985,
+            "velocity_mps": 7.8899350035002165,
+            "acceleration_mps2": 1.9486218765734773
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 16.432978816006063,
+            "velocity_mps": 8.043725562475236,
+            "acceleration_mps2": 2.2742340540318127
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 14.980427560100578,
+            "velocity_mps": 6.297018468917726,
+            "acceleration_mps2": 1.2020233952765442
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 18.43942718732043,
+            "velocity_mps": 33.43803859385476,
+            "acceleration_mps2": 1.7501935431653473
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5073477180070443,
+            "coverage_95_fraction": 0.9880739415623137
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.5028540934584274,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3538081214339022,
+          "min_ca": 0.2464858913644775,
+          "max_ca": 0.5899827568494902
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3789626818995206,
+          "min_ca": 0.2797547257674805,
+          "max_ca": 0.6200667208663325
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3973961875113075,
+          "min_ca": 0.30689597025050835,
+          "max_ca": 0.7465487913052324
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.37331210027006806,
+          "min_ca": 0.3110426802021463,
+          "max_ca": 0.5507420366182969
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3831079118832249,
+          "min_ca": 0.2733820540249999,
+          "max_ca": 0.6258025368357132
+        }
+      }
+    },
+    {
+      "seed": 14,
+      "measurement_sha256": "30945abd97eea3efce0375fda97d6d2ba0250691c2dc358efd2a38b940a04ae6",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "30945abd97eea3efce0375fda97d6d2ba0250691c2dc358efd2a38b940a04ae6",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "a360130566592b834b38cdb160612d47eedaac86240e82add0eda9d044ee16f7"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 21.121696553343362,
+          "velocity_mps": 25.282786753027665,
+          "acceleration_mps2": 6.258273225649512
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.185485555945604,
+          "baseline_xy_m": 23.975238202627768,
+          "ekf_xy_m": 19.91629770756305,
+          "ekf_xyz_m": 21.10291765834617
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 23.2045032769349,
+            "velocity_mps": 44.1824796606266,
+            "acceleration_mps2": 8.223531460496423
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 21.536432360863806,
+            "velocity_mps": 14.688496488491651,
+            "acceleration_mps2": 5.409927225390783
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.357869216403436,
+            "velocity_mps": 14.184095023916514,
+            "acceleration_mps2": 5.6634000744527535
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 20.186883598102565,
+            "velocity_mps": 13.705664314241732,
+            "acceleration_mps2": 5.262703905637842
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 21.376085018497506,
+            "velocity_mps": 36.16502918837514,
+            "acceleration_mps2": 6.718461070689213
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.570843222762075,
+            "coverage_95_fraction": 0.9672033392963626
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.2563650963238397,
+            "coverage_95_fraction": 1.0
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "30945abd97eea3efce0375fda97d6d2ba0250691c2dc358efd2a38b940a04ae6",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "b2ba38f43e0d55f51aae837a7495eeeab400fd3ae6347b7888de37ca3fe1b6d4"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.61943364008464,
+          "velocity_mps": 21.705627183904678,
+          "acceleration_mps2": 1.8311351863117344
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.185485555945604,
+          "baseline_xy_m": 23.975238202627768,
+          "ekf_xy_m": 15.650200152535563,
+          "ekf_xyz_m": 16.632084421878524
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.12326952847417,
+            "velocity_mps": 41.65474063095318,
+            "acceleration_mps2": 1.9739161544090045
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 15.95359595541987,
+            "velocity_mps": 7.230444650292193,
+            "acceleration_mps2": 1.7749333804390752
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 15.009257868325594,
+            "velocity_mps": 7.517327353104775,
+            "acceleration_mps2": 2.2246611351635592
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 16.103658433516173,
+            "velocity_mps": 6.374170407197277,
+            "acceleration_mps2": 1.1901149634614012
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 16.44598023484833,
+            "velocity_mps": 33.34604700882951,
+            "acceleration_mps2": 1.9205154743964477
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.2824021805076313,
+            "coverage_95_fraction": 0.975551580202743
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.0114404047716365,
+            "coverage_95_fraction": 1.0
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3557908341514628,
+          "min_ca": 0.2504799712431854,
+          "max_ca": 0.6455085418013735
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.35265218373152735,
+          "min_ca": 0.29065251292427663,
+          "max_ca": 0.6183256679662653
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.39670783759557116,
+          "min_ca": 0.29824448398284303,
+          "max_ca": 0.6919541551734933
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.369830271586487,
+          "min_ca": 0.31014408321227854,
+          "max_ca": 0.6400999791551217
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3761987894229583,
+          "min_ca": 0.2983507676777812,
+          "max_ca": 0.5504109213754566
+        }
+      }
+    },
+    {
+      "seed": 15,
+      "measurement_sha256": "4460cba1b8a2a9008334e75eede4d4651d817206ac6cd483f2b02cd2721f0325",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "4460cba1b8a2a9008334e75eede4d4651d817206ac6cd483f2b02cd2721f0325",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "41a145a0cdf2d81ab42120618183e3b5bb794d642bcc6733a5ad9b7be227ae36"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 21.641827282278665,
+          "velocity_mps": 24.305729411619414,
+          "acceleration_mps2": 6.263251912457037
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.60558026131731,
+          "baseline_xy_m": 25.625768559756892,
+          "ekf_xy_m": 20.25242692064099,
+          "ekf_xyz_m": 21.519376620166415
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 20.539067726496764,
+            "velocity_mps": 40.33146625125813,
+            "acceleration_mps2": 7.083544379139494
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 21.083848671322524,
+            "velocity_mps": 14.591758119997094,
+            "acceleration_mps2": 5.649965245178741
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 23.282967990129567,
+            "velocity_mps": 16.771779872873857,
+            "acceleration_mps2": 6.416454869370801
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 21.563769989630202,
+            "velocity_mps": 15.563892630394012,
+            "acceleration_mps2": 5.800318675896047
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 23.24708068333293,
+            "velocity_mps": 36.63419858071957,
+            "acceleration_mps2": 6.701277873982011
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.877194563084124,
+            "coverage_95_fraction": 0.9534883720930233
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.6995494473721986,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "4460cba1b8a2a9008334e75eede4d4651d817206ac6cd483f2b02cd2721f0325",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "771c9289b26d8dd3681c22f018f7e2b256b7c616b8d8ef17021c9f962bc1a5af"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 17.511031300971716,
+          "velocity_mps": 20.487824919447856,
+          "acceleration_mps2": 1.994606484095711
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.60558026131731,
+          "baseline_xy_m": 25.625768559756892,
+          "ekf_xy_m": 16.454673097809643,
+          "ekf_xyz_m": 17.485184460009666
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 17.69425315952411,
+            "velocity_mps": 38.522210128027695,
+            "acceleration_mps2": 2.1987967972383275
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 15.399177274285703,
+            "velocity_mps": 7.537628923452819,
+            "acceleration_mps2": 1.88272330190268
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 19.54542144466881,
+            "velocity_mps": 9.146054743116355,
+            "acceleration_mps2": 2.3955792234219313
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.15517746473407,
+            "velocity_mps": 7.38762745542293,
+            "acceleration_mps2": 1.3400245903799493
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 17.85969960789344,
+            "velocity_mps": 33.451991313290726,
+            "acceleration_mps2": 1.9413073416039588
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.60413415578163,
+            "coverage_95_fraction": 0.9677996422182469
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.1277611677525434,
+            "coverage_95_fraction": 0.991869918699187
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.36452705328127716,
+          "min_ca": 0.2558770750956213,
+          "max_ca": 0.7902746068300563
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3596679529456572,
+          "min_ca": 0.2769353211181805,
+          "max_ca": 0.6185221598161278
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.40755160880137914,
+          "min_ca": 0.3015545720886814,
+          "max_ca": 0.6659969436117185
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.37915827467870655,
+          "min_ca": 0.3151425985439745,
+          "max_ca": 0.648145376202356
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.40082939430884146,
+          "min_ca": 0.3063003835026126,
+          "max_ca": 0.6376368903270232
+        }
+      }
+    },
+    {
+      "seed": 16,
+      "measurement_sha256": "65cef5278e798266911a6d06d474e38ad5fcb4252443f93d90622cd522da5c22",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "65cef5278e798266911a6d06d474e38ad5fcb4252443f93d90622cd522da5c22",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "0bd96c87db34696be9ba9e8d3c2001f5276a248fb2d2f3b78137f94552ceb0aa"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.939874568116327,
+          "velocity_mps": 24.5034008982414,
+          "acceleration_mps2": 5.9009260403810275
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.76903385375909,
+          "baseline_xy_m": 23.859511027795595,
+          "ekf_xy_m": 18.90331394927143,
+          "ekf_xyz_m": 19.91985761673958
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 22.902192169661454,
+            "velocity_mps": 43.01692003185794,
+            "acceleration_mps2": 7.411606066338854
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 18.46824780746556,
+            "velocity_mps": 13.853607670598922,
+            "acceleration_mps2": 5.430299500933038
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 20.467899643993892,
+            "velocity_mps": 14.092809052985974,
+            "acceleration_mps2": 5.483134643868916
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 17.489222169044137,
+            "velocity_mps": 12.676020700428344,
+            "acceleration_mps2": 4.979848377307047
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 20.21081093154608,
+            "velocity_mps": 34.853947940486655,
+            "acceleration_mps2": 5.291698775658015
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.550298399668193,
+            "coverage_95_fraction": 0.9749552772808586
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.3218155846981734,
+            "coverage_95_fraction": 0.975609756097561
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "65cef5278e798266911a6d06d474e38ad5fcb4252443f93d90622cd522da5c22",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "7080a263e0f9ddbb5c054f4f603217c042983630b20d04322807531242c73c5a"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.05720827946105,
+          "velocity_mps": 21.348137618341166,
+          "acceleration_mps2": 1.8108605708073688
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.76903385375909,
+          "baseline_xy_m": 23.859511027795595,
+          "ekf_xy_m": 15.125015799045968,
+          "ekf_xyz_m": 15.97431147448775
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.391711852880444,
+            "velocity_mps": 40.92987933852758,
+            "acceleration_mps2": 1.8863616671441616
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 13.872016407415558,
+            "velocity_mps": 7.309088916465185,
+            "acceleration_mps2": 1.8205830723836562
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 16.99407770261105,
+            "velocity_mps": 7.709687856009686,
+            "acceleration_mps2": 2.2450152051748598
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 13.193397824853056,
+            "velocity_mps": 5.903797828026592,
+            "acceleration_mps2": 1.0972181612751633
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 17.147502198867596,
+            "velocity_mps": 33.218597521021415,
+            "acceleration_mps2": 1.7354248115043436
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.3394872816908387,
+            "coverage_95_fraction": 0.9767441860465116
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.37724964466768,
+            "coverage_95_fraction": 0.9512195121951219
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.35806024598550545,
+          "min_ca": 0.24056881760063575,
+          "max_ca": 0.6357767585265416
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.36286330305436404,
+          "min_ca": 0.2924506965245105,
+          "max_ca": 0.5516743139718758
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3914856576355639,
+          "min_ca": 0.3085732010610252,
+          "max_ca": 0.6883962987321323
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.36760765710265303,
+          "min_ca": 0.3093795301814289,
+          "max_ca": 0.576425344164574
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3708440015715249,
+          "min_ca": 0.2561346885445976,
+          "max_ca": 0.5565488945489155
+        }
+      }
+    },
+    {
+      "seed": 17,
+      "measurement_sha256": "7a9e2083d2fcbd33c66db7193695bc132fe50ae4d32b36ab0513dad24f90b30a",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "7a9e2083d2fcbd33c66db7193695bc132fe50ae4d32b36ab0513dad24f90b30a",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "045c34d86d305b5b2f03d509ab6f1ff8ee87869086d5889fd842d6ad68306d3a"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.992011855404936,
+          "velocity_mps": 23.62193792929217,
+          "acceleration_mps2": 6.242228596524268
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.51033234755247,
+          "baseline_xy_m": 23.97118585797268,
+          "ekf_xy_m": 18.54717182623821,
+          "ekf_xyz_m": 19.698910928371383
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 21.899061731422396,
+            "velocity_mps": 40.30393388307141,
+            "acceleration_mps2": 7.964664639383519
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 18.76271821194911,
+            "velocity_mps": 13.428741488933593,
+            "acceleration_mps2": 5.35038787361005
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 18.622343984989325,
+            "velocity_mps": 14.182800723550296,
+            "acceleration_mps2": 5.642201072677832
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 20.501754978383715,
+            "velocity_mps": 15.036415309168163,
+            "acceleration_mps2": 5.653733743696689
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 23.62821717414214,
+            "velocity_mps": 35.69909797773465,
+            "acceleration_mps2": 5.827033916820387
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.5396610979042857,
+            "coverage_95_fraction": 0.9743589743589743
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.4346243735758453,
+            "coverage_95_fraction": 0.9512195121951219
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "7a9e2083d2fcbd33c66db7193695bc132fe50ae4d32b36ab0513dad24f90b30a",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "55260affe399842f117563daebdf8c482a7f6e75ae26a6a2a39a32c4ce3a6170"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 16.149361241039127,
+          "velocity_mps": 19.987025976887363,
+          "acceleration_mps2": 1.8564506292022975
+        },
+        "available_rmse": {
+          "raw_xy_m": 51.51033234755247,
+          "baseline_xy_m": 23.97118585797268,
+          "ekf_xy_m": 14.916800976292034,
+          "ekf_xyz_m": 15.853380533172055
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 18.809964520462938,
+            "velocity_mps": 37.92687225352922,
+            "acceleration_mps2": 1.9691593733055635
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 15.227884533748982,
+            "velocity_mps": 6.904036603930268,
+            "acceleration_mps2": 1.7941990381027573
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 14.659398264197089,
+            "velocity_mps": 7.841036835098859,
+            "acceleration_mps2": 2.2663275569862606
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 15.575823698016604,
+            "velocity_mps": 7.094336515120547,
+            "acceleration_mps2": 1.246056312251213
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 19.747079528389857,
+            "velocity_mps": 33.38842447091332,
+            "acceleration_mps2": 1.6484586246103268
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.2990249502107845,
+            "coverage_95_fraction": 0.9898628503279666
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.3510986693099585,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.3537884694886038,
+          "min_ca": 0.23941321865117524,
+          "max_ca": 0.627882285332623
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.3584527498823572,
+          "min_ca": 0.2924361810142339,
+          "max_ca": 0.5372441962217972
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3941682355235386,
+          "min_ca": 0.29782334788870457,
+          "max_ca": 0.6627355956623421
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3767195762849031,
+          "min_ca": 0.31420176597638716,
+          "max_ca": 0.5488193131366573
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.36998267222489317,
+          "min_ca": 0.25504842553210477,
+          "max_ca": 0.5182816454615758
+        }
+      }
+    },
+    {
+      "seed": 18,
+      "measurement_sha256": "cb2c2e73d95e2b678259926470ca2a6024b9ca6b1bdcfe4eb6176911251d3dcb",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "cb2c2e73d95e2b678259926470ca2a6024b9ca6b1bdcfe4eb6176911251d3dcb",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "da08f3ff3bbc96a37fde55ebb8dab9a4dd2d2e06807bf5b4482c9bb9b22b2fa1"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 22.204017328674095,
+          "velocity_mps": 24.97896944751838,
+          "acceleration_mps2": 6.427587243881644
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.617226671817875,
+          "baseline_xy_m": 25.445832520058985,
+          "ekf_xy_m": 20.835441405178294,
+          "ekf_xyz_m": 21.883029516912938
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 23.93553353112946,
+            "velocity_mps": 42.46494532716423,
+            "acceleration_mps2": 8.155638777733811
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 19.704475514611268,
+            "velocity_mps": 14.166128846275033,
+            "acceleration_mps2": 5.375931474727142
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 22.012049491091986,
+            "velocity_mps": 15.908617602026375,
+            "acceleration_mps2": 6.023193697872265
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 22.942691616377946,
+            "velocity_mps": 15.451885208750562,
+            "acceleration_mps2": 5.79323447608627
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 26.190851610190407,
+            "velocity_mps": 36.25955671815338,
+            "acceleration_mps2": 5.7611164873844185
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.6184367264936976,
+            "coverage_95_fraction": 0.9707811568276684
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.700370082087594,
+            "coverage_95_fraction": 0.983739837398374
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "cb2c2e73d95e2b678259926470ca2a6024b9ca6b1bdcfe4eb6176911251d3dcb",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "41c415af3d8ac7b9bbd1384a13355fa67d0f0a8222e21a86e29c821ed3a4a6b1"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 17.409816296060043,
+          "velocity_mps": 21.040405700967092,
+          "acceleration_mps2": 1.9607735589332398
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.617226671817875,
+          "baseline_xy_m": 25.445832520058985,
+          "ekf_xy_m": 16.36748242582706,
+          "ekf_xyz_m": 17.198637448460488
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 19.837962971814648,
+            "velocity_mps": 39.97638189198174,
+            "acceleration_mps2": 2.342315685868959
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 14.834722994603133,
+            "velocity_mps": 7.302060538753294,
+            "acceleration_mps2": 1.7695550838222238
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 16.336945551942314,
+            "velocity_mps": 8.16826148265074,
+            "acceleration_mps2": 2.271838088498593
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 18.21804716991942,
+            "velocity_mps": 7.25554927700288,
+            "acceleration_mps2": 1.2647195461228118
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 20.06857898454114,
+            "velocity_mps": 33.412274640766256,
+            "acceleration_mps2": 1.509630996750896
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.30453818382735,
+            "coverage_95_fraction": 0.977340488968396
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.25943127466641,
+            "coverage_95_fraction": 0.975609756097561
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.35578736443941394,
+          "min_ca": 0.2350134216551528,
+          "max_ca": 0.7241316289865465
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.35068096919649494,
+          "min_ca": 0.2817125653269657,
+          "max_ca": 0.5443765956527036
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.39348445700299167,
+          "min_ca": 0.3097824135337811,
+          "max_ca": 0.6539142719455507
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3780721002827166,
+          "min_ca": 0.3115661404021485,
+          "max_ca": 0.5411221021703813
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3795158634762303,
+          "min_ca": 0.25091261635584355,
+          "max_ca": 0.5334204485142775
+        }
+      }
+    },
+    {
+      "seed": 19,
+      "measurement_sha256": "b9605a1c2efed21983743ec17716b9234e9b1b8c3ab9f04634ca18478242be62",
+      "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+      "ekf": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "b9605a1c2efed21983743ec17716b9234e9b1b8c3ab9f04634ca18478242be62",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "b6a3210eb4edf5beee97924dcca9871a5defa8bfd3723c5bc1bcd32e72394b36"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 19.266816199652183,
+          "velocity_mps": 24.098724152852228,
+          "acceleration_mps2": 6.297964753591756
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.55527359345283,
+          "baseline_xy_m": 22.172458428066218,
+          "ekf_xy_m": 17.95701083753178,
+          "ekf_xyz_m": 19.067951746064917
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 20.417210796795043,
+            "velocity_mps": 42.15587246247928,
+            "acceleration_mps2": 8.692826589816523
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 19.5791840109801,
+            "velocity_mps": 13.681649360507045,
+            "acceleration_mps2": 5.342237760309563
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 18.043810061974586,
+            "velocity_mps": 12.735980452214905,
+            "acceleration_mps2": 4.974364023050208
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 18.94874141138447,
+            "velocity_mps": 14.017264811837444,
+            "acceleration_mps2": 5.45970734635305
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 21.797914279253174,
+            "velocity_mps": 35.80447380961913,
+            "acceleration_mps2": 6.266435825832046
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.389704507406035,
+            "coverage_95_fraction": 0.979129397734049
+          },
+          "missing": {
+            "count": 123,
+            "mean": 2.2187142158526205,
+            "coverage_95_fraction": 0.967479674796748
+          }
+        }
+      },
+      "imm": {
+        "schema_version": 1,
+        "input_sha256": {
+          "measurements": "b9605a1c2efed21983743ec17716b9234e9b1b8c3ab9f04634ca18478242be62",
+          "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+          "estimates": "dd8184a758115d65913429b6e079022efa8d9dc5025d10978fbfb1316b4381b3"
+        },
+        "scope": {
+          "state_rmse": "all rows including missing observations",
+          "baseline_rmse": "available observations only; converted polar measurements",
+          "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+          "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+        },
+        "all_row_count": 1800,
+        "available_row_count": 1677,
+        "state_rmse": {
+          "position_m": 15.362943295034748,
+          "velocity_mps": 20.930461302690745,
+          "acceleration_mps2": 1.957430303551114
+        },
+        "available_rmse": {
+          "raw_xy_m": 52.55527359345283,
+          "baseline_xy_m": 22.172458428066218,
+          "ekf_xy_m": 14.408142303212527,
+          "ekf_xyz_m": 15.24613753303906
+        },
+        "state_by_segment": {
+          "straight": {
+            "count": 450,
+            "position_m": 18.589307039741573,
+            "velocity_mps": 40.202132016547175,
+            "acceleration_mps2": 2.4191694172350933
+          },
+          "acceleration": {
+            "count": 450,
+            "position_m": 14.429659615673545,
+            "velocity_mps": 6.695120517613399,
+            "acceleration_mps2": 1.768205988626655
+          },
+          "turn": {
+            "count": 450,
+            "position_m": 14.197218929869253,
+            "velocity_mps": 7.016625136341217,
+            "acceleration_mps2": 2.154801968045729
+          },
+          "post-turn": {
+            "count": 450,
+            "position_m": 13.738328448584612,
+            "velocity_mps": 6.485966053607474,
+            "acceleration_mps2": 1.3053846038797714
+          },
+          "missing": {
+            "count": 123,
+            "position_m": 16.875023615373994,
+            "velocity_mps": 33.35246012462648,
+            "acceleration_mps2": 1.6798843506776797
+          }
+        },
+        "position_nees": {
+          "available": {
+            "count": 1677,
+            "mean": 2.1359542858359024,
+            "coverage_95_fraction": 0.9821109123434705
+          },
+          "missing": {
+            "count": 123,
+            "mean": 1.940929573679182,
+            "coverage_95_fraction": 1.0
+          }
+        }
+      },
+      "model_probability": {
+        "straight": {
+          "count": 450,
+          "mean_ca": 0.36021232330406316,
+          "min_ca": 0.2464785393027493,
+          "max_ca": 0.6885885438603414
+        },
+        "acceleration": {
+          "count": 450,
+          "mean_ca": 0.35835215561770534,
+          "min_ca": 0.2871889751103145,
+          "max_ca": 0.6224878899577257
+        },
+        "turn": {
+          "count": 450,
+          "mean_ca": 0.3807987496568367,
+          "min_ca": 0.3005066014004126,
+          "max_ca": 0.803856796836197
+        },
+        "post-turn": {
+          "count": 450,
+          "mean_ca": 0.3744702771143301,
+          "min_ca": 0.31464354152259827,
+          "max_ca": 0.6856240357072659
+        },
+        "missing": {
+          "count": 123,
+          "mean_ca": 0.3779534143063002,
+          "min_ca": 0.3037162605366298,
+          "max_ca": 0.5138693768875249
+        }
+      }
+    }
+  ],
+  "summary": {
+    "all": {
+      "position_m": {
+        "mean_ekf_rmse": 20.888413879220376,
+        "mean_imm_rmse": 16.891069129363526,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -3.9973447498568504
+      },
+      "velocity_mps": {
+        "mean_ekf_rmse": 24.655182317847196,
+        "mean_imm_rmse": 21.104560989586403,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -3.5506213282607932
+      },
+      "acceleration_mps2": {
+        "mean_ekf_rmse": 6.244613368790066,
+        "mean_imm_rmse": 1.9067197221278342,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -4.337893646662232
+      }
+    },
+    "straight": {
+      "position_m": {
+        "mean_ekf_rmse": 22.72445553544296,
+        "mean_imm_rmse": 19.43830279229191,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -3.286152743151048
+      },
+      "velocity_mps": {
+        "mean_ekf_rmse": 42.46487684254428,
+        "mean_imm_rmse": 40.22846861002445,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -2.2364082325198282
+      },
+      "acceleration_mps2": {
+        "mean_ekf_rmse": 7.895597827717784,
+        "mean_imm_rmse": 2.088812460500309,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -5.806785367217475
+      }
+    },
+    "acceleration": {
+      "position_m": {
+        "mean_ekf_rmse": 19.759207782731306,
+        "mean_imm_rmse": 15.51384815581171,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -4.245359626919597
+      },
+      "velocity_mps": {
+        "mean_ekf_rmse": 14.010598573016276,
+        "mean_imm_rmse": 7.18180168866169,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -6.828796884354586
+      },
+      "acceleration_mps2": {
+        "mean_ekf_rmse": 5.4626587021945445,
+        "mean_imm_rmse": 1.8259633513681055,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -3.6366953508264386
+      }
+    },
+    "turn": {
+      "position_m": {
+        "mean_ekf_rmse": 20.156850360487717,
+        "mean_imm_rmse": 16.236849531313975,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -3.9200008291737394
+      },
+      "velocity_mps": {
+        "mean_ekf_rmse": 14.595078949723273,
+        "mean_imm_rmse": 7.942300455428147,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -6.652778494295126
+      },
+      "acceleration_mps2": {
+        "mean_ekf_rmse": 5.693667390241753,
+        "mean_imm_rmse": 2.277842562677839,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -3.415824827563914
+      }
+    },
+    "post-turn": {
+      "position_m": {
+        "mean_ekf_rmse": 20.460548932306015,
+        "mean_imm_rmse": 15.7402751113804,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -4.720273820925616
+      },
+      "velocity_mps": {
+        "mean_ekf_rmse": 14.570792294212364,
+        "mean_imm_rmse": 6.821264289113131,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -7.749528005099232
+      },
+      "acceleration_mps2": {
+        "mean_ekf_rmse": 5.531044553703226,
+        "mean_imm_rmse": 1.2468403114743807,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -4.284204242228845
+      }
+    },
+    "missing": {
+      "position_m": {
+        "mean_ekf_rmse": 23.71526359263056,
+        "mean_imm_rmse": 19.082230251604855,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -4.633033341025704
+      },
+      "velocity_mps": {
+        "mean_ekf_rmse": 36.07526185907749,
+        "mean_imm_rmse": 33.410045263343925,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -2.665216595733569
+      },
+      "acceleration_mps2": {
+        "mean_ekf_rmse": 6.1781055900726045,
+        "mean_imm_rmse": 1.7593286389104985,
+        "imm_lower_seed_count": 20,
+        "paired_difference_imm_minus_ekf": -4.418776951162106
+      }
+    }
+  }
+}

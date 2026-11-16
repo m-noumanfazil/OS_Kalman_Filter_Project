@@ -3,6 +3,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import platform
 import statistics
 import subprocess
@@ -30,6 +31,7 @@ def main():
     measurements = args.scenario / 'measurements.csv'
     commands = {'ekf': args.ekf.resolve(), 'imm': args.imm.resolve()}
     timings = {'ekf': [], 'imm': []}
+    output_hashes = {}
     # Alternate order to reduce (not eliminate) ordering effects; one warm-up each.
     for iteration in range(args.iterations + 1):
         order = ('ekf', 'imm') if iteration % 2 == 0 else ('imm', 'ekf')
@@ -38,6 +40,10 @@ def main():
             start = time.perf_counter_ns()
             subprocess.run([str(commands[name]), str(measurements), str(output)], check=True, stdout=subprocess.DEVNULL)
             elapsed = (time.perf_counter_ns() - start) / 1e6
+            digest = sha(output)
+            if name in output_hashes and digest != output_hashes[name]:
+                raise ValueError(f'{name} output changed between repetitions')
+            output_hashes[name] = digest
             if iteration:
                 timings[name].append(elapsed)
     for name in commands:
@@ -47,7 +53,12 @@ def main():
     tracks = {}
     with (args.output_dir / 'imm-1.csv').open(newline='', encoding='utf-8') as f:
         for row in csv.DictReader(f):
-            tracks.setdefault(row['track_id'], []).append((float(row['timestamp']), float(row['prob_ca'])))
+            timestamp = float(row['timestamp'])
+            ca, cv = float(row['prob_ca']), float(row['prob_cv'])
+            if (not all(math.isfinite(v) for v in (timestamp, ca, cv)) or
+                    not (0 <= ca <= 1 and 0 <= cv <= 1) or abs(ca + cv - 1) > 1e-9):
+                raise ValueError('invalid IMM timestamp or model probabilities')
+            tracks.setdefault(row['track_id'], []).append((timestamp, ca))
     # SVG is portable, reproducible, and needs no plotting dependency.
     all_times = [t for values in tracks.values() for t, _ in values]
     lo, hi = min(all_times), max(all_times)
@@ -56,12 +67,13 @@ def main():
            '<rect width="900" height="360" fill="white"/><path d="M70 30V300H870" fill="none" stroke="black"/>',
            '<text x="70" y="20">Constant-acceleration model probability</text>',
            '<text x="45" y="35">1</text><text x="45" y="305">0</text>',
-           '<text x="385" y="345">Time (s)</text>']
+           f'<text x="70" y="318">{lo:.2f}</text><text x="820" y="318">{hi:.2f}</text>',
+           '<text x="730" y="345">Time (s)</text>']
     for index, (track, values) in enumerate(sorted(tracks.items())):
         points = ' '.join(f'{70+800*(t-lo)/(hi-lo or 1):.2f},{300-270*v:.2f}' for t, v in values)
         color = colors[index % len(colors)]
         svg.append(f'<polyline points="{points}" fill="none" stroke="{color}" stroke-width="1"/>')
-        svg.append(f'<text x="{80+index*130}" y="325" fill="{color}">Track {int(track)}</text>')
+        svg.append(f'<text x="{80+index*130}" y="345" fill="{color}">Track {int(track)}</text>')
     svg.append('</svg>')
     (args.output_dir / 'model-probabilities.svg').write_text('\n'.join(svg), encoding='utf-8')
     manifest = {'platform': platform.platform(), 'processor': platform.processor(), 'python': platform.python_version(),
@@ -69,6 +81,7 @@ def main():
                 'executable_sha256': {name: sha(path) for name, path in commands.items()},
                 'iterations': args.iterations, 'warmups_per_model': 1, 'timing_scope': 'complete sequential process including CSV I/O',
                 'order': 'alternating', 'samples_ms': timings,
+                'output_sha256': output_hashes,
                 'median_ms': {name: statistics.median(values) for name, values in timings.items()}, 'notes': args.notes}
     (args.output_dir / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     print('Results saved to', args.output_dir)
