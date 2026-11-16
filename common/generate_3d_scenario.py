@@ -19,7 +19,7 @@ def main():
         measurements = csv.writer(mf)
         truth = csv.writer(tf)
         measurements.writerow(['timestamp', 'track_id', 'range_m', 'azimuth_rad', 'elevation_rad', 'available'])
-        truth.writerow(['timestamp', 'track_id', 'x_m', 'y_m', 'z_m', 'vx_mps', 'vy_mps', 'vz_mps', 'ax_mps2', 'ay_mps2', 'az_mps2'])
+        truth.writerow(['timestamp', 'track_id', 'x_m', 'y_m', 'z_m', 'vx_mps', 'vy_mps', 'vz_mps', 'ax_mps2', 'ay_mps2', 'az_mps2', 'segment'])
         for track in range(3):
             position = [6000.0 + 1800*track, -3000.0 + 2000*track, 1200.0 + 400*track]
             velocity = [180.0 + 20*track, 80.0 - 30*track, 10.0 - 5*track]
@@ -28,6 +28,8 @@ def main():
                 # Deterministic segments: straight, acceleration/climb, turn, straight.
                 acceleration = ([0.0, 0.0, 0.0] if step < 150 or step >= 450 else
                                 ([1.5, 0.4, 0.7] if step < 300 else [-1.0, 2.0, -0.5]))
+                segment = ('straight' if step < 150 else 'acceleration' if step < 300
+                           else 'turn' if step < 450 else 'post-turn')
                 if step:
                     dt = 0.15 if step % 7 == 0 else 0.1
                     time += dt
@@ -39,7 +41,7 @@ def main():
                 distance = math.hypot(horizontal, z)
                 azimuth, elevation = math.atan2(y, x), math.atan2(z, horizontal)
                 available = step == 0 or step % 29 not in (0, 1)
-                truth.writerow([f'{time:.6f}', track, *[f'{v:.9f}' for v in position + velocity + acceleration]])
+                truth.writerow([f'{time:.6f}', track, *[f'{v:.9f}' for v in position + velocity + acceleration], segment])
                 if available:
                     measurements.writerow([f'{time:.6f}', track, f'{distance+rng.gauss(0,50):.9f}',
                                            f'{azimuth+rng.gauss(0,0.001):.12f}',

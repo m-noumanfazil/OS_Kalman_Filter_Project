@@ -30,6 +30,8 @@ class ScenarioTests(unittest.TestCase):
             self.assertEqual(float(truth[150]['ax_mps2']), 1.5)
             self.assertEqual(float(truth[300]['ay_mps2']), 2.0)
             self.assertEqual(float(truth[450]['az_mps2']), 0.0)
+            self.assertEqual([truth[i]['segment'] for i in (0, 150, 300, 450)],
+                             ['straight', 'acceleration', 'turn', 'post-turn'])
 
 
 if __name__ == '__main__':

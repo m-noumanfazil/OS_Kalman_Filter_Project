@@ -24,7 +24,20 @@ def digest(path):
     return h.hexdigest()
 
 
+def source_checkout():
+    """Record the checkout state; binary hashes remain the source of truth for the run."""
+    try:
+        root = Path(__file__).resolve().parent
+        commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=root, capture_output=True, text=True, timeout=5, check=True)
+        status = subprocess.run(['git', 'status', '--porcelain'], cwd=root, capture_output=True, text=True, timeout=5, check=True)
+        return {'commit': commit.stdout.strip(), 'tracked_or_untracked_changes': bool(status.stdout.strip())}
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def check_output(expected, output):
+    if not expected:
+        raise ValueError('sequential reference is empty')
     with output.open(newline='', encoding='utf-8') as file:
         actual = list(csv.DictReader(file))
     if len(actual) != len(expected):
@@ -34,8 +47,69 @@ def check_output(expected, output):
             raise ValueError(f'output header or track mismatch at row {index}')
         for field in left.keys() - {'track_id'}:
             a, b = float(left[field]), float(right[field])
-            if not math.isfinite(a) or not math.isfinite(b) or not math.isclose(a, b, rel_tol=1e-11, abs_tol=1e-9):
+            relative_tolerance = 0.0 if field == 'timestamp' else 1e-11
+            if not math.isfinite(a) or not math.isfinite(b) or not math.isclose(a, b, rel_tol=relative_tolerance, abs_tol=1e-9):
                 raise ValueError(f'output mismatch at row {index}, field {field}')
+
+
+def parse_telemetry(stdout, batch_size, record_count, elapsed_ms):
+    """Validate native counters before admitting a run into benchmark results."""
+    resources = re.findall(r'^RESOURCE parent_cpu_us=(-?\d+) worker_cpu_us=(-?\d+) parent_peak_kb=(-?\d+) worker_peak_kb=(-?\d+)\s*$', stdout, re.MULTILINE)
+    timings = re.findall(r'^TIMING batch_size=(\d+) launch_us=([0-9.eE+-]+) first_batch_us=([0-9.eE+-]+) remaining_batches_us=([0-9.eE+-]+) remaining_batches=(\d+) shutdown_us=([0-9.eE+-]+)\s*$', stdout, re.MULTILINE)
+    if len(resources) != 1 or len(timings) != 1:
+        raise ValueError('native run must report exactly one resource and timing record')
+    size, launch, first, remaining, batches, shutdown = timings[0]
+    if int(size) != batch_size or int(batches) != (record_count + batch_size - 1) // batch_size - 1:
+        raise ValueError('native batch size or batch count does not match workload')
+    values = [float(launch), float(first), float(remaining), float(shutdown)]
+    if not math.isfinite(elapsed_ms) or elapsed_ms <= 0 or any(not math.isfinite(v) or v < 0 for v in values):
+        raise ValueError('native timing contains non-finite or negative values')
+    # Native phase intervals are disjoint and lie inside the external interval.
+    # Permit a small rounding allowance because native output uses limited precision.
+    if sum(values) > elapsed_ms * 1000 + max(100.0, elapsed_ms):
+        raise ValueError('native phase timings exceed complete process time')
+    counters = [int(v) for v in resources[0]]
+    if any(v < -1 for v in counters):
+        raise ValueError('invalid resource counter (only -1 means unavailable)')
+    return {
+        'launch_us': values[0], 'first_batch_us': values[1],
+        'remaining_batches_us': values[2], 'remaining_batches': int(batches), 'shutdown_us': values[3],
+        **dict(zip(('parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'), counters)),
+    }
+
+
+def validate_source(fields, rows):
+    """Reject input that sorting would otherwise silently repair or corrupt."""
+    required = ['timestamp', 'track_id', 'range_m', 'azimuth_rad', 'elevation_rad', 'available']
+    if fields != required or not rows or len(rows) > 100000:
+        raise ValueError('input header must match the 3D schema and contain 1–100000 records')
+    previous = {}
+    for line, row in enumerate(rows, 2):
+        try:
+            if None in row or any(row.get(k) is None for k in required):
+                raise ValueError('missing or extra fields')
+            timestamp = float(row['timestamp'])
+            track_text = row['track_id']
+            # Match the native integer parser: no decimals or suffixes.
+            if not re.fullmatch(r'\+?\d+', track_text):
+                raise ValueError('invalid track ID')
+            track = int(track_text)
+            if track > 2147483647 or not math.isfinite(timestamp) or timestamp < 0:
+                raise ValueError('invalid track ID or timestamp')
+            if track in previous and timestamp <= previous[track]:
+                raise ValueError('track timestamps must be strictly increasing in source order')
+            if row['available'] not in ('0', '1'):
+                raise ValueError('invalid availability')
+            if row['available'] == '0':
+                if track not in previous or any(row[k] for k in required[2:5]):
+                    raise ValueError('missing observation must follow an initial measurement and have empty values')
+            else:
+                values = [float(row[k]) for k in required[2:5]]
+                if not all(math.isfinite(value) for value in values) or values[0] <= 1e-6 or abs(values[2]) >= math.pi/2:
+                    raise ValueError('invalid radar observation')
+            previous[track] = timestamp
+        except (ValueError, TypeError, OverflowError) as error:
+            raise ValueError(f'invalid input at row {line}: {error}') from error
 
 
 def main():
@@ -62,8 +136,10 @@ def main():
         reader = csv.DictReader(file)
         fields = reader.fieldnames
         rows = list(reader)
-    if not rows or len(rows) > 100000:
-        parser.error('input must contain 1–100000 records')
+    try:
+        validate_source(fields, rows)
+    except ValueError as error:
+        parser.error(str(error))
     # Interleaving preserves chronological order within each track and allows
     # multiple workers to process each batch when tracks overlap in time.
     rows.sort(key=lambda row: (float(row['timestamp']), int(row['track_id'])))
@@ -77,22 +153,25 @@ def main():
         selected = [row for row in rows if int(row['track_id']) in selected_ids]
         counts = sorted({max(1, len(selected)//4), max(1, len(selected)//2), len(selected)})
         workloads.extend((track_count, selected[:count]) for count in counts)
+    checkout = source_checkout()
     destination.mkdir(parents=True, exist_ok=False)
     manifest = {
         'status': 'in_progress', 'platform': platform.platform(), 'processor': platform.processor(),
         'machine': platform.machine(), 'logical_cpus': os.cpu_count(), 'python_version': platform.python_version(),
         'input_sha256': digest(source), 'sequential_sha256': digest(sequential),
         'parallel_sha256': digest(parallel), 'build_command': args.build_command,
-        'iterations': args.iterations, 'warmups': args.warmups, 'notes': args.notes,
+        'iterations': args.iterations, 'warmups': args.warmups, 'notes': args.notes, 'source_checkout': checkout,
         'batch_sizes': args.batch_sizes, 'track_counts': track_counts,
         'workloads': [],
         'workload_order': 'sorted by timestamp then track_id',
+        'execution_order': 'per workload, warm-up and measured rounds rotate the worker/batch configuration order',
         'timing_scope': 'whole parallel process, including startup, input, logging, processing, shutdown and output',
         'cpu_memory_scope': 'whole-process parent and sum of worker CPU times; parent and largest individual worker peak memory (shared pages may overlap)',
     }
     manifest_path = destination/'manifest.json'
     manifest_path.write_text(json.dumps(manifest, indent=2)+'\n', encoding='utf-8')
     samples = []
+    sequence = 0
     try:
         with tempfile.TemporaryDirectory() as temporary:
             tmp = Path(temporary)
@@ -109,8 +188,11 @@ def main():
                 subprocess.run([str(sequential), str(workload), str(reference)], check=True, capture_output=True, timeout=120)
                 with reference.open(newline='', encoding='utf-8') as file:
                     expected = list(csv.DictReader(file))
-                for workers, batch_size in product((1, 2, 4, 8), args.batch_sizes):
-                    for iteration in range(-args.warmups, args.iterations):
+                configurations = list(product((1, 2, 4, 8), args.batch_sizes))
+                for iteration in range(-args.warmups, args.iterations):
+                    offset = (iteration + args.warmups) % len(configurations)
+                    for workers, batch_size in configurations[offset:] + configurations[:offset]:
+                        sequence += 1
                         output = tmp/f'output-{requested_tracks}-{count}-{workers}-{batch_size}-{iteration}.csv'
                         start = time.perf_counter_ns()
                         result = subprocess.run([str(parallel), str(workload), str(output), str(workers), str(batch_size)],
@@ -119,22 +201,13 @@ def main():
                         if result.returncode:
                             raise RuntimeError(f'worker run failed: {result.stdout}\n{result.stderr}')
                         check_output(expected, output)
-                        resource = re.search(r'^RESOURCE parent_cpu_us=(-?\d+) worker_cpu_us=(-?\d+) parent_peak_kb=(-?\d+) worker_peak_kb=(-?\d+)\s*$', result.stdout, re.MULTILINE)
-                        if not resource:
-                            raise RuntimeError('native run did not report resource measurements')
-                        timing = re.search(r'^TIMING batch_size=(\d+) launch_us=([0-9.eE+-]+) first_batch_us=([0-9.eE+-]+) remaining_batches_us=([0-9.eE+-]+) remaining_batches=(\d+) shutdown_us=([0-9.eE+-]+)\s*$', result.stdout, re.MULTILINE)
-                        if not timing or int(timing[1]) != batch_size:
-                            raise RuntimeError('native run did not report requested batch timing')
+                        telemetry = parse_telemetry(result.stdout, batch_size, count, elapsed_ms)
                         if iteration >= 0:
                             samples.append({'records': count, 'requested_tracks': requested_tracks, 'tracks': len({r['track_id'] for r in workload_rows}),
-                                            'workers': workers, 'batch_size': batch_size, 'iteration': iteration+1, 'elapsed_ms': elapsed_ms,
-                                            'launch_us': float(timing[2]), 'first_batch_us': float(timing[3]),
-                                            'remaining_batches_us': float(timing[4]), 'remaining_batches': int(timing[5]),
-                                            'shutdown_us': float(timing[6]),
-                                            **dict(zip(('parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'),
-                                                       (int(v) for v in resource.groups())))})
+                                            'workers': workers, 'batch_size': batch_size, 'iteration': iteration+1,
+                                            'sequence': sequence, 'elapsed_ms': elapsed_ms, **telemetry})
         with (destination/'samples.csv').open('w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=['records','requested_tracks','tracks','workers','batch_size','iteration','elapsed_ms',
+            writer = csv.DictWriter(file, fieldnames=['records','requested_tracks','tracks','workers','batch_size','iteration','sequence','elapsed_ms',
                                                        'launch_us','first_batch_us','remaining_batches_us','remaining_batches','shutdown_us',
                                                        'parent_cpu_us','worker_cpu_us','parent_peak_kb','worker_peak_kb'])
             writer.writeheader()

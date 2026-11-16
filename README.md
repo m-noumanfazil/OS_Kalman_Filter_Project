@@ -6,6 +6,8 @@ The sequential [3D radar EKF prototype](docs/phase-2-ekf3d.md) has separate buil
 
 Separate [native 3D EKF applications](docs/phase-3-parallel-ekf3d.md) provide initial Linux and Windows persistent-worker integration; their limitations and verification instructions are documented there.
 
+The [Phase 4 measurement protocol](docs/phase-4-measurements.md) and [provisional results](report/phase4_results.md) describe the 3D experiments and their evidence limits.
+
 **Course:** CT-353 Operating Systems — Complex Computing Activity (CCA)
 
 ## 1. Project Overview

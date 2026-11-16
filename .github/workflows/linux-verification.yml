@@ -86,5 +86,8 @@ jobs:
             ${{ runner.temp }}/ekf3d-benchmark/manifest.json
             ${{ runner.temp }}/ekf3d-benchmark/samples.csv
             ${{ runner.temp }}/ekf3d-benchmark/summary.csv
+            ${{ runner.temp }}/ekf3d-matrix/manifest.json
+            ${{ runner.temp }}/ekf3d-matrix/samples.csv
+            ${{ runner.temp }}/ekf3d-matrix/summary.csv
           if-no-files-found: error
           retention-days: 14
