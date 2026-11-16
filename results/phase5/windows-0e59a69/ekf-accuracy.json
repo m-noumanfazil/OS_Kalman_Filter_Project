@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "input_sha256": {
+    "measurements": "aba240590c5d6e43e6e20fafa16f0459dcc35e89ada866f72845a761a46fb182",
+    "ground_truth": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+    "estimates": "2f81e5a630ca0c5ebd4b902f6806c0116f156451a6ab25682e46896b95487212"
+  },
+  "scope": {
+    "state_rmse": "all rows including missing observations",
+    "baseline_rmse": "available observations only; converted polar measurements",
+    "segment_labels": "explicit ground-truth labels; missing rows also counted separately",
+    "nees_coverage": "descriptive; time-correlated samples are not independent trials"
+  },
+  "all_row_count": 1800,
+  "available_row_count": 1677,
+  "state_rmse": {
+    "position_m": 20.774354149714554,
+    "velocity_mps": 25.832215049256998,
+    "acceleration_mps2": 6.45056756625781
+  },
+  "available_rmse": {
+    "raw_xy_m": 52.53461399341871,
+    "baseline_xy_m": 24.069322916703896,
+    "ekf_xy_m": 19.44325753136752,
+    "ekf_xyz_m": 20.496047665065703
+  },
+  "state_by_segment": {
+    "straight": {
+      "count": 450,
+      "position_m": 21.63057217239247,
+      "velocity_mps": 45.19892883748746,
+      "acceleration_mps2": 8.523574698015175
+    },
+    "acceleration": {
+      "count": 450,
+      "position_m": 18.87647497671939,
+      "velocity_mps": 12.976551122270914,
+      "acceleration_mps2": 5.109759833366675
+    },
+    "turn": {
+      "count": 450,
+      "position_m": 19.833170219917253,
+      "velocity_mps": 14.238099249742158,
+      "acceleration_mps2": 5.689819415537417
+    },
+    "post-turn": {
+      "count": 450,
+      "position_m": 22.555211378460683,
+      "velocity_mps": 15.973597593327781,
+      "acceleration_mps2": 5.941739773725376
+    },
+    "missing": {
+      "count": 123,
+      "position_m": 24.252281278114726,
+      "velocity_mps": 36.46964560533777,
+      "acceleration_mps2": 7.055114516252817
+    }
+  },
+  "position_nees": {
+    "available": {
+      "count": 1677,
+      "mean": 2.6209004593536473,
+      "coverage_95_fraction": 0.9743589743589743
+    },
+    "missing": {
+      "count": 123,
+      "mean": 2.8609265589164368,
+      "coverage_95_fraction": 0.943089430894309
+    }
+  }
+}

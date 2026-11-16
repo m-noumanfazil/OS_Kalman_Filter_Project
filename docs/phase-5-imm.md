@@ -20,3 +20,20 @@ python3 common/compare_imm3d.py --scenario build/imm-scenario --ekf build/run_ek
 On Windows, use `.exe` paths and the local compiler's required flags. The comparison performs one warm-up per model and alternates execution order, saves full sequential process timings including file I/O, evaluates both outputs against the same separate truth, records executable and input hashes, and generates a dependency-free SVG model-probability plot. A single short run is not a stable measurement of compute cost. The output files are new and never overwrite an existing experiment directory.
 
 The tests cover finite and normalized probabilities, missing measurements, covariance symmetry, invalid timestamp rollback and extremely small likelihoods. The existing EKF still needs its independent reference test whenever the shared implementation changes. Broader multi-seed comparisons, an independent IMM reference, and controlled timing remain necessary before treating a benefit as general.
+
+## Initial comparison
+
+The [saved experiment](../results/phase5/windows-0e59a69/) used the seed-42 scenario, source commit `0e59a69`, and a Windows 11 Ryzen 5 5600U laptop. It contains the manifest with individual process timings and executable/input hashes, machine-readable accuracy metrics, compressed first measured output for each model, and a [model probability plot](../results/phase5/windows-0e59a69/model-probabilities.svg). Executables were compiled from the same source before the checkpoint; hashes and source state do not independently attest the build. All figures below are from one synthetic scenario and one timing session.
+
+| Measure | Single EKF | IMM |
+|---|---:|---:|
+| All-row position vector RMSE (m) | 20.774 | 16.392 |
+| All-row velocity vector RMSE (m/s) | 25.832 | 22.472 |
+| All-row acceleration vector RMSE (m/s²) | 6.451 | 1.844 |
+| Straight position RMSE (m) | 21.631 | 18.143 |
+| Acceleration-segment position RMSE (m) | 18.876 | 14.019 |
+| Turn-segment position RMSE (m) | 19.833 | 15.476 |
+| Missing-observation position RMSE (m) | 24.252 | 18.353 |
+| Median complete sequential invocation (ms) | 90.230 | 103.952 |
+
+The median uses five measured invocations after one warm-up per model, includes process startup and CSV I/O, and is not an isolated estimate of filter computation. The IMM is slower and has lower error in this particular run; neither result establishes a general tradeoff. The fixed transition matrix depends on observation frequency, the comparison uses differently tuned model noise, and no independent IMM numerical reference has yet validated all mixing and likelihood calculations.

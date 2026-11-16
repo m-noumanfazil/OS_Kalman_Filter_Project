@@ -1,0 +1,36 @@
+{
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+  "python": "3.12.10",
+  "measurement_sha256": "aba240590c5d6e43e6e20fafa16f0459dcc35e89ada866f72845a761a46fb182",
+  "truth_sha256": "1222fc5b554b9bd70a6cdacf97839bf0bbcea1bb29cc5668cd2e63d676521291",
+  "executable_sha256": {
+    "ekf": "c8d43b771c8a7b8140f14283b4e4369310c04028c0ff5e015597a488baa86ddf",
+    "imm": "0818201c584ba87aac2709cb6e1ec999bb12c856d0aeda3ad2672fab07b4b4a1"
+  },
+  "iterations": 5,
+  "warmups_per_model": 1,
+  "timing_scope": "complete sequential process including CSV I/O",
+  "order": "alternating",
+  "samples_ms": {
+    "ekf": [
+      91.8768,
+      87.5895,
+      85.5422,
+      90.2295,
+      101.9626
+    ],
+    "imm": [
+      104.052,
+      99.0339,
+      101.7985,
+      104.7492,
+      103.9516
+    ]
+  },
+  "median_ms": {
+    "ekf": 90.2295,
+    "imm": 103.9516
+  },
+  "notes": "Windows 11 Lenovo 21CUS07000 Ryzen 5 5600U 6 cores 12 threads, 33099800576 bytes RAM, Balanced; g++ 15.1.0 -std=c++17 -O2 -static -static-libgcc -static-libstdc++; source commit 0e59a69, clean checkout; single session."
+}
