@@ -20,7 +20,7 @@ The interfaces are not all one-to-one equivalents. The category demonstrations a
 
 ## Build and run
 
-Use a C++17 compiler and Python 3. The EKF and IMM tools below use only the Python standard library. Commands run from the repository root and create new output paths; choose unused paths on subsequent runs. `build/` is for local generated files.
+Use a C++17 compiler and Python 3. The EKF and IMM tools below use only the Python standard library. Commands run from the repository root and create new output paths; choose unused paths on subsequent runs. `build/` is for local generated files. Teammates collecting and comparing results can follow the [step-by-step run and comparison guide](docs/TEAMMATE_RUN_AND_COMPARISON_GUIDE.md).
 
 ### Linux (including Ubuntu)
 
