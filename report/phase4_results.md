@@ -2,7 +2,7 @@
 
 ## Scope and evidence status
 
-This report describes the initial **local Windows** experiment for the 3D radar EKF and the matching synthetic accuracy evaluation. The [historical report](Final_report_draft.md) describes a 2D filter and a different process-launch benchmark; its numbers must not be combined with these measurements as if they came from the same implementation or experiment.
+This report describes local Windows experiments for the 3D radar EKF and the matching synthetic accuracy evaluation. The [historical report](Final_report_draft.md) describes a 2D filter and a different process-launch benchmark; its numbers must not be combined with these measurements as if they came from the same implementation or experiment.
 
 The current evidence does **not** establish a controlled Linux–Windows comparison. Linux GitHub Actions runs verify functionality on an Ubuntu runner, whereas the results below were measured on a different local Windows machine. Hardware, OS, background activity, filesystem, and environment differ. The Linux CI benchmark is a smoke test, not controlled performance evidence.
 
@@ -27,6 +27,27 @@ The native application uses a 3D nine-state EKF, mapped shared memory, persisten
 The harness sorts each workload by timestamp and track ID, preserves each track's observation order, and uses the same workload for all worker counts in a configuration. Every warm-up and measured output is checked against the sequential 3D driver. The reported speedup divides the median end-to-end latency of the **one-worker native process** by that of the tested native worker count. It is not speedup against the sequential driver.
 
 ## End-to-end performance
+
+### Clean-checkout repeat
+
+A repeat used source commit `f6435cfb357e328af33cfe60571412f7ed67552a` with no tracked or untracked changes reported, newly compiled executables, and the same environment and workload matrix below. The harness rotated configuration order across rounds. The [manifest](../results/phase4/windows-clean-f6435cf/manifest.json), [raw samples](../results/phase4/windows-clean-f6435cf/samples.csv), [summary](../results/phase4/windows-clean-f6435cf/summary.csv), and separately generated [accuracy results](../results/phase4/windows-clean-f6435cf/accuracy.json) are preserved. The manifest records build commands and hashes; a clean checkout alone does not independently attest binary provenance. Each of the 144 timed outputs and each warm-up was checked against the sequential driver.
+
+For 1,800 observations across three tracks, the median end-to-end times and speedups versus the matching one-worker native run were:
+
+| Batch size | Workers | Median (ms) | Speedup |
+|---:|---:|---:|---:|
+| 32 | 1 | 234.933 | 1.000× |
+| 32 | 2 | 320.372 | 0.733× |
+| 32 | 4 | 524.553 | 0.448× |
+| 32 | 8 | 1,194.482 | 0.197× |
+| 512 | 1 | 148.167 | 1.000× |
+| 512 | 2 | 164.849 | 0.899× |
+| 512 | 4 | 207.446 | 0.714× |
+| 512 | 8 | 322.066 | 0.460× |
+
+This one-session repeat has only three measured samples per configuration. All listed multi-worker medians exceeded the matching one-worker median; the larger batch was faster in the listed configurations. These observations do not isolate the cause or establish performance on other machines. Logging, process startup and synchronization are included in elapsed time.
+
+### Initial local run
 
 For all 1,800 observations across three tracks, the locally saved summary and all 144 underlying samples were checked: each summary median equals the median recomputed from its three samples. Median elapsed time in milliseconds and the corresponding speedup are:
 

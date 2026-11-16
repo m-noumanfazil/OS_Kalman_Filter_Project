@@ -28,7 +28,7 @@ Use the exact compiler commands and executable paths for the actual run, includi
 
 ## Evidence status
 
-Windows smoke checks have validated the matrix and output parity. The Linux CI workflow exercises the same matrix, but CI timings are functional checks rather than controlled performance evidence. Preserve independent experiment output directories and record conditions before making conclusions; do not infer speedup merely because workers run concurrently. Full report reconciliation and comparable-environment measurements remain open.
+Windows checks have validated the matrix and output parity. A clean-checkout repeat at commit `f6435cf` preserved [144 samples, their summary, manifest, and accuracy results](../results/phase4/windows-clean-f6435cf/). Its manifest records the build commands, hashes and clean source state, and the harness rotated configuration order. The Linux CI workflow exercises the same matrix, but CI timings are functional checks rather than controlled performance evidence. Preserve independent experiment output directories and record conditions before making conclusions; do not infer speedup merely because workers run concurrently. Full report reconciliation and comparable-environment measurements remain open.
 
 The detailed, explicitly provisional analysis of the saved Windows experiment is in [phase4_results.md](../report/phase4_results.md). It is separate from the historical 2D report and does not claim a controlled Linux–Windows comparison.
 
