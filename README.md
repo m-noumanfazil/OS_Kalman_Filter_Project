@@ -1,411 +1,71 @@
 # OS Kalman Filter Project
 
-> **Benchmark version:** The original `linux_results.csv` and `windows_results.csv` are historical results from the per-iteration process-launch design. The current persistent-worker benchmark writes separate, locally ignored sample and summary CSVs; see [persistent benchmark protocol](docs/persistent-benchmark.md). Controlled cross-platform measurements for the new design remain to be collected.
+This CT-353 Operating Systems project demonstrates Linux and Windows operating-system interfaces and uses native processes, shared mappings, synchronization and file I/O to process sensor tracks. It includes a 2D Kalman filter baseline, a nine-state 3D radar extended Kalman filter (EKF), and a sequential interacting multiple-model (IMM) extension.
 
-The sequential [3D radar EKF prototype](docs/phase-2-ekf3d.md) has separate build, scenario-generation, and evaluation instructions and remains the reference for the native applications.
+The current [report](report/final_report.md) and [presentation](presentation/slides.md) describe the evidence and its limits. Earlier reports and baseline results are historical. Linux CI runs on a GitHub-hosted Ubuntu VM; Windows experiments were performed on a different physical machine. These runs do not establish a controlled operating-system comparison or a parallel speedup.
 
-Separate [native 3D EKF applications](docs/phase-3-parallel-ekf3d.md) provide initial Linux and Windows persistent-worker integration; their limitations and verification instructions are documented there.
+## Required interfaces
 
-The [Phase 4 measurement protocol](docs/phase-4-measurements.md) and [provisional results](report/phase4_results.md) describe the 3D experiments and their evidence limits.
+The rubric names 15 Linux interfaces and 12 Windows APIs. Supporting calls used by the programs are not represented as additional rubric requirements; instructor clarification of the count is outstanding. The [coverage and evidence inventory](docs/phase-0-baseline.md#requirement-to-source-to-evidence-matrix) links categories to source and saved results. Its Phase 0 findings describe the historical baseline; see [Phase 1 status](docs/phase-1-status.md) for later fixes and open audit work.
 
-**Course:** CT-353 Operating Systems — Complex Computing Activity (CCA)
-
-## 1. Project Overview
-
-This project compares how Linux and Windows provide operating-system facilities for file handling, process management, memory management, inter-process communication (IPC), and file permissions.
-
-It consists of two main parts:
-
-- **Part A — System Call and API Implementation:** Implement native operating-system operations, demonstrate their functionality, handle errors, record execution logs, and measure performance.
-- **Part B — Kalman Filter Integration:** Apply operating-system facilities to a practical Kalman Filter application involving sensor-data processing, memory mapping, multi-process execution, IPC, and output generation.
-
-Linux development and testing are performed natively on **Ubuntu 22.04**. Windows development and testing are performed natively on **Windows 10** using a dual-boot setup on the same HP ZBook machine.
-
-All operating-system benchmarks are conducted natively, without using a virtual machine or WSL.
-
-## 2. System Calls and APIs Covered
-
-The project implements five categories of operating-system operations.
-
-| Category | Linux | Windows |
+| Category | Linux interfaces | Windows APIs |
 |---|---|---|
-| File I/O | `open()`, `read()`, `write()`, `close()` | `CreateFile()`, `ReadFile()`, `WriteFile()`, `CloseHandle()` |
-| Process | `fork()`, `exec()`, `wait()` | `CreateProcess()`, `WaitForSingleObject()` |
-| Memory | `mmap()`, `munmap()` | `VirtualAlloc()`, `VirtualFree()` |
-| IPC | `pipe()`, `shmget()`, `shmat()` | `CreatePipe()`, `CreateFileMapping()`, `MapViewOfFile()` |
-| Permissions | `chmod()`, `chown()`, `umask()` | `SetFileSecurity()` |
+| File I/O | `open`, `read`, `write`, `close` | `CreateFile`, `ReadFile`, `WriteFile`, `CloseHandle` |
+| Process | `fork`, `exec` (`execv` in the demonstration), `wait` | `CreateProcess`, `WaitForSingleObject` |
+| Memory | `mmap`, `munmap` | `VirtualAlloc`, `VirtualFree` |
+| IPC | `pipe`, `shmget`, `shmat` | `CreatePipe`, `CreateFileMapping`, `MapViewOfFile` |
+| Permissions | `chmod`, `chown`, `umask` | `SetFileSecurity` |
 
-The assignment requires 15 operations per operating system. The CCP explicitly lists 15 Linux interfaces but only 12 Windows APIs. The Windows implementation also uses supporting APIs where required by the implementation.
+The interfaces are not all one-to-one equivalents. The category demonstrations are under `Linux/` and `Windows/`. Historical per-call aggregate measurements are under `results/Linux/` and `results/Windows/`; their provenance and measurement scope are qualified in the report. Logger coverage and cleanup on every possible error path have not been established.
 
-### 2.1 Operating-System Differences
+## Build and run
 
-The two operating systems provide different interfaces and resource-management mechanisms.
+Use a C++17 compiler and Python 3. The EKF and IMM tools below use only the Python standard library. Commands run from the repository root and create new output paths; choose unused paths on subsequent runs. `build/` is for local generated files.
 
-- Windows does not provide a direct equivalent of Linux `fork()`. `CreateProcess()` provides process creation through a different mechanism.
-- Windows does not provide direct equivalents of Linux `umask()` and `chown()`.
-- Windows uses `UnmapViewOfFile()` to release a mapped view created through `MapViewOfFile()`.
-- Linux implementations use POSIX/Linux interfaces, while Windows implementations use native Win32 APIs.
+### Linux (including Ubuntu)
 
-Linux functions such as `open()`, `read()`, and `mmap()` are library interfaces that invoke underlying kernel functionality. Windows functions such as `CreateFile()` and `CreateProcess()` are Win32 APIs. The comparison therefore focuses on the native operating-system interfaces rather than claiming that every function is a direct kernel system call.
-
-## 3. Repository Structure
-
-```text
-OS_Kalman_Filter_CCP/
-│
-├── Linux/
-│   ├── File_IO/
-│   ├── Process/
-│   ├── Memory/
-│   ├── IPC/
-│   ├── Permissions/
-│   └── Kalman_Filter/
-│
-├── Windows/
-│   ├── File_IO/
-│   ├── Process/
-│   ├── Memory/
-│   ├── IPC/
-│   ├── Permissions/
-│   └── Kalman_Filter/
-│
-├── common/
-│   ├── logger.hpp
-│   ├── logger_linux.hpp
-│   ├── metrics.hpp
-│   ├── metrics_linux.hpp
-│   ├── kalman_core.hpp
-│   ├── generate_sensor_data.py
-│   ├── sensor_data.csv
-│   ├── generate_charts.py
-│   └── verify_part_b.py
-│
-├── logs/
-│   ├── syscalls_linux.log
-│   └── syscalls_windows.log
-│
-├── results/
-│   ├── Linux/
-│   │   ├── linux_results.csv
-│   │   └── filtered_sensor_data.csv
-│   │
-│   ├── Windows/
-│   │   ├── windows_results.csv
-│   │   └── filtered_sensor_data.csv
-│   │
-│   └── charts/
-│       ├── trajectory_jet0.png
-│       ├── rmse_per_jet.png
-│       ├── syscall_comparison_fileio.png
-│       ├── syscall_comparison_memory.png
-│       ├── syscall_comparison_process.png
-│       └── speedup_curve.png
-│
-├── report/
-│   └── report.md
-│
-├── presentation/
-│   └── slides.md
-│
-├── README.md
-└── .gitignore
+```sh
+mkdir -p build
+g++ -std=c++17 -O2 common/run_ekf3d.cpp -o build/run_ekf3d
+g++ -std=c++17 -O2 common/run_imm3d.cpp -o build/run_imm3d
+g++ -std=c++17 -O2 Linux/Kalman_Filter/EKF3D_Linux.cpp -o build/EKF3D_Linux
+python3 -B common/generate_3d_scenario.py --output-dir build/scenario3d --seed 42
+build/run_ekf3d build/scenario3d/measurements.csv build/ekf.csv
+build/run_imm3d build/scenario3d/measurements.csv build/imm.csv
+build/EKF3D_Linux build/scenario3d/measurements.csv build/native-ekf.csv 4 128
+python3 -B common/evaluate_3d_scenario.py build/scenario3d build/native-ekf.csv
+python3 -B tests/check_ekf3d_parallel.py build/run_ekf3d build/EKF3D_Linux
+python3 -B tests/check_imm3d_reference.py build/run_imm3d
+python3 -B -m unittest discover -s tests -v
 ```
 
-Each operating-system category contains:
-
-- A C++ source file (`.cpp`) implementing demonstrations and benchmarks.
-- A text output file (`.txt`) containing the corresponding execution output.
-
-Windows executable files may also be present locally. Generated executables are not required to be committed if they are excluded through `.gitignore`.
-
-## 4. How the Programs Work
-
-Each system-call category performs three main tasks.
-
-### 4.1 Demonstration
-
-- Executes the relevant native operating-system operations.
-- Checks return values and handles errors.
-- Verifies expected operation results.
-- Records successful and failed operations.
-
-### 4.2 Benchmarking
-
-- Measures operation execution times.
-- Uses repeated iterations and warm-up runs.
-- Reports statistical measurements, including minimum, median, mean, maximum, and standard deviation where implemented.
-- Collects additional CPU and memory-related metrics where supported.
-- Keeps logging outside timed benchmark operations to reduce measurement interference.
-
-### 4.3 Saving Results
-
-- Stores benchmark measurements in the appropriate CSV file.
-- Saves console output in the corresponding category's text file.
-- Maintains separate Linux and Windows results.
-
-## 5. Shared Components
-
-The `common/` directory contains reusable components.
-
-| Component | Purpose |
-|---|---|
-| `logger.hpp` and `logger_linux.hpp` | Logging utilities for operating-system operations |
-| `metrics.hpp` and `metrics_linux.hpp` | Performance measurement utilities |
-| `kalman_core.hpp` | Shared, operating-system-independent Kalman Filter mathematics |
-| `generate_sensor_data.py` | Generates the sensor dataset |
-| `verify_part_b.py` | Supports verification of Kalman Filter outputs |
-| `generate_charts.py` | Generates project performance and Kalman Filter charts |
-
-The shared Kalman Filter core ensures that both operating-system implementations use the same underlying mathematical model.
-
-## 6. Building and Running
-
-Commands should be executed from the repository root unless otherwise specified.
-
-### 6.1 Prerequisites
-
-**Linux**
-
-- Ubuntu 22.04
-- G++ with C++17 support
-
-Install G++ if necessary:
-
-```bash
-sudo apt update
-sudo apt install g++
-```
-
-**Windows**
-
-- Windows 10
-- MinGW-w64 G++ compiler with C++17 support
-- G++ available through the terminal PATH
-
-### 6.2 Linux — Ubuntu 22.04
-
-Example: compile the Linux File I/O program.
-
-```bash
-g++ -std=c++17 Linux/File_IO/File_IO_Linux.cpp -o Linux/File_IO/file_io_linux
-```
-
-Run it:
-
-```bash
-./Linux/File_IO/file_io_linux
-```
-
-The same general compilation approach applies to other Linux categories. Additional source files, compiler options, or libraries may be required depending on the implementation.
-
-### 6.3 Windows — MinGW-w64
-
-Example: compile the Windows File I/O program.
+### Windows (MinGW-w64)
 
 ```powershell
-g++ -std=c++17 Windows/File_IO/File_IO_Windows.cpp -o Windows/File_IO/file_io_windows.exe -lpsapi -ladvapi32
+New-Item -ItemType Directory -Force build | Out-Null
+g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ common/run_ekf3d.cpp -o build/run_ekf3d.exe
+g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ common/run_imm3d.cpp -o build/run_imm3d.exe
+g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ Windows/Kalman_Filter/EKF3D_Windows.cpp -o build/EKF3D_Windows.exe -lpsapi
+python -B common/generate_3d_scenario.py --output-dir build/scenario3d --seed 42
+build/run_ekf3d.exe build/scenario3d/measurements.csv build/ekf.csv
+build/run_imm3d.exe build/scenario3d/measurements.csv build/imm.csv
+build/EKF3D_Windows.exe build/scenario3d/measurements.csv build/native-ekf.csv 4 128
+python -B common/evaluate_3d_scenario.py build/scenario3d build/native-ekf.csv
+python -B tests/check_ekf3d_parallel.py build/run_ekf3d.exe build/EKF3D_Windows.exe
+python -B tests/check_imm3d_reference.py build/run_imm3d.exe
+python -B -m unittest discover -s tests -v
 ```
 
-Run it:
+The native arguments are input CSV, new output CSV, worker count (1–8), and optional batch size (1–100,000; default 128). Linux uses `mmap`, `fork` and pipes; Windows uses a file mapping, `CreateProcess` and events. Workers own whole tracks and preserve their state across batches. The native applications implement the single 3D EKF; the IMM driver is a separate sequential extension. The input file contains measurements only; evaluation reads separately generated ground truth. For input limits, logging, failure behavior and verification details, see [native integration](docs/phase-3-parallel-ekf3d.md).
 
-```powershell
-.\Windows\File_IO\file_io_windows.exe
-```
+## Estimators and evidence
 
-Additional libraries may be required by individual Windows implementations:
+- The [3D EKF](docs/phase-2-ekf3d.md) estimates Cartesian position, velocity and acceleration from range, azimuth and elevation. It uses a constant-acceleration motion model with white-jerk process noise, wrapped angular residuals and a Joseph covariance update.
+- The [IMM](docs/phase-5-imm.md) combines constant-velocity and constant-acceleration EKFs using mixed states and covariances and log-domain likelihoods. Its numerical reference and multi-seed comparisons are reproducible using the commands in that document.
+- The [Phase 4 report](report/phase4_results.md) links the clean-checkout Windows samples and accuracy evaluation. Its native speedup uses the one-worker **native process** as baseline, not the sequential driver; complete invocation timings include startup, logging and I/O. The measured workload did not show multi-worker speedup.
+- The [Phase 5 multi-seed evidence](results/phase5/multiseed-fe04715/README.md) compares the sequential IMM and EKF on the same synthetic trajectories with varying measurement noise. It is not evidence of general or real-world superiority; the model probabilities are diagnostics, not proven maneuver labels.
+- The [persistent 2D benchmark protocol](docs/persistent-benchmark.md) and historical `results/charts/` relate to other implementations and should not be mixed with the current 3D results. [Phase 4 measurement instructions](docs/phase-4-measurements.md) describe the 3D workload matrix, raw samples, resource scope and reproducibility.
 
-- `-lpsapi`: Windows process and memory performance information.
-- `-ladvapi32`: Windows security and access-control functionality.
+## Submission evidence and limitations
 
-The exact compiler and linker options depend on the source file being built.
-
-**Important:** Compile and execute Windows programs natively on Windows and Linux programs natively on Ubuntu. Do not use WSL or a virtual machine for the native performance comparison.
-
-### 6.4 Output Locations
-
-Example execution logs:
-
-```text
-Linux/Permissions/Permissions_Linux.txt
-Windows/Permissions/Permissions_Windows.txt
-```
-
-Benchmark CSV files:
-
-```text
-results/Linux/linux_results.csv
-results/Windows/windows_results.csv
-```
-
-Run programs from the repository root to ensure that relative paths for logs, transcripts, and result files resolve correctly.
-
-## 7. Part A — System Call and API Implementation
-
-Part A covers five categories on both operating systems:
-
-1. File I/O
-2. Memory Management
-3. Process Management
-4. Inter-Process Communication
-5. Permissions
-
-Each category includes demonstrations, error handling, verification, benchmarking, and result logging.
-
-The implementation uses native operating-system interfaces rather than simulated system-call operations.
-
-## 8. Part B — Kalman Filter Integration
-
-Part B applies operating-system facilities to a multi-process Kalman Filter application.
-
-The implementation includes:
-
-1. A shared Kalman Filter mathematical core in `common/kalman_core.hpp`.
-2. A common generated sensor dataset used by both operating systems.
-3. Native file operations for reading sensor data.
-4. Memory-mapped arrays for managing shared data.
-5. Distribution of independent sensor tracks among worker processes.
-6. Inter-process communication and shared-memory coordination.
-7. Native file operations for writing filtered results.
-8. Single-process and multi-process execution.
-9. Performance measurements using 1, 2, 4, and 8 worker processes.
-10. Verification of consistency between single-process and multi-process filtering results.
-
-### 8.1 Dataset
-
-The sensor dataset contains:
-
-- 8 simulated jet tracks.
-- 10,000 observations per track.
-- 80,000 observations in total.
-- A sampling interval of 0.05 seconds (20 Hz).
-
-The same generated dataset is used for both operating-system implementations to support a consistent comparison.
-
-### 8.2 Multi-Process Architecture
-
-Independent tracks are distributed among worker processes.
-
-The worker configurations are:
-
-| Workers | Work distribution |
-|---:|---|
-| 1 | All eight tracks handled by one worker |
-| 2 | Four tracks per worker |
-| 4 | Two tracks per worker |
-| 8 | One track per worker |
-
-The parent process coordinates execution, shared-memory access, worker synchronization, and output collection.
-
-### 8.3 Kalman Filter Results
-
-The recorded positional RMSE measurements are:
-
-| Measurement | RMSE |
-|---|---:|
-| Raw sensor measurements | 70.81 m |
-| Filtered measurements | 22.95 m |
-| RMSE reduction | 67.58% |
-
-The positional RMSE measures the difference between the actual and estimated two-dimensional positions.
-
-### 8.4 Parallel Performance Findings
-
-The multi-process implementation was evaluated with 1, 2, 4, and 8 workers.
-
-The measured results showed that increasing the worker count did not improve execution time in the tested environment. Process creation, synchronization, and coordination overhead outweighed the computational benefit for this workload.
-
-This is an observed performance limitation, not a claim of successful parallel speed-up. The project documents the measured behaviour rather than presenting theoretical speed-up as an achieved result.
-
-## 9. Performance Evaluation
-
-The comparison uses native execution on the same physical machine, with separate operating-system runs.
-
-The evaluation considers:
-
-- System-call/API execution time.
-- Minimum, median, mean, maximum, and standard deviation where collected.
-- CPU usage and memory-related metrics where supported.
-- Kalman Filter execution time.
-- Single-process versus multi-process performance.
-- Filtering accuracy and output consistency.
-
-### 9.1 Fairness Considerations
-
-To make the comparison meaningful:
-
-- Both operating systems use the same sensor dataset.
-- Benchmarks use consistent iteration and warm-up settings wherever applicable.
-- Resource-intensive background applications should be minimized.
-- Runs should use similar power conditions.
-- Repeated measurements are used to observe performance consistency.
-- Platform-specific metrics are interpreted with care.
-
-Some metrics are collected through different operating-system mechanisms. For example, CPU and memory measurements may not be directly equivalent between Linux and Windows.
-
-### 9.2 Performance Charts
-
-The generated charts are stored in `results/charts/`.
-
-| Chart | Purpose |
-|---|---|
-| `trajectory_jet0.png` | Example actual, measured, and filtered trajectory |
-| `rmse_per_jet.png` | Filtering accuracy across all eight tracks |
-| `syscall_comparison_fileio.png` | Linux and Windows File I/O comparison |
-| `syscall_comparison_memory.png` | Linux and Windows memory-operation comparison |
-| `syscall_comparison_process.png` | Linux and Windows process-operation comparison |
-| `speedup_curve.png` | Single-process versus multi-process execution performance |
-
-The charts present measured results. In particular, speed-up values below 1 indicate that the corresponding multi-process configuration was slower than the single-worker baseline.
-
-## 10. Project Status
-
-### Part A — System Call and API Implementation
-
-- [x] Repository structure
-- [x] Linux logging and metrics utilities
-- [x] Windows logging and metrics utilities
-- [x] Linux File I/O
-- [x] Linux Memory Management
-- [x] Linux Process Management
-- [x] Linux IPC
-- [x] Linux Permissions
-- [x] Windows File I/O
-- [x] Windows Memory Management
-- [x] Windows Process Management
-- [x] Windows IPC
-- [x] Windows Permissions
-- [x] Demonstration programs and execution logs
-- [x] Benchmark result collection
-
-### Part B — Kalman Filter Integration
-
-- [x] Shared Kalman Filter mathematical implementation
-- [x] Sensor data generation
-- [x] Linux Kalman Filter implementation
-- [x] Windows Kalman Filter implementation
-- [x] Native file input and output
-- [x] Memory-mapped data management
-- [x] Multi-process execution and IPC integration
-- [x] 1, 2, 4, and 8 worker configurations
-- [x] Filtered output generation
-- [x] Filtering accuracy evaluation
-- [x] Single-process and multi-process performance measurements
-- [x] Performance comparison charts
-
-### Final Documentation and Submission
-
-- [ ] Final project report
-- [ ] Final presentation (10–12 slides)
-- [x] Performance and verification charts
-- [x] Native Linux execution
-- [x] Native Windows execution
-
-## 11. Conclusion
-
-This project demonstrates how Linux and Windows provide different mechanisms for file operations, process management, memory management, IPC, and permissions.
-
-It also demonstrates how these operating-system facilities can be integrated into a practical Kalman Filter application using memory-mapped data and multiple worker processes.
-
-The performance evaluation highlights that native API behaviour and execution overhead differ between operating systems. It also shows that multi-process execution does not automatically improve performance: the overhead of process management and synchronization can outweigh the benefits for relatively small computational workloads.
-
-The project provides a practical comparison of operating-system facilities through implementation, measurement, and analysis.
+The [assessment evidence map](docs/assessment-evidence.md) connects the five grading criteria to code, tests and artifacts. Remaining limitations include an unconfirmed Windows interface-count interpretation, incomplete cleanup/logging failure-path audit, no controlled Linux–Windows performance comparison, and no demonstrated parallel speedup for the measured 3D workload. The available Linux CI verifies functional behavior on Ubuntu but is not a same-machine timing comparison with Windows. Avoid presenting old dual-boot environment descriptions as independently verified facts about current measurements.

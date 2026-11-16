@@ -1,135 +1,158 @@
 # CT-353 Operating Systems — CCA Presentation
 
+This Markdown is the 12-slide presentation source. Each `---` separates slides. Links on each slide identify the evidence behind its figures; the limitations are part of the presentation.
+
 ## Slide 1: Project
 
-**Cross-platform system calls and multi-process Kalman filtering**
+**Cross-platform system calls and multi-process radar tracking**
 
 Department of Computer Science & Information Technology, NED University
 
-Team: Muhammad Nouman Fazil, Muhammad Usman Murtaze, Muneeb ur Rehman
+Muhammad Nouman Fazil · Muhammad Usman Murtaze · Muneeb ur Rehman
+
+[Final report](../report/final_report.md)
 
 ---
 
-## Slide 2: Objectives
+## Slide 2: Objectives and resources
 
-- Demonstrate native Linux and Windows interfaces for file I/O, processes, memory, IPC, and permissions.
-- Integrate native operations into a sensor-data Kalman Filter.
-- Compare OS behavior and evaluate performance using documented workloads.
+- Demonstrate OS interfaces for file I/O, processes, memory, IPC, and permissions on Linux and Windows.
+- Integrate native file I/O, shared mapping, IPC, and worker processes into a Kalman tracker.
+- Validate tracking and measure performance with reproducible inputs and stated limitations.
+- Use C++17, Python standard-library verification, platform metrics, logs, and saved raw results.
 
 ---
 
-## Slide 3: System architecture
+## Slide 3: Native integration
 
 ```text
-Sensor CSV → native file I/O → shared mapped arrays
-                                   ↓
-                        workers process independent tracks
-                                   ↓
-                         native output CSV + validation
+Radar measurements CSV → native file I/O → shared mapped batch
+                                              ↓
+                          persistent processes, one owner per track
+                                              ↓
+                           native output CSV → independent checks
 ```
 
-Linux uses `mmap` and `fork`; Windows uses file mappings and `CreateProcess`. Persistent workers communicate through pipes on Linux and events on Windows. Each benchmark trial resets the filter states.
+Linux: `open`/`read`/`write`, shared `mmap`, `fork`, pipes. Windows: file handles, file mapping, `CreateProcess`, events. Worker state persists across batches; each track stays ordered. Native workers use the **3D EKF**; the IMM is a separate sequential extension.
+
+[Architecture and verification](../docs/phase-3-parallel-ekf3d.md)
 
 ---
 
-## Slide 4: Interface coverage
+## Slide 4: Required interfaces and OS differences
 
-| Category | Linux | Windows |
+| Category | Linux interfaces | Windows APIs |
 |---|---|---|
-| File I/O | `open`, `read`, `write`, `close` | `CreateFile`, `ReadFile`, `WriteFile`, `CloseHandle` |
-| Processes | `fork`, `execv`, `wait` | `CreateProcess`, `WaitForSingleObject` |
+| File | `open`, `read`, `write`, `close` | `CreateFile`, `ReadFile`, `WriteFile`, `CloseHandle` |
+| Process | `fork`, `exec`, `wait` | `CreateProcess`, `WaitForSingleObject` |
 | Memory | `mmap`, `munmap` | `VirtualAlloc`, `VirtualFree` |
 | IPC | `pipe`, `shmget`, `shmat` | `CreatePipe`, `CreateFileMapping`, `MapViewOfFile` |
 | Permissions | `chmod`, `chown`, `umask` | `SetFileSecurity` |
 
-The rubric lists 15 Linux interfaces and 12 Windows APIs. The interpretation of the 15-call requirement for Windows remains to be confirmed.
+The rubric names 15 Linux interfaces and 12 Windows APIs, despite a 15-call heading; the Windows count needs instructor clarification. `fork` and `CreateProcess`, and POSIX modes and Windows security descriptors, have different semantics.
+
+[Coverage matrix and evidence](../docs/phase-0-baseline.md#requirement-to-source-to-evidence-matrix)
 
 ---
 
-## Slide 5: Historical system-call measurements
+## Slide 5: Radar EKF model
 
-Medians from the saved baseline result CSVs, in microseconds:
-
-| Workload | Linux | Windows |
-|---|---:|---:|
-| Open / CreateFile | 2.797 | 29.650 |
-| Write 1 MB | 200.424 | 61.950 |
-| Full process spawn + wait | 2,248.864 | 10,670.000 |
-
-The operations and OS semantics differ; these timings characterize the recorded workloads rather than all workloads or machines. Source: `results/Linux/linux_results.csv` and `results/Windows/windows_results.csv`.
-
----
-
-## Slide 6: OS differences and measurement scope
-
-- Linux `fork` duplicates an existing process; Windows `CreateProcess` starts a new executable. They are not equivalent single operations.
-- `chmod` and Windows security descriptors express different permission models.
-- The reported process CPU and memory figures describe the measured process and scope defined by the benchmark, not automatically the entire process group.
-- Linux TSC ticks and Windows process cycle counts have different semantics and are not directly comparable.
-
----
-
-## Slide 7: Tracking scenario
-
-- Synthetic, seeded data: **80,000 observations across eight independent tracks**.
-- Each observation includes a timestamp, track ID, ground truth, and noisy X/Y position.
-- A separate filter is maintained per track; chronological order within each track is preserved.
-- Ground truth is used to evaluate error; it is not used as a filter measurement.
-
----
-
-## Slide 8: Kalman Filter model
-
-For each X or Y axis, the state is position and velocity. The transition is constant velocity with elapsed time `dt`. The implementation uses continuous white-noise acceleration with covariance:
+State: `x = [px, py, pz, vx, vy, vz, ax, ay, az]ᵀ`. The radar is at the origin and observes range, azimuth and elevation. A full covariance matrix links the coordinates.
 
 ```text
-Q = q × [ dt³/3   dt²/2 ]
-        [ dt²/2   dt    ]
+p′ = p + v Δt + ½a Δt²       v′ = v + a Δt       a′ = a
+z  = [‖p‖, atan2(y,x), atan2(z,√(x²+y²))]ᵀ + noise
 ```
 
-`q = 1500` and measurement variance `r = 2500` in the existing model. See `common/kalman_core.hpp`.
+The EKF linearizes the radar measurement, wraps angle residuals, uses a Cholesky solve and Joseph covariance update, and predicts without correction when observations are missing. The process covariance models continuous white jerk, `q = 25 m²/s⁵`.
+
+[Equations, parameters and tests](../docs/phase-2-ekf3d.md)
 
 ---
 
-## Slide 9: Saved filter accuracy
+## Slide 6: Advanced extension — interacting multiple models
 
-For the committed synthetic input and saved output:
+- A sequential IMM maintains constant-velocity and constant-acceleration EKF hypotheses in a common nine-coordinate state.
+- At each observation, transition probabilities mix states and covariances; each model predicts and updates; likelihoods update model probabilities; estimates are fused.
+- Model transition matrix: `[[0.97, 0.03], [0.03, 0.97]]` per observation. Missing measurements use prediction and transition only.
+- Log-domain normalization avoids likelihood underflow. The CV acceleration coordinates are projected to zero after prediction.
 
-| Metric | Value |
-|---|---:|
-| Raw 2D position RMSE | 70.81 m |
-| Filtered 2D position RMSE | 22.95 m |
-| Reduction | 67.58% |
-
-The saved platform outputs match the independent Python reference at the precision exported. Their historical provenance is not independently established because the older verifier could overwrite both files.
+The IMM is **not** the algorithm used by the native multi-process application. [Model and assumptions](../docs/phase-5-imm.md)
 
 ---
 
-## Slide 10: Historical and current worker designs
+## Slide 7: Scenario and validation
 
-The **historical** saved benchmark created new workers for each iteration. Median times for 1 and 8 workers were:
+- Seeded synthetic radar scenario: 3 tracks × 600 observations; irregular intervals, missing measurements, straight motion and maneuvers. Ground truth is separate from filter input.
+- Native 1/2/4/8-worker EKF outputs were compared with the sequential driver, including interleaved tracks, batch boundaries, and 14,400-record expanded input.
+- Independent numerical references check the EKF and IMM; the IMM reference checked all 1,800 seed-42 rows, including 123 gaps, against state, position covariance and probabilities.
+- Failure-path tests exercise invalid input and worker failures; Linux CI verifies functional behavior on an Ubuntu runner.
 
-| Platform | 1 worker | 8 workers |
+[Scenario and EKF](../docs/phase-2-ekf3d.md) · [IMM reference](../tests/check_imm3d_reference.py) · [Native verification](../docs/phase-3-parallel-ekf3d.md)
+
+---
+
+## Slide 8: Accuracy on seeded radar data
+
+Arithmetic mean of the **20 per-seed** all-row 3D vector RMSEs; each seed uses the same trajectories and gaps with different sensor noise:
+
+| State | Single EKF | Sequential IMM |
 |---|---:|---:|
-| Linux | 1.926 ms | 7.951 ms |
-| Windows | 1.953 ms | 43.463 ms |
+| Position | 20.888 m | 16.891 m |
+| Velocity | 24.655 m/s | 21.105 m/s |
+| Acceleration | 6.245 m/s² | 1.907 m/s² |
 
-Those runs show slowdown, not speedup. The current implementation reuses workers and collects 20k/40k/80k-record experiments; controlled cross-platform results for that version still need to be collected. Do not compare historical and persistent-worker runs as if they used the same protocol.
+The IMM was lower for these 20 seeds. Model noise settings differ, and this is one synthetic trajectory family; it does not establish general or real-world superiority. Missing rows are included.
 
----
+![Paired position RMSE across the 20 noise seeds](../results/charts/phase6/imm_ekf_multiseed_accuracy.png)
 
-## Slide 11: Verification and reproducibility
-
-- Native sequential and persistent-worker results are checked for position and velocity agreement at 2, 4, and 8 workers.
-- GitHub Actions builds and exercises the Linux filter in an isolated directory; Windows can be tested in the same way locally.
-- Fresh persistent-worker experiments write individual timings separately from historical benchmark CSVs.
-- Record environment and dataset identity; compare parent/worker CPU and memory only with their scopes and sampling limitations stated.
+[Per-seed evidence and segments](../results/phase5/multiseed-fe04715/README.md) · [Model probabilities](../results/phase5/multiseed-fe04715/seed42-probabilities.svg)
 
 ---
 
-## Slide 12: Conclusions and next steps
+## Slide 9: Measured worker scaling
 
-- Both platforms demonstrate OS interfaces and a shared 2D tracking model.
-- The saved baseline reduces tracking error on the synthetic dataset; historical worker creation overhead exceeds the savings for the tested workload.
-- Persistent workers and raw samples enable a new, controlled scaling experiment. Report observed results without assuming speedup.
-- Future work: a validated 3D Extended Kalman Filter and, optionally, multiple motion models.
+Local Windows 11, Ryzen 5 5600U; clean source commit `f6435cf`; seed 42, 1,800 observations, batch 512. Median complete native invocation from **three samples per configuration**:
+
+| Workers | 1 | 2 | 4 | 8 |
+|---|---:|---:|---:|---:|
+| Time (ms) | 148.167 | 164.849 | 207.446 | 322.066 |
+| Speedup vs one native worker | 1.000× | 0.899× | 0.714× | 0.460× |
+
+This run shows slowdown. Timing includes process startup, input/output, synchronization, logging and shutdown; it does not isolate the cause. The benchmark varies workload and batch size and preserves individual samples.
+
+![Windows native EKF scaling measurements](../results/charts/phase6/windows_ekf3d_scaling.png)
+
+[Protocol and raw results](../report/phase4_results.md)
+
+---
+
+## Slide 10: OS measurements and resource scope
+
+- Category demos record call durations and process resource metrics; Linux TSC ticks and Windows process cycle counts differ in meaning.
+- Integrated benchmark samples record parent CPU, summed worker CPU, parent peak memory and the largest individual worker peak; shared pages can appear in multiple processes.
+- Launch time measures creation calls, not worker readiness. Later-batch time includes scheduling, synchronization and logging.
+- The Ubuntu CI runner and the local Windows machine have different hardware and environments; these measurements **do not support a controlled OS performance comparison**.
+
+[Measurement protocol](../docs/phase-4-measurements.md) · [Interface coverage](../docs/phase-0-baseline.md#requirement-to-source-to-evidence-matrix)
+
+---
+
+## Slide 11: IMM runtime and limitations
+
+On the same seed-42 input, one Windows session with one warm-up and five measured **complete sequential invocations** produced medians of 90.230 ms for the EKF and 103.952 ms for the IMM. These timings include CSV I/O and startup and do not isolate computation.
+
+The mean constant-acceleration probability varies by motion segment, but the differences are modest; the probabilities are not proven maneuver labels. Transition rates are per observation and the models use different noise parameters.
+
+[Timing samples, hashes and accuracy](../results/phase5/windows-0e59a69/manifest.json) · [Multiple-seed analysis](../results/phase5/multiseed-fe04715/README.md)
+
+---
+
+## Slide 12: Conclusions and open work
+
+- Native processes and IPC preserve independent track states across batches on both operating systems; reference checks support numerical correctness on tested inputs.
+- The IMM adds model mixing and adaptive weights, with a measured accuracy/runtime tradeoff on the selected synthetic workload.
+- More workers were slower in the recorded Windows run; comparable Linux/Windows experiments are still needed before drawing OS conclusions.
+- The Windows 15-call counting ambiguity and the remaining setup/cleanup logging audit require attention before final submission.
+
+Evidence: [Final report](../report/final_report.md) · [3D EKF results](../report/phase4_results.md) · [IMM documentation](../docs/phase-5-imm.md) · [Coverage matrix](../docs/phase-0-baseline.md#requirement-to-source-to-evidence-matrix)

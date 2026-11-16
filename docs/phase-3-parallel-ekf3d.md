@@ -2,7 +2,7 @@
 
 The 3D prototype has separate native applications for Linux and Windows. Both read the Phase 2 measurement CSV using native file operations, place parsed measurements and output arrays in a shared mapping, and write the resulting CSV using native file operations. The existing 2D filter and sequential 3D driver remain available.
 
-Linux uses `open`/`read`/`write`, a `MAP_SHARED` anonymous mapping, `fork`, pipes, and process waits. Windows uses `CreateFile`/`ReadFile`/`WriteFile`, a named file mapping, `CreateProcess`, events, and process waits. Worker processes persist across 128-record batches. A track is assigned to one worker by track ID modulo worker count, so its filter state persists across batches and observations are processed in input order.
+Linux uses `open`/`read`/`write`, a `MAP_SHARED` anonymous mapping, `fork`, pipes, and process waits. Windows uses `CreateFile`/`ReadFile`/`WriteFile`, a named file mapping, `CreateProcess`, events, and process waits. Worker processes persist across batches, which default to 128 records and can be selected at runtime. A track is assigned to one worker by track ID modulo worker count, so its filter state persists across batches and observations are processed in input order.
 
 The input accepts up to 100,000 records and 64 MiB. Track IDs must be nonnegative, each track must start with an observation, and timestamps for each track must be strictly increasing. Worker counts 1–8 are supported. Output is created only after successful processing and must not already exist. A write failure can leave a partial newly created output file; discard it before retrying. The applications report errors to standard error and use nonzero exit status on failure. Parent operations are logged to `<output.csv>.log`; each worker writes `<output.csv>.worker-<id>.log`, including its batch synchronization calls. Logs append to their paths and warn if they cannot be written. The logger's own file operations and some setup/cleanup paths are not individually traced.
 
@@ -18,7 +18,7 @@ python tests/check_ekf3d_parallel.py build/run_ekf3d build/EKF3D_Linux
 
 On Windows, build `Windows/Kalman_Filter/EKF3D_Windows.cpp` with MinGW-w64 and pass its executable as the second argument. For example, the local Windows checks used `g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ Windows/Kalman_Filter/EKF3D_Windows.cpp -o build/EKF3D_Windows.exe -lpsapi`. The test generates its inputs in a temporary directory, compares all exported state and covariance fields against the sequential driver for 1/2/4/8 workers, checks interleaved tracks across batch boundaries and existing-output protection, and exercises a worker computation failure.
 
-To run on a generated scenario directly, invoke the native executable with `<measurements.csv> <new-output.csv> <workers>`. Evaluate the output using `python common/evaluate_3d_scenario.py <scenario-directory> <new-output.csv>`; ground truth is used only by the evaluator.
+To run on a generated scenario directly, invoke the native executable with `<measurements.csv> <new-output.csv> <workers> [batch-size]`. Evaluate the output using `python common/evaluate_3d_scenario.py <scenario-directory> <new-output.csv>`; ground truth is used only by the evaluator.
 
 ## End-to-end benchmark
 

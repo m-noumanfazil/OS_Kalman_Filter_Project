@@ -1,5 +1,7 @@
 # Phase 0: Baseline and evidence inventory
 
+> **Later report update:** This is a dated Phase 0 inventory. The current consolidated report is now [report/final_report.md](../report/final_report.md); both reports identified as drafts below are historical.
+
 ## Baseline and report status
 
 Baseline commit: `104402e805727e8b959a5d75180d7c061e95b047` (2026-11-15, “Final Report draft uploaded”). This commit preserves the source and tracked artifacts as they existed before this checkpoint. No existing measurements or outputs were regenerated for this inventory.
