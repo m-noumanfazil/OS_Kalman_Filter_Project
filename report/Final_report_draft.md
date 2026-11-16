@@ -14,7 +14,7 @@
 |:---:|---|:---:|---|
 | 1 | **Muhammad Nouman Fazil** | CT-24259 | Core Systems Architecture, Part A/B Linux & Windows Implementation, Benchmarking Harness |
 | 2 | **Muhammad Usman Murtaze** | CT-24262 | Kalman Filter Kinematic Modeling, Telemetry Generation, Validation Analysis |
-| 3 | **Muneeb ur Rehman** | CT-24282 | Performance Profiling, OS Anomaly Research, Documentation and Verification |
+| 3 | **Muneeb ur Rehman** | CT-24283 | Performance Profiling, OS Anomaly Research, Documentation and Verification |
 
 ---
 

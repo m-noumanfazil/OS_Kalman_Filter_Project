@@ -19,7 +19,7 @@
 **Team Members (Group of 3):**
 1. **Muhammad Nouman Fazil** (CT-24259) — Systems Architecture, Linux/Win32 Implementations, Benchmarking Harness
 2. **Muhammad Usman Murtaze** (CT-24262) — Kalman Filter Kinematic Modeling, Telemetry Generation, Validation Analysis
-3. **Muneeb ur Rehman** (CT-24282) — Performance Profiling, OS Anomaly Research, Documentation and Verification
+3. **Muneeb ur Rehman** (CT-24283) — Performance Profiling, OS Anomaly Research, Documentation and Verification
 
 **Repository:** [github.com/m-noumanfazil/OS_Kalman_Filter_Project](https://github.com/m-noumanfazil/OS_Kalman_Filter_Project)  
 **Date:** November 2026
