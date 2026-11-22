@@ -8,7 +8,7 @@ This Markdown is the 12-slide presentation source. Each `---` separates slides. 
 
 Department of Computer Science & Information Technology, NED University
 
-Muhammad Nouman Fazil · Muhammad Usman Murtaze · Muneeb ur Rehman
+Muhammad Nouman Fazil · Muhammad Usman Murtaza · Muneeb ur Rehman
 
 [Final report](../report/final_report.md)
 

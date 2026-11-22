@@ -17,8 +17,8 @@
 | S. No. | Student Name | Seat / Roll Number | Contribution Focus |
 |:---:|---|:---:|---|
 | 1 | **Muhammad Nouman Fazil** | CT-24259 | Core Systems Architecture, Part A/B Linux & Windows Implementation, Benchmarking Harness |
-| 2 | **Muhammad Usman Murtaze** | CT-24262 | Kalman Filter Kinematic Modeling, Telemetry Generation, Validation Analysis |
-| 3 | **Muneeb ur Rehman** | CT-24282 | Performance Profiling, OS Anomaly Research, Documentation and Verification |
+| 2 | **Muhammad Usman Murtaza** | CT-24262 | Kalman Filter Kinematic Modeling, Telemetry Generation, Validation Analysis |
+| 3 | **Muneeb ur Rehman** | CT-24283 | Performance Profiling, OS Anomaly Research, Documentation and Verification |
 
 ---
 
@@ -95,8 +95,8 @@ The project is structured into two complementary phases:
 
 Key empirical findings include:
 - **Process Creation Overhead:** Linux's Copy-on-Write (COW) `fork()` primitive demonstrates a median latency of **115.44 \(\mu\)s**, outperforming Windows' full address space and subsystem initialization `CreateProcessA` (**1,659.00 \(\mu\)s**) by a factor of **14.37\(\times\)**. Complete spawn-and-wait cycles favored Linux by **4.74\(\times\)** (2,248.86 \(\mu\)s vs. 10,670.00 \(\mu\)s). Note that `fork()` and `CreateProcessA` represent fundamentally distinct architectural semantics rather than identical operations.
-- **Access Control and Permissions:** Linux's direct inode metadata manipulation via `chmod()` (**5.34 \(\mu\)s**) is **22.8\(\times\)** faster than Windows' `SetFileSecurityA` (**121.80 \(\mu\)s**), which involves discretionary access control list (DACL) evaluation, security token validation, and NTFS security descriptor updates.
-- **File I/O and Buffering:** While small-block operations are comparable due to operating system page caching, 1 MB write operations execute faster on Windows NTFS (**61.95 \(\mu\)s**) than on Linux ext4 (**200.42 \(\mu\)s**), a difference likely attributable to the NT Cache Manager's aggressive asynchronous write-behind buffering compared to Linux ext4 page cache dirty-page tracking and writeback handling.
+- **Access Control and Permissions:** Linux's direct inode metadata manipulation via `chmod()` (**5.341 \(\mu\)s**) is **22.8\(\times\)** faster than Windows' `SetFileSecurityA` (**121.80 \(\mu\)s**), which involves discretionary access control list (DACL) evaluation, security token validation, and NTFS security descriptor updates.
+- **File I/O and Buffering:** While small-block operations are comparable due to operating system page caching, 1 MB write operations execute faster on Windows NTFS (**61.95 \(\mu\)s**) than on Linux ext4 (**200.424 \(\mu\)s**), a difference likely attributable to the NT Cache Manager's aggressive asynchronous write-behind buffering compared to Linux ext4 page cache dirty-page tracking and writeback handling.
 - **Memory Management & Demand Paging:** Virtual memory allocation (`VirtualAlloc` / `mmap`) exhibits parity at ~2.1 to 3.1 \(\mu\)s due to lazy demand paging. Physical allocation overhead is deferred until first-touch page faults, which require **39.65 \(\mu\)s** on Windows and **46.62 \(\mu\)s** on Linux for a 64 KB region.
 - **Kalman Filter Tracking & Parallel Scalability:** The integrated 2D constant-velocity kinematic Kalman Filter successfully attenuates radar measurement noise from an initial Root Mean Squared Error (RMSE) of **70.81 m** down to **22.95 m**, achieving a **67.58% error reduction**. Single-process vs. multi-process output parity was mathematically verified with an absolute maximum deviation of **\(0.00\times 10^0\text{ m}\)** (within the recorded tolerance). In the parallel scalability benchmarks, because total sequential mathematical computation for 80,000 points consumes only ~2.1 ms, process creation and lifecycle overhead in each iteration dominated the parallel execution time on both platforms (Windows median latency scaling from 1,952.95 \(\mu\)s for 1 worker to 43,462.55 \(\mu\)s for 8 workers; Linux median scaling from 1,925.99 \(\mu\)s to 7,951.38 \(\mu\)s). This empirical slowdown demonstrates the operational boundary where orchestration overheads exceed parallel computational savings when workload granularity is very fine, an effect outside idealized formulations of Amdahl's Law that assume zero-cost parallelization.
 
@@ -235,9 +235,8 @@ OS_Kalman_Filter_CCP/
 │   ├── Windows/                        # windows_results.csv, filtered_sensor_data.csv
 │   └── charts/                         # Empirical trajectory, RMSE, and speedup plots
 │
-├── report/                             # Academic report drafts and artifacts
-│   ├── report.md                       # Original preliminary project report
-│   └── report_draft.md                 # This comprehensive technical draft
+├── report/                             # Academic report documentation
+│   └── Final_report_draft.md           # Comprehensive technical report
 │
 └── README.md                           # Repository overview, build, and run guide
 ```
@@ -582,7 +581,7 @@ Table 3.5: File Permissions and Security Performance Comparison (1,000 Iteration
 Data extracted from results/Windows/windows_results.csv and results/Linux/linux_results.csv.
 ```
 
-**Discussion:** Linux `chmod()` completes in **5.34 \(\mu\)s**, outperforming Windows `SetFileSecurityA` (**121.80 \(\mu\)s**) by **22.8\(\times\)**. In Linux ext4, permission bits (`0755`) are stored directly as a 16-bit integer field inside the file inode, requiring a single localized inode metadata write. On Windows NTFS, setting security requires validating user security identifiers (SIDs), computing security descriptor binary formats, traversing access control entries (ACEs), and updating the dedicated `$Secure` metadata stream on disk.
+**Discussion:** Linux `chmod()` completes in **5.341 \(\mu\)s**, outperforming Windows `SetFileSecurityA` (**121.80 \(\mu\)s**) by **22.8\(\times\)**. In Linux ext4, permission bits (`0755`) are stored directly as a 16-bit integer field inside the file inode, requiring a single localized inode metadata write. On Windows NTFS, setting security requires validating user security identifiers (SIDs), computing security descriptor binary formats, traversing access control entries (ACEs), and updating the dedicated `$Secure` metadata stream on disk.
 
 ### 3.7 Linux and Windows Implementation Comparison
 The assignment specifications explicitly list 15 Linux system calls (`open`, `read`, `write`, `close`, `fork`, `exec`, `wait`, `mmap`, `munmap`, `pipe`, `shmget`, `shmat`, `chmod`, `chown`, `umask`) and 12 Windows Win32 APIs (`CreateFile`, `ReadFile`, `WriteFile`, `CloseHandle`, `CreateProcess`, `WaitForSingleObject`, `VirtualAlloc`, `VirtualFree`, `CreatePipe`, `CreateFileMapping`, `MapViewOfFile`, `SetFileSecurity`).
@@ -792,9 +791,44 @@ CloseHandle(hFile);
 
 ### 4.6 Multi-Process Architecture
 
+```text
+                      common/sensor_data.csv (80,000 Radar Pings)
+                                          │
+                         [ Native File I/O Ingestion ]
+                         Windows: CreateFileA / ReadFile
+                         Linux:   open / read
+                                          │
+                                          ▼
+                   ┌──────────────────────────────────────────────┐
+                   │    Shared Memory Arena (SharedRadarArena)    │
+                   │    - recordCount (80,000), trackCount (8)    │
+                   │    - inputs[100,000] (RadarMeasurement)      │
+                   │    - outputs[100,000] (FilteredOutput)       │
+                   └──────────────────────┬───────────────────────┘
+                                          │
+         ┌────────────────────────────────┼────────────────────────────────┐
+         │                                │                                │
+         ▼                                ▼                                ▼
+  [ Worker Process 0 ]             [ Worker Process 1 ]           [ Worker Process N-1 ]
+  Windows: CreateProcessA          Windows: CreateProcessA        Windows: CreateProcessA
+  Linux:   fork()                  Linux:   fork()                Linux:   fork()
+  Affinity: Core 0                 Affinity: Core 1               Affinity: Core N-1
+  Tracks: {0, 4, ...}              Tracks: {1, 5, ...}            Tracks: {N-1, ...}
+  Kalman Filter (X, Y)             Kalman Filter (X, Y)           Kalman Filter (X, Y)
+         │                                │                                │
+         └────────────────────────────────┼────────────────────────────────┘
+                                          │ Disjoint, lock-free array writes
+                                          ▼
+                   ┌──────────────────────────────────────────────┐
+                   │   Shared Memory Arena: arena->outputs[]      │
+                   │   (Contains filtered estimates & velocities) │
+                   └──────────────────────┬───────────────────────┘
+                                          │
+                       [ Native File I/O Results Export ]
+                       Windows: WriteFile (filtered_sensor_data.csv)
+                       Linux:   write (filtered_sensor_data.csv)
 ```
-[FIGURE PLACEHOLDER: Multi-Process Kalman Filter Architecture — Parent Process, Worker Processes, Shared Memory, Sensor Data and Filtered Output]
-```
+*Figure 4.1: Multi-Process Kalman Filter Architecture showing shared memory arena, worker process spawning, and lock-free spatial partitioning.*
 
 #### Shared Memory Arena Design
 To support parallel processing across worker processes, both platforms allocate an in-memory **Shared Memory Arena** (`SharedRadarArena`):
@@ -979,7 +1013,7 @@ The 50% noise-reduction target and \(1\times 10^{-9}\text{ m}\) parity tolerance
 ## Chapter 5 — Experimental Setup and Methodology
 
 ### 5.1 Benchmarking Environment
-The benchmarks were executed natively on the HP ZBook workstation under bare-metal installations of Ubuntu 22.04 LTS (Linux kernel 6.8.0-52-generic) and Windows 10 Pro (Build 19045), avoiding virtualization or containerization layers.
+The benchmarks were executed natively on the HP ZBook workstation under bare-metal installations of Ubuntu 22.04.4 LTS (Linux kernel 5.15.0-88-generic) and Windows 10 Pro (Build 19045), avoiding virtualization or containerization layers.
 
 During benchmarking:
 - Standard user-facing applications were closed prior to executing runs to minimize active foreground interference.
@@ -1143,7 +1177,7 @@ The project successfully established that:
 ### 7.1 Linux-Specific Observations
 1. **Measured Process Instantiation Latency:** Linux `fork()` demonstrated a measured median latency of **115.441 \(\mu\)s** in microbenchmarks. A plausible architectural explanation for this low latency is Copy-on-Write (COW) page table manipulation, where the kernel duplicates page table entries with write protection rather than performing eager physical page copies.
 2. **File Descriptor Limits (`RLIMIT_NOFILE`):** In the specific Ubuntu test environment, executing 1,050 simultaneous file open operations exceeded the session's default soft limit of 1,024 open file descriptors. The benchmarking suite adapted by querying and elevating the process limit to 2,048 via `getrlimit(2)` and `setrlimit(2)`. This highlights the importance of per-process resource quota negotiation in I/O-intensive Linux applications.
-3. **Write Latency and Page Cache Behavior:** For 1 MB write operations, Linux recorded a median latency of **200.417 \(\mu\)s**, compared to **61.950 \(\mu\)s** on Windows NTFS. A plausible explanation is that Linux ext4 immediately accounts and tracks large buffer modifications across multiple 4 KB dirty pages within the page cache radix tree, whereas the Windows NT Cache Manager leverages asynchronous write-behind buffering before staging metadata updates.
+3. **Write Latency and Page Cache Behavior:** For 1 MB write operations, Linux recorded a median latency of **200.424 \(\mu\)s**, compared to **61.950 \(\mu\)s** on Windows NTFS. A plausible explanation is that Linux ext4 immediately accounts and tracks large buffer modifications across multiple 4 KB dirty pages within the page cache radix tree, whereas the Windows NT Cache Manager leverages asynchronous write-behind buffering before staging metadata updates.
 
 ### 7.2 Windows-Specific Observations
 1. **Executive Subsystem Initialization Overhead:** Windows process creation involves two distinct measured phases: `CreateProcessA` alone exhibited a median latency of **1,659.000 \(\mu\)s**, whereas a complete spawn, execution, and join cycle (`CreateProcess_plus_Wait`) exhibited a median latency of **10,670.000 \(\mu\)s**. The initial 1.66 ms latency plausibly reflects executive object creation, security token instantiation, Win32 subsystem registration, and PE header mapping, while the remaining ~9.0 ms encompasses thread startup, DLL initialization (`ntdll.dll`, `kernel32.dll`), and process termination cleanup.

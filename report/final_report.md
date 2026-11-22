@@ -4,7 +4,7 @@
 
 **Institution:** NED University of Engineering & Technology
 
-**Team:** Muhammad Nouman Fazil (CT-24259), Muhammad Usman Murtaze (CT-24262), Muneeb ur Rehman (CT-24282)
+**Team:** Muhammad Nouman Fazil (CT-24259), Muhammad Usman Murtaza (CT-24262), Muneeb ur Rehman (CT-24283)
 
 > **Current report and evidence scope.** This is the consolidated report for the current branch. The older [Final_report_draft.md](Final_report_draft.md) and [report.md](report.md) retain historical content and are not the source of current claims. Controlled same-machine Linux–Windows performance evidence is not yet available; Ubuntu CI and local Windows results use different machines. The instructor's interpretation of the rubric's Windows interface count remains open.
 
